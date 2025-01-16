@@ -1,6 +1,6 @@
-import {Bytes32} from "./core/bytes";
-import {Decoder} from "./core/codec";
-import {Optional} from "./core/result";
+import { Bytes32 } from "../core/bytes";
+import { Decoder } from "../core/codec";
+import { Optional } from "../core/result";
 
 // keccak256
 export type MmrPeakHash = Bytes32;
@@ -39,7 +39,9 @@ export class RefineContext {
       return Optional.none();
     }
 
-    return Optional.some(new RefineContext(anchor, stateRoot, beefyRoot, lookupAnchor, lookupAnchorSlot, prerequisites));
+    return Optional.some(
+      new RefineContext(anchor, stateRoot, beefyRoot, lookupAnchor, lookupAnchorSlot, prerequisites),
+    );
   }
 }
 

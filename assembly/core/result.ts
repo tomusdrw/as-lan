@@ -12,7 +12,7 @@ export class Union<A, B, C, D, E, F> {
 
 /** Optional for nullable types. */
 export class Optional<T> {
- static some<T>(some: T): Optional<T> {
+  static some<T>(some: T): Optional<T> {
     return new Optional(true, some);
   }
 
@@ -42,10 +42,8 @@ export class OptionalN<T> {
   ) {}
 }
 
-
 /** Result for nullable types. */
 export class Result<Ok, Err> {
-
   static ok<Ok, Err>(ok: Ok): Result<Ok, Err> {
     return new Result(true, ok, null);
   }
@@ -65,14 +63,13 @@ export class Result<Ok, Err> {
   }
 }
 
-
-/** 
+/**
  * Result for non-nullable types.
  *
  * Use `Optional` if you need to mix nullable and non-nullable.
  */
 export class ResultN<Ok, Err> {
- static ok<Ok, Err>(ok: Ok): ResultN<Ok, Err> {
+  static ok<Ok, Err>(ok: Ok): ResultN<Ok, Err> {
     return new ResultN(true, ok, changetype<Err>(0));
   }
 
@@ -81,7 +78,6 @@ export class ResultN<Ok, Err> {
   }
 
   public readonly isError: boolean;
-
 
   private constructor(
     public readonly isOkay: boolean,

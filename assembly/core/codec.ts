@@ -1,8 +1,8 @@
-import {Blob, Bytes32} from "./bytes";
+import { Blob, Bytes32 } from "./bytes";
 
 export interface Decode<T> {
   decode(t: Decoder): T;
-};
+}
 
 export class Decoder {
   /**
@@ -144,7 +144,6 @@ export class Decoder {
     return decode.decode(this);
   }
 
-
   /** Decode a possibly optional value. */
   optional<T>(decode: Decode<T>): T | null {
     // TODO [ToDr] handle non-canonical different than `1` value?
@@ -154,7 +153,7 @@ export class Decoder {
     }
     return decode.decode(this);
   }
-  
+
   /** Decode a known-length sequence of elements. */
   sequenceFixLen<T>(decode: Decode<T>, len: number): StaticArray<T> {
     const result = new StaticArray<T>(len);
