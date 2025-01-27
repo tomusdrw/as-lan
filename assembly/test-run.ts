@@ -1,9 +1,14 @@
 import * as bytes from "./core/bytes.test";
+import * as codec from "./core/codec.test";
+import * as types from "./jam/types.test";
+
 import { Test } from "./test";
 
 export function runAllTests(): void {
   let a: u64 = 0;
   a += run(bytes.TESTS, "bytes.ts");
+  a += run(codec.TESTS, "codec.ts");
+  a += run(types.TESTS, "types.ts");
 
   const okay = u32(a >> 32);
   const total = u32(a);

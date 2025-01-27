@@ -42,13 +42,13 @@ export class OptionalN<T> {
   ) {}
 }
 
-/** Result for nullable types. */
+/** Result for nullable okay and numeric error. */
 export class Result<Ok, Err> {
   static ok<Ok, Err>(ok: Ok): Result<Ok, Err> {
-    return new Result(true, ok, null);
+    return new Result(true, ok, changetype<Err>(0));
   }
 
-  static error<Ok, Err>(error: Err): Result<Ok, Err> {
+  static err<Ok, Err>(error: Err): Result<Ok, Err> {
     return new Result(false, null, error);
   }
 
@@ -56,8 +56,8 @@ export class Result<Ok, Err> {
 
   private constructor(
     public readonly isOkay: boolean,
-    public readonly ok: Ok | null,
-    public readonly err: Err | null,
+    public readonly okay: Ok | null,
+    public readonly error: Err,
   ) {
     this.isError = !isOkay;
   }
@@ -73,7 +73,7 @@ export class ResultN<Ok, Err> {
     return new ResultN(true, ok, changetype<Err>(0));
   }
 
-  static error<Ok, Err>(error: Err): ResultN<Ok, Err> {
+  static err<Ok, Err>(error: Err): ResultN<Ok, Err> {
     return new ResultN(false, changetype<Ok>(0), error);
   }
 
@@ -81,8 +81,8 @@ export class ResultN<Ok, Err> {
 
   private constructor(
     public readonly isOkay: boolean,
-    public readonly ok: Ok,
-    public readonly err: Err,
+    public readonly okay: Ok,
+    public readonly error: Err,
   ) {
     this.isError = !isOkay;
   }

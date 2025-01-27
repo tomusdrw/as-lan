@@ -1,7 +1,12 @@
-import { Blob, Bytes32 } from "./bytes";
+import { Bytes32, BytesBlob } from "./bytes";
+import { Result } from "./result";
 
-export interface Decode<T> {
-  decode(t: Decoder): T;
+export enum DecodeError {
+  Invalid = 0,
+}
+
+export interface TryDecode<T> {
+  decode(d: Decoder): Result<T, DecodeError>;
 }
 
 export class Decoder {
@@ -76,7 +81,7 @@ export class Decoder {
 
   /** Decode 8 bytes as a unsigned number. */
   u64(): u64 {
-    const offset = this.moveOffset(4);
+    const offset = this.moveOffset(8);
     if (offset !== -1) {
       return this.dataView.getUint64(offset, true);
     }
@@ -105,7 +110,7 @@ export class Decoder {
     }
 
     let num = (u64(firstByte) + 2 ** (8 - l) - 2 ** 8) << (8 * l);
-    for (let i = 0; i < l; i += 1) {
+    for (let i = 0; i < <i32>l; i += 1) {
       num |= u64(this.source[offset + i]) << (8 * i);
     }
     return num;
@@ -114,60 +119,71 @@ export class Decoder {
   /** Decode a 32-byte sequence. */
   bytes32(): Bytes32 {
     const bytes = this.bytesFixLen(32);
-    return new Bytes32(bytes.data);
+    return new Bytes32(bytes.raw);
   }
 
   /** Decode a fixed-length sequence of bytes. */
-  bytesFixLen(len: u32): Blob {
+  bytesFixLen(len: u32): BytesBlob {
     if (len === 0) {
-      return new Blob(new Uint8Array(0));
+      return new BytesBlob(new Uint8Array(0));
     }
     const offset = this.moveOffset(len);
     if (offset === -1) {
       // TODO [ToDr] we probably should not allocate here?
-      return new Blob(new Uint8Array(len));
+      return new BytesBlob(new Uint8Array(len));
     }
 
     const bytes = this.source.subarray(offset, offset + len);
-    return new Blob(bytes);
+    return new BytesBlob(bytes);
   }
 
   /** Decode a variable-length sequence of bytes. */
-  bytesVarLen(): Blob {
+  bytesVarLen(): BytesBlob {
     // TODO [ToDr] limit large collections?
     const len = this.varU64();
-    return this.bytesFixLen(len);
+    if (len > 0xffff_ffff) {
+      this._isError = true;
+    }
+    return this.bytesFixLen(u32(len));
   }
 
   /** Decode a composite object. */
-  object<T>(decode: Decode<T>): T {
+  object<T>(decode: TryDecode<T>): Result<T, DecodeError> {
     return decode.decode(this);
   }
 
   /** Decode a possibly optional value. */
-  optional<T>(decode: Decode<T>): T | null {
+  optional<T>(decode: TryDecode<T>): Result<T | null, DecodeError> {
     // TODO [ToDr] handle non-canonical different than `1` value?
     const isSet = this.u8() !== 0;
     if (!isSet) {
-      return null;
+      return Result.ok<T | null, DecodeError>(null);
     }
     return decode.decode(this);
   }
 
   /** Decode a known-length sequence of elements. */
-  sequenceFixLen<T>(decode: Decode<T>, len: number): StaticArray<T> {
+  sequenceFixLen<T>(decode: TryDecode<T>, len: u32): Result<StaticArray<T>, DecodeError> {
     const result = new StaticArray<T>(len);
-    for (let i = 0; i < len; i += 1) {
-      result[i] = decode.decode(this);
+    for (let i: u32 = 0; i < len; i += 1) {
+      const v = decode.decode(this);
+      if (v.isOkay) {
+        result[i] = v.okay!;
+      } else {
+        return Result.err<StaticArray<T>, DecodeError>(DecodeError.Invalid);
+      }
     }
-    return result;
+    return Result.ok<StaticArray<T>, DecodeError>(result);
   }
 
   /** Decode a variable-length sequence of elements. */
-  sequenceVarLen<T>(decode: Decode<T>): StaticArray<T> {
+  sequenceVarLen<T>(decode: TryDecode<T>): Result<StaticArray<T>, DecodeError> {
     // TODO [ToDr] limit large collections?
     const len = this.varU64();
-    return this.sequenceFixLen(decode, len);
+    if (len > 0xffff_ffff) {
+      this._isError = true;
+    }
+    return this.sequenceFixLen<T>(decode, u32(len));
   }
 
   /**
@@ -196,11 +212,9 @@ export class Decoder {
    * stored in the `source` is now fully decoded and we want to ensure
    * that there is no extra bytes contained in the `source`.
    */
-  finish(): void {
-    // TODO [ToDr] no errors
-    if (this.offset < this.source.length) {
-      throw new Error(`Expecting end of input, yet there are still ${this.source.length - this.offset} bytes left.`);
-    }
+  isFinished(): boolean {
+    // TODO [ToDr] set isError?
+    return this.offset === this.source.length;
   }
 
   // Progress the offset, but return the previous offset or -1 if not enough bytes.
@@ -214,8 +228,8 @@ export class Decoder {
     return -1;
   }
 
-  private hasBytes(bytes: u8): boolean {
-    if (this.offset + bytes > this.source.length) {
+  private hasBytes(bytes: u32): boolean {
+    if (this.offset + bytes > <u32>this.source.length) {
       console.log(
         `Attempting to decode more data than there is left. Need ${bytes}, left: ${this.source.length - this.offset}.`,
       );
@@ -228,7 +242,7 @@ export class Decoder {
 const MASKS: u8[] = [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80];
 
 export function decodeVariableLengthExtraBytes(firstByte: u8): u8 {
-  for (let i: u8 = 0; i < MASKS.length; i++) {
+  for (let i: u8 = 0; i < <u8>MASKS.length; i++) {
     if (firstByte >= MASKS[i]) {
       return 8 - i;
     }

@@ -1,3 +1,5 @@
+import { BytesBlob } from "./core/bytes";
+
 export class Test {
   constructor(
     public name: string,
@@ -18,6 +20,10 @@ export class Assert {
   fail(msg: string): void {
     this.isOkay = false;
     this.errors.push(msg);
+  }
+
+  isEqualBytes(actual: BytesBlob, expected: BytesBlob, msg: string = ""): void {
+    this.isEqual(actual.toString(), expected.toString(), msg);
   }
 
   isEqual<T>(actual: T, expected: T, msg: string = ""): void {
