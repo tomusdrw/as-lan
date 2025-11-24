@@ -1,35 +1,28 @@
-// The entry file of your WebAssembly module.
+import {BytesBlob} from "../core/bytes";
+import {Decoder, BytesBlobCodec } from "../core/codec";
+import {AccumulateItem, PackageInfo} from "../jam/types";
+import {accumulate, refine} from "./service";
 
-import { PackageInfo } from "../jam/types";
+export function refine_ext(inData: Uint8Array): Uint8Array {
+  const decoder = Decoder.fromBlob(inData);
+  const serviceId = decoder.u32();
+  const payload = decoder.bytesVarLen();
+  const packageInfo = decoder.object<PackageInfo>(PackageInfo.Codec);
+  const extrinsics = decoder.sequenceVarLen<BytesBlob>(BytesBlobCodec)
 
-declare function gas(): i64;
+  const output = refine(serviceId, payload, packageInfo.okay!, extrinsics.okay!)
 
-declare function lookup(service: u32, hash_ptr: u32, out_ptr: u32, out_len: u32): u32;
-
-export function is_authorized(): u32 {
-  return 0;
-}
-export function accumulate(_p: PackageInfo): u32 {
-  return 0;
-}
-export function refine(): u32 {
-  const limit = gas();
-  let a = 1;
-  let b = 1;
-
-  for (let i = 1; i < limit; i += 1) {
-    const t = b;
-    b = a;
-    a = a + t;
-  }
-
-  return a;
+  return output.raw;
 }
 
-export function on_transfer(): u32 {
-  return 0;
-}
+export function accumulate_ext(inData: Uint8Array): Uint8Array {
+  const decoder = Decoder.fromBlob(inData);
+  const slot = decoder.u32();
+  const serviceId = decoder.u32();
+  const refineResults = decoder.sequenceVarLen<AccumulateItem>(AccumulateItem.Codec)
 
-export function add(a: i32, b: i32): i32 {
-  return a + b + <i32>gas();
+  const output = accumulate(slot, serviceId, refineResults.okay!);
+
+  // TODO [ToDr] encode option?
+  return output.isSome ? output.val!.raw : new Uint8Array(0);
 }

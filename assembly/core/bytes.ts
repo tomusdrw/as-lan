@@ -34,7 +34,7 @@ export class BytesBlob {
     return Result.ok<BytesBlob, BlobParseError>(new BytesBlob(bytes));
   }
 
-  constructor(public readonly raw: Uint8Array) {}
+  protected constructor(public readonly raw: Uint8Array) {}
 
   toString(): string {
     return bytesToHexString(this.raw);
@@ -42,13 +42,14 @@ export class BytesBlob {
 }
 
 export class Bytes32 extends BytesBlob {
-  constructor(data: Uint8Array) {
+  protected constructor(data: Uint8Array) {
     if (data.length !== 32) {
       throw new Error(`Invalid length of bytes32 (got: ${data.length})`);
     }
     super(data);
   }
 }
+
 const CODE_OF_0: i32 = "0".charCodeAt(0);
 const CODE_OF_9: i32 = "9".charCodeAt(0);
 const CODE_OF_a: i32 = "a".charCodeAt(0);
