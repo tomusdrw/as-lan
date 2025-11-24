@@ -9,6 +9,14 @@ export interface TryDecode<T> {
   decode(d: Decoder): Result<T, DecodeError>;
 }
 
+export class ClassCodec<T> implements TryDecode<T> {
+  constructor(private readonly _decode: (d: Decoder) => Result<T, DecodeError>) {}
+
+  decode(d: Decoder): Result<T, DecodeError> {
+    return this._decode(d);
+  }
+}
+
 export class Decoder {
   /**
    * Create a new [`Decoder`] instance given a raw array of bytes as a source.
@@ -241,7 +249,7 @@ export class Decoder {
 
 const MASKS: u8[] = [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80];
 
-export function decodeVariableLengthExtraBytes(firstByte: u8): u8 {
+function decodeVariableLengthExtraBytes(firstByte: u8): u8 {
   for (let i: u8 = 0; i < <u8>MASKS.length; i++) {
     if (firstByte >= MASKS[i]) {
       return 8 - i;
@@ -249,3 +257,13 @@ export function decodeVariableLengthExtraBytes(firstByte: u8): u8 {
   }
   return 0;
 }
+
+export const BytesBlobCodec = new ClassCodec<BytesBlob>(
+  (d) => {
+    const bytes = d.bytesVarLen();
+    if (d.isError) {
+      return Result.err<BytesBlob, DecodeError>(DecodeError.Invalid);
+    }
+    return Result.ok<BytesBlob, DecodeError>(bytes)
+  }
+);

@@ -1,14 +1,6 @@
 import { Bytes32, BytesBlob } from "../core/bytes";
-import { DecodeError, Decoder, TryDecode } from "../core/codec";
+import { DecodeError, Decoder, TryDecode, ClassCodec } from "../core/codec";
 import { Result } from "../core/result";
-
-class ClassCodec<T> implements TryDecode<T> {
-  constructor(private readonly _decode: (d: Decoder) => Result<T, DecodeError>) {}
-
-  decode(d: Decoder): Result<T, DecodeError> {
-    return this._decode(d);
-  }
-}
 
 // keccak256
 export type MmrPeakHash = Bytes32;
@@ -18,12 +10,25 @@ export type StateRootHash = Bytes32;
 export type HeaderHash = Bytes32;
 // blake2b
 export type CodeHash = Bytes32;
+// blake2b
+export type PayloadHash = Bytes32;
 
 export type Slot = u32;
 export type ServiceId = u32;
-export type WorkPayload = u8[];
+export type WorkPayload = BytesBlob;
+export type AuthOutput = BytesBlob;
+export type WorkOutput = BytesBlob;
 
 export type WorkPackageHash = Bytes32;
+
+export enum WorkExecResultKind {
+  OK = 0,
+  OutOfGas = 1,
+  Panic = 2,
+  BadExports = 3,
+  BadCode = 4,
+  CodeOversize = 5,
+}
 
 export class RefineContext {
   constructor(
@@ -125,16 +130,10 @@ export class WorkItem {
     const codeHash = d.bytes32();
     const payload = d.bytesVarLen();
     const refineGasLimit = d.u64();
-    console.log(`refGasLimit: ${refineGasLimit.toString(16)}`);
     const accumulateGasLimit = d.u64();
-    console.log(`error: ${d.isError}`);
-    console.log(`accgasLimit: ${accumulateGasLimit.toString(16)}`);
     const importSegments = d.sequenceVarLen<ImportSpec>(ImportSpec.Codec);
-    console.log(`error: ${d.isError}`);
     const extrinsic = d.sequenceVarLen<WorkItemExtrinsicSpec>(WorkItemExtrinsicSpec.Codec);
-    console.log(`error: ${d.isError}`);
     const exportCount = d.u16();
-    console.log(`error: ${d.isError}`);
 
     if (d.isError) {
       return Result.err<WorkItem, DecodeError>(DecodeError.Invalid);
@@ -172,3 +171,56 @@ export class WorkItem {
     public readonly exportCount: u16,
   ) {}
 }
+
+export class WorkExecResult {
+  static Codec: TryDecode<WorkExecResult> = new ClassCodec<WorkExecResult>((d) => {
+    const kind = d.u8();
+    let okBlob: BytesBlob | null = null;
+    if (kind === 0) {
+      okBlob = d.bytesVarLen();
+    }
+
+    if (d.isError) {
+      return Result.err<WorkExecResult, DecodeError>(DecodeError.Invalid);
+    }
+
+    return Result.ok<WorkExecResult, DecodeError>(new WorkExecResult(
+      kind,
+      okBlob,
+    ));
+  });
+
+  constructor(
+    public readonly kind: WorkExecResultKind,
+    public readonly okBlob: BytesBlob | null = null,
+  ) {}
+} 
+
+export class AccumulateItem {
+  static Codec: TryDecode<AccumulateItem> = new ClassCodec<AccumulateItem>((d) => {
+    const workPackage = d.bytes32();
+    const authOutput = d.bytesVarLen();
+    const payloadHash = d.bytes32();
+    const workExecResult = d.object<WorkExecResult>(WorkExecResult.Codec);
+
+    if (d.isError) {
+      return Result.err<AccumulateItem, DecodeError>(DecodeError.Invalid);
+    }
+
+    return Result.ok<AccumulateItem, DecodeError>(new AccumulateItem(
+      workPackage,
+      authOutput,
+      payloadHash,
+      workExecResult.okay!,
+    ));
+  });
+
+  constructor(
+    public readonly workPackage: WorkPackageHash,
+    public readonly authOutput: AuthOutput,
+    public readonly payload: PayloadHash,
+    public readonly workExecResult: WorkExecResult,
+  ) {}
+}
+
+// export class TransferRecord
