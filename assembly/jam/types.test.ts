@@ -1,7 +1,16 @@
 import { BytesBlob } from "../core/bytes";
 import { Decoder } from "../core/codec";
 import { Assert, Test, test } from "../test";
-import { ImportSpec, PackageInfo, RefineContext, WorkItem, WorkItemExtrinsicSpec } from "./types";
+import {
+  AccumulateItem,
+  ImportSpec,
+  PackageInfo,
+  RefineContext,
+  WorkExecResult,
+  WorkExecResultKind,
+  WorkItem,
+  WorkItemExtrinsicSpec,
+} from "./types";
 
 export const TESTS: Test[] = [
   test("decode refine context", () => {
@@ -116,6 +125,43 @@ export const TESTS: Test[] = [
     assert.isEqual(workItem.importSegments.length, 1);
     assert.isEqual(workItem.extrinsic.length, 1);
     assert.isEqual(workItem.exportCount, 5);
+    return assert;
+  }),
+  test("decode work exec result", () => {
+    const data = BytesBlob.parseBlob("0x0003aabbcc").okay!;
+    const decoder = Decoder.fromBlob(data.raw);
+    const res = decoder.object<WorkExecResult>(WorkExecResult.Codec).okay!;
+
+    const assert = new Assert();
+    assert.isEqual(decoder.isError, false);
+    assert.isEqual(decoder.isFinished(), true);
+    assert.isEqual(res.kind, WorkExecResultKind.OK);
+    assert.isEqualBytes(res.okBlob!, BytesBlob.parseBlob("0xaabbcc").okay!, "ok blob");
+    return assert;
+  }),
+  test("decode accumulate item", () => {
+    const data = BytesBlob.parseBlob(
+      "0x111111111111111111111111111111111111111111111111111111111111111102beef22222222222222222222222222222222222222222222222222222222222222220001aa",
+    ).okay!;
+    const decoder = Decoder.fromBlob(data.raw);
+    const item = decoder.object<AccumulateItem>(AccumulateItem.Codec).okay!;
+
+    const assert = new Assert();
+    assert.isEqual(decoder.isError, false);
+    assert.isEqual(decoder.isFinished(), true);
+    assert.isEqualBytes(
+      item.workPackage,
+      BytesBlob.parseBlob("0x1111111111111111111111111111111111111111111111111111111111111111").okay!,
+      "workPackage",
+    );
+    assert.isEqualBytes(item.authOutput, BytesBlob.parseBlob("0xbeef").okay!, "authOutput");
+    assert.isEqualBytes(
+      item.payload,
+      BytesBlob.parseBlob("0x2222222222222222222222222222222222222222222222222222222222222222").okay!,
+      "payload",
+    );
+    assert.isEqual(item.workExecResult.kind, WorkExecResultKind.OK);
+    assert.isEqualBytes(item.workExecResult.okBlob!, BytesBlob.parseBlob("0xaa").okay!, "ok blob");
     return assert;
   }),
 ];
