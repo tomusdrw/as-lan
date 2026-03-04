@@ -1,7 +1,7 @@
-import {BytesBlob} from "../core/bytes";
-import {Optional} from "../core/result";
+import { BytesBlob } from "../core/bytes";
+import { Optional } from "../core/result";
 import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "../jam/types";
-import {Logger} from "./logger";
+import { Logger } from "./logger";
 
 export function is_authorized(): u32 {
   return 0;
@@ -9,11 +9,7 @@ export function is_authorized(): u32 {
 
 const logger = new Logger("fib");
 
-export function accumulate(
-  slot: Slot,
-  serviceId: ServiceId,
-  _argsLength: u32,
-): Optional<CodeHash> {
+export function accumulate(slot: Slot, serviceId: ServiceId, _argsLength: u32): Optional<CodeHash> {
   logger.info(`Fibonacci Service Accumulate, ${serviceId} @${slot}`);
 
   // Calculate fibonacci using accumulator pattern
@@ -37,7 +33,7 @@ export function refine(
 
 /// Calculate fibonacci number using accumulator pattern (iterative approach)
 function fibonacci(n: u64): u64 {
-  if (n == 0) {
+  if (n === 0) {
     return 0;
   }
 

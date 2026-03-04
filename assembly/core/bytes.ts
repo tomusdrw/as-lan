@@ -50,7 +50,7 @@ export class BytesBlob {
 }
 
 export enum Bytes32Error {
-  NotEnoughData = 0
+  NotEnoughData = 0,
 }
 
 export class Bytes32 extends BytesBlob {
@@ -58,7 +58,7 @@ export class Bytes32 extends BytesBlob {
     return new Bytes32(raw);
   }
 
-  static wrap32(data: Uint8Array): Result<Bytes32, Bytes32Error>  {
+  static wrap32(data: Uint8Array): Result<Bytes32, Bytes32Error> {
     if (data.length !== 32) {
       return Result.err(Bytes32Error.NotEnoughData);
     }

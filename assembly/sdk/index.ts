@@ -1,7 +1,7 @@
-import {Decoder} from "../core/codec";
-import {CodeHash} from "../jam/types";
-import {Optional} from "../core/result";
-import {accumulate, refine} from "./service";
+import { Decoder } from "../core/codec";
+import { Optional } from "../core/result";
+import { CodeHash } from "../jam/types";
+import { accumulate, refine } from "./service";
 
 function ensureDecodeOk(decoder: Decoder): void {
   if (decoder.isError || !decoder.isFinished()) {

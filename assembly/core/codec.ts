@@ -9,8 +9,7 @@ export interface TryDecode<T, E = DecodeError> {
   decode(d: Decoder): Result<T, E>;
 }
 
-export interface Codec<T, E = DecodeError> extends TryDecode<T, E> {
-}
+export interface Codec<T, E = DecodeError> extends TryDecode<T, E> {}
 
 export function codec<T, E = DecodeError>(decode: (d: Decoder) => Result<T, E>): Codec<T, E> {
   return {

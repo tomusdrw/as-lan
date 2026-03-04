@@ -1,7 +1,7 @@
 import { log } from "./imports";
 
 // Log levels matching JIP-1 specification
-export const enum LogLevel {
+export enum LogLevel {
   Fatal = 0,
   Warning = 1,
   Important = 2,
@@ -48,12 +48,6 @@ export class Logger {
     const targetBuf = String.UTF8.encode(this.target);
     const msgBuf = String.UTF8.encode(message);
 
-    log(
-      level,
-      changetype<u32>(targetBuf),
-      targetBuf.byteLength,
-      changetype<u32>(msgBuf),
-      msgBuf.byteLength,
-    );
+    log(level, changetype<u32>(targetBuf), targetBuf.byteLength, changetype<u32>(msgBuf), msgBuf.byteLength);
   }
 }
