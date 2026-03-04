@@ -1,6 +1,5 @@
-import {BytesBlob} from "../core/bytes";
-import {Decoder, BytesBlobCodec } from "../core/codec";
-import {AccumulateItem, CodeHash, PackageInfo} from "../jam/types";
+import {Decoder} from "../core/codec";
+import {CodeHash} from "../jam/types";
 import {Optional} from "../core/result";
 import {accumulate, refine} from "./service";
 
@@ -23,32 +22,27 @@ function encodeOptionalCodeHash(hash: Optional<CodeHash>): Uint8Array {
 
 export function refine_ext(inData: Uint8Array): Uint8Array {
   const decoder = Decoder.fromBlob(inData);
-  const serviceId = decoder.u32();
+  const coreIndex = u16(decoder.varU64());
+  const itemIndex = u32(decoder.varU64());
+  const serviceId = u32(decoder.varU64());
   const payload = decoder.bytesVarLen();
-  const packageInfo = decoder.object<PackageInfo>(PackageInfo.Codec);
-  const extrinsics = decoder.sequenceVarLen<BytesBlob>(BytesBlobCodec);
+  const workPackageHash = decoder.bytes32();
 
-  if (!packageInfo.isOkay || !extrinsics.isOkay) {
-    throw new Error("Invalid ABI payload");
-  }
   ensureDecodeOk(decoder);
 
-  const output = refine(serviceId, payload, packageInfo.okay!, extrinsics.okay!);
+  const output = refine(coreIndex, itemIndex, serviceId, payload, workPackageHash);
 
   return output.raw;
 }
 
 export function accumulate_ext(inData: Uint8Array): Uint8Array {
   const decoder = Decoder.fromBlob(inData);
-  const slot = decoder.u32();
-  const serviceId = decoder.u32();
-  const refineResults = decoder.sequenceVarLen<AccumulateItem>(AccumulateItem.Codec);
+  const slot = u32(decoder.varU64());
+  const serviceId = u32(decoder.varU64());
+  const argsLength = u32(decoder.varU64());
 
-  if (!refineResults.isOkay) {
-    throw new Error("Invalid ABI payload");
-  }
   ensureDecodeOk(decoder);
 
-  const output = accumulate(slot, serviceId, refineResults.okay!);
+  const output = accumulate(slot, serviceId, argsLength);
   return encodeOptionalCodeHash(output);
 }

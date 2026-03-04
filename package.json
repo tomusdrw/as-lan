@@ -18,9 +18,7 @@
     "preweb": "npm run build",
 		"web": "npx live-server ./web",
 		"start": "node run web",
-		"test": "npm run asbuild:test && node ./bin/test.js",
-		"example:refine": "npm run asbuild:release && node ./bin/example-refine.js",
-		"example:accumulate": "npm run asbuild:release && node ./bin/example-accumulate.js"
+		"test": "npm run asbuild:test && node ./bin/test.js"
   },
   "author": "Fluffy Labs",
   "license": "MPL-2.0",

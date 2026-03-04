@@ -49,7 +49,7 @@ export class Result<Ok, Err> {
   }
 
   static err<Ok, Err>(error: Err): Result<Ok, Err> {
-    return new Result(false, null, error);
+    return new Result(false, changetype<Ok>(0), error);
   }
 
   public readonly isError: boolean;

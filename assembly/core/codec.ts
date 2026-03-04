@@ -5,16 +5,17 @@ export enum DecodeError {
   Invalid = 0,
 }
 
-export interface TryDecode<T> {
-  decode(d: Decoder): Result<T, DecodeError>;
+export interface TryDecode<T, E = DecodeError> {
+  decode(d: Decoder): Result<T, E>;
 }
 
-export class ClassCodec<T> implements TryDecode<T> {
-  constructor(private readonly _decode: (d: Decoder) => Result<T, DecodeError>) {}
+export interface Codec<T, E = DecodeError> extends TryDecode<T, E> {
+}
 
-  decode(d: Decoder): Result<T, DecodeError> {
-    return this._decode(d);
-  }
+export function codec<T, E = DecodeError>(decode: (d: Decoder) => Result<T, E>): Codec<T, E> {
+  return {
+    decode,
+  };
 }
 
 export class Decoder {
@@ -127,22 +128,22 @@ export class Decoder {
   /** Decode a 32-byte sequence. */
   bytes32(): Bytes32 {
     const bytes = this.bytesFixLen(32);
-    return new Bytes32(bytes.raw);
+    return Bytes32.wrap32Unchecked(bytes.raw);
   }
 
   /** Decode a fixed-length sequence of bytes. */
   bytesFixLen(len: u32): BytesBlob {
     if (len === 0) {
-      return new BytesBlob(new Uint8Array(0));
+      return BytesBlob.wrap(new Uint8Array(0));
     }
     const offset = this.moveOffset(len);
     if (offset === -1) {
       // TODO [ToDr] we probably should not allocate here?
-      return new BytesBlob(new Uint8Array(len));
+      return BytesBlob.wrap(new Uint8Array(len));
     }
 
     const bytes = this.source.subarray(offset, offset + len);
-    return new BytesBlob(bytes);
+    return BytesBlob.wrap(bytes);
   }
 
   /** Decode a variable-length sequence of bytes. */
@@ -257,13 +258,3 @@ function decodeVariableLengthExtraBytes(firstByte: u8): u8 {
   }
   return 0;
 }
-
-export const BytesBlobCodec = new ClassCodec<BytesBlob>(
-  (d) => {
-    const bytes = d.bytesVarLen();
-    if (d.isError) {
-      return Result.err<BytesBlob, DecodeError>(DecodeError.Invalid);
-    }
-    return Result.ok<BytesBlob, DecodeError>(bytes)
-  }
-);
