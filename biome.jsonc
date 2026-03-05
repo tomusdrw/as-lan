@@ -48,7 +48,7 @@
     }
   },
   "files": {
-    "include": ["sdk/*", "examples/*"],
+    "include": ["sdk/**", "examples/**"],
     "ignore": ["**/build/**", "**/node_modules/**"]
   }
 }
