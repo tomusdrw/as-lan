@@ -54,6 +54,7 @@ export enum Bytes32Error {
 }
 
 export class Bytes32 extends BytesBlob {
+  /** Wrap raw bytes as Bytes32 without any length validation. */
   static wrap32Unchecked(raw: Uint8Array): Bytes32 {
     return new Bytes32(raw);
   }
@@ -62,13 +63,10 @@ export class Bytes32 extends BytesBlob {
     if (data.length !== 32) {
       return Result.err(Bytes32Error.NotEnoughData);
     }
-    return Result.ok(new Bytes32(data));
+    return Result.ok<Bytes32, Bytes32Error>(new Bytes32(data));
   }
 
   protected constructor(data: Uint8Array) {
-    if (data.length !== 32) {
-      throw new Error(`Invalid length of bytes32 (got: ${data.length})`);
-    }
     super(data);
   }
 }

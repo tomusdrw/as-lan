@@ -1,4 +1,4 @@
-import { BytesBlob } from "../core/bytes";
+import { Bytes32, BytesBlob } from "../core/bytes";
 import { Optional } from "../core/result";
 import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "../jam/types";
 import { Logger } from "./logger";
@@ -9,15 +9,19 @@ export function is_authorized(): u32 {
 
 const logger = new Logger("fib");
 
-export function accumulate(slot: Slot, serviceId: ServiceId, _argsLength: u32): Optional<CodeHash> {
+export function accumulate(slot: Slot, serviceId: ServiceId, argsLength: u32): Optional<CodeHash> {
   logger.info(`Fibonacci Service Accumulate, ${serviceId} @${slot}`);
 
-  // Calculate fibonacci using accumulator pattern
-  const n: u64 = 10; // Calculate fib(10)
+  const n: u64 = argsLength > 0 ? u64(argsLength) : 10;
   const result = fibonacci(n);
   logger.info(`fibonacci(${n}) = ${result}`);
 
-  return Optional.none<CodeHash>();
+  // Encode the fibonacci result as a CodeHash (little-endian u64 in the first 8 bytes)
+  const raw = new Uint8Array(32);
+  for (let i = 0; i < 8; i++) {
+    raw[i] = u8((result >> (i * 8)) & 0xff);
+  }
+  return Optional.some<CodeHash>(Bytes32.wrap32Unchecked(raw));
 }
 
 export function refine(

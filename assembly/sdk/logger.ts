@@ -14,7 +14,7 @@ export enum LogLevel {
 const LOGGING_ENABLED = true;
 
 export class Logger {
-  private target: string;
+  private readonly target: string;
 
   constructor(target: string) {
     this.target = target;

@@ -9,6 +9,20 @@ function ensureDecodeOk(decoder: Decoder): void {
   }
 }
 
+function strictU16(val: u64): u16 {
+  if (val > 0xffff) {
+    throw new Error("ABI value exceeds u16 range");
+  }
+  return u16(val);
+}
+
+function strictU32(val: u64): u32 {
+  if (val > 0xffff_ffff) {
+    throw new Error("ABI value exceeds u32 range");
+  }
+  return u32(val);
+}
+
 function encodeOptionalCodeHash(hash: Optional<CodeHash>): Uint8Array {
   if (!hash.isSome) {
     return new Uint8Array(1);
@@ -22,9 +36,9 @@ function encodeOptionalCodeHash(hash: Optional<CodeHash>): Uint8Array {
 
 export function refine_ext(inData: Uint8Array): Uint8Array {
   const decoder = Decoder.fromBlob(inData);
-  const coreIndex = u16(decoder.varU64());
-  const itemIndex = u32(decoder.varU64());
-  const serviceId = u32(decoder.varU64());
+  const coreIndex = strictU16(decoder.varU64());
+  const itemIndex = strictU32(decoder.varU64());
+  const serviceId = strictU32(decoder.varU64());
   const payload = decoder.bytesVarLen();
   const workPackageHash = decoder.bytes32();
 
@@ -37,9 +51,9 @@ export function refine_ext(inData: Uint8Array): Uint8Array {
 
 export function accumulate_ext(inData: Uint8Array): Uint8Array {
   const decoder = Decoder.fromBlob(inData);
-  const slot = u32(decoder.varU64());
-  const serviceId = u32(decoder.varU64());
-  const argsLength = u32(decoder.varU64());
+  const slot = strictU32(decoder.varU64());
+  const serviceId = strictU32(decoder.varU64());
+  const argsLength = strictU32(decoder.varU64());
 
   ensureDecodeOk(decoder);
 

@@ -2,17 +2,18 @@ import { BytesBlob } from "../core/bytes";
 import { Assert, Test, test } from "../test";
 import { accumulate_ext, refine_ext } from "./index";
 
-function leU32(v: u32): Uint8Array {
-  const out = new Uint8Array(4);
-  out[0] = u8(v & 0xff);
-  out[1] = u8((v >> 8) & 0xff);
-  out[2] = u8((v >> 16) & 0xff);
-  out[3] = u8((v >> 24) & 0xff);
-  return out;
+function pushVarU64(out: u8[], v: u64): void {
+  // Simple encoding: values < 128 fit in a single byte
+  if (v < 128) {
+    out.push(u8(v));
+  } else {
+    // For test purposes, we only need small values
+    throw new Error("varU64 encoding for large values not implemented in test helper");
+  }
 }
 
-function pushBlob(out: u8[], blob: Uint8Array): void {
-  out.push(u8(blob.length));
+function pushBytesVarLen(out: u8[], blob: Uint8Array): void {
+  pushVarU64(out, u64(blob.length));
   for (let i = 0; i < blob.length; i += 1) {
     out.push(blob[i]);
   }
@@ -46,58 +47,59 @@ function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, m
   }
 }
 
-function buildPackageInfoEmpty(): u8[] {
-  const out: u8[] = [];
-  const zeros32 = fromHex("0x0000000000000000000000000000000000000000000000000000000000000000");
-
-  // package hash
-  pushBytes(out, zeros32);
-  // RefineContext fields: anchor, stateRoot, beefyRoot, lookupAnchor
-  pushBytes(out, zeros32);
-  pushBytes(out, zeros32);
-  pushBytes(out, zeros32);
-  pushBytes(out, zeros32);
-  // lookupAnchorSlot
-  pushBytes(out, leU32(0));
-  // prerequisites: empty vec
-  out.push(0);
-
-  return out;
-}
-
 export const TESTS: Test[] = [
   test("refine_ext echoes payload", () => {
     const out: u8[] = [];
-    pushBytes(out, leU32(42)); // serviceId
-    pushBlob(out, fromHex("0xdeadbeef")); // payload
-    pushBytes(out, toBytes(buildPackageInfoEmpty())); // packageInfo
-    out.push(0); // extrinsics vec len
+    const zeros32 = fromHex("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+    pushVarU64(out, 0); // coreIndex
+    pushVarU64(out, 0); // itemIndex
+    pushVarU64(out, 42); // serviceId
+    pushBytesVarLen(out, fromHex("0xdeadbeef")); // payload
+    pushBytes(out, zeros32); // workPackageHash (32 bytes)
 
     const result = refine_ext(toBytes(out));
     const assert = new Assert();
     assertBytes(assert, result, fromHex("0xdeadbeef"), "refine output");
     return assert;
   }),
-  test("accumulate_ext encodes some hash", () => {
+  test("accumulate_ext default fib(10) = 55", () => {
     const out: u8[] = [];
-    const workPackage = fromHex("0x1111111111111111111111111111111111111111111111111111111111111111");
-    const payloadHash = fromHex("0x2222222222222222222222222222222222222222222222222222222222222222");
 
-    pushBytes(out, leU32(7)); // slot
-    pushBytes(out, leU32(9)); // service id
-    out.push(1); // results vec len
-
-    pushBytes(out, workPackage); // workPackage
-    pushBlob(out, fromHex("0x")); // authOutput
-    pushBytes(out, payloadHash); // payloadHash
-    out.push(0); // WorkExecResultKind::OK
-    pushBlob(out, fromHex("0xab")); // ok blob
+    pushVarU64(out, 7); // slot
+    pushVarU64(out, 9); // serviceId
+    pushVarU64(out, 0); // argsLength=0 means default n=10
 
     const result = accumulate_ext(toBytes(out));
     const assert = new Assert();
-    assert.isEqual(result.length, 33);
-    assert.isEqual(result[0], 1);
-    assertBytes(assert, result.subarray(1), workPackage, "encoded hash");
+    // Returns Some(CodeHash) = 1 byte tag + 32 bytes
+    assert.isEqual(result.length, 33, "result length");
+    assert.isEqual(result[0], 1, "some tag");
+    // fib(10) = 55 = 0x37, little-endian in first byte
+    assert.isEqual(result[1], 55, "fib(10) low byte");
+    // remaining bytes of the u64 should be 0
+    for (let i = 2; i < 9; i++) {
+      assert.isEqual(result[i], 0, `fib result byte[${i}]`);
+    }
+    return assert;
+  }),
+  test("accumulate_ext fib(20) = 6765", () => {
+    const out: u8[] = [];
+
+    pushVarU64(out, 1); // slot
+    pushVarU64(out, 5); // serviceId
+    pushVarU64(out, 20); // argsLength=20 means n=20
+
+    const result = accumulate_ext(toBytes(out));
+    const assert = new Assert();
+    assert.isEqual(result.length, 33, "result length");
+    assert.isEqual(result[0], 1, "some tag");
+    // fib(20) = 6765 = 0x1A6D little-endian
+    assert.isEqual(result[1], 0x6d, "fib(20) byte 0");
+    assert.isEqual(result[2], 0x1a, "fib(20) byte 1");
+    for (let i = 3; i < 9; i++) {
+      assert.isEqual(result[i], 0, `fib result byte[${i}]`);
+    }
     return assert;
   }),
 ];

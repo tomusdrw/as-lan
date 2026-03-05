@@ -133,7 +133,7 @@ export class Decoder {
   /** Decode a fixed-length sequence of bytes. */
   bytesFixLen(len: u32): BytesBlob {
     if (len === 0) {
-      return BytesBlob.wrap(new Uint8Array(0));
+      return BytesBlob.empty();
     }
     const offset = this.moveOffset(len);
     if (offset === -1) {

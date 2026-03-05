@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
-import { runAllTests } from "../build/test.js";
+import { memory, runAllTests } from "../build/test.js";
+import { setMemory } from "imports";
 
+setMemory(memory);
 runAllTests();
