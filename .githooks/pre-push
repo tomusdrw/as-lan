@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Pre-push hook: Run QA checks and tests before allowing push
+# Exit on any failure
+
+set -e
+
+echo "🔍 Running pre-push checks..."
+
+echo ""
+echo "📋 Running QA (linting & formatting)..."
+npm run qa
+
+echo ""
+echo "🔨 Building..."
+npm run build
+
+echo ""
+echo "🧪 Running tests..."
+npm test
+
+echo ""
+echo "✅ All pre-push checks passed!"
+exit 0

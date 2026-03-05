@@ -1,35 +1,62 @@
-// The entry file of your WebAssembly module.
+import { Decoder } from "../core/codec";
+import { Optional } from "../core/result";
+import { CodeHash } from "../jam/types";
+import { accumulate, refine } from "./service";
 
-import { PackageInfo } from "../jam/types";
-
-declare function gas(): i64;
-
-declare function lookup(service: u32, hash_ptr: u32, out_ptr: u32, out_len: u32): u32;
-
-export function is_authorized(): u32 {
-  return 0;
+function ensureDecodeOk(decoder: Decoder): void {
+  if (decoder.isError || !decoder.isFinished()) {
+    throw new Error("Invalid ABI payload");
+  }
 }
-export function accumulate(_p: PackageInfo): u32 {
-  return 0;
-}
-export function refine(): u32 {
-  const limit = gas();
-  let a = 1;
-  let b = 1;
 
-  for (let i = 1; i < limit; i += 1) {
-    const t = b;
-    b = a;
-    a = a + t;
+function strictU16(val: u64): u16 {
+  if (val > 0xffff) {
+    throw new Error("ABI value exceeds u16 range");
+  }
+  return u16(val);
+}
+
+function strictU32(val: u64): u32 {
+  if (val > 0xffff_ffff) {
+    throw new Error("ABI value exceeds u32 range");
+  }
+  return u32(val);
+}
+
+function encodeOptionalCodeHash(hash: Optional<CodeHash>): Uint8Array {
+  if (!hash.isSome) {
+    return new Uint8Array(1);
   }
 
-  return a;
+  const out = new Uint8Array(33);
+  out[0] = 1;
+  out.set(hash.val!.raw, 1);
+  return out;
 }
 
-export function on_transfer(): u32 {
-  return 0;
+export function refine_ext(inData: Uint8Array): Uint8Array {
+  const decoder = Decoder.fromBlob(inData);
+  const coreIndex = strictU16(decoder.varU64());
+  const itemIndex = strictU32(decoder.varU64());
+  const serviceId = strictU32(decoder.varU64());
+  const payload = decoder.bytesVarLen();
+  const workPackageHash = decoder.bytes32();
+
+  ensureDecodeOk(decoder);
+
+  const output = refine(coreIndex, itemIndex, serviceId, payload, workPackageHash);
+
+  return output.raw;
 }
 
-export function add(a: i32, b: i32): i32 {
-  return a + b + <i32>gas();
+export function accumulate_ext(inData: Uint8Array): Uint8Array {
+  const decoder = Decoder.fromBlob(inData);
+  const slot = strictU32(decoder.varU64());
+  const serviceId = strictU32(decoder.varU64());
+  const argsLength = strictU32(decoder.varU64());
+
+  ensureDecodeOk(decoder);
+
+  const output = accumulate(slot, serviceId, argsLength);
+  return encodeOptionalCodeHash(output);
 }

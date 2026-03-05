@@ -8,6 +8,14 @@ export enum BlobParseError {
 }
 
 export class BytesBlob {
+  static wrap(data: Uint8Array): BytesBlob {
+    return new BytesBlob(data);
+  }
+
+  static empty(): BytesBlob {
+    return new BytesBlob(new Uint8Array(0));
+  }
+
   static parseBlob(v: string): Result<BytesBlob, BlobParseError> {
     if (v.startsWith("0x")) {
       return BytesBlob.parseBlobNoPrefix(v.substring(2));
@@ -34,21 +42,35 @@ export class BytesBlob {
     return Result.ok<BytesBlob, BlobParseError>(new BytesBlob(bytes));
   }
 
-  constructor(public readonly raw: Uint8Array) {}
+  protected constructor(public readonly raw: Uint8Array) {}
 
   toString(): string {
     return bytesToHexString(this.raw);
   }
 }
 
+export enum Bytes32Error {
+  NotEnoughData = 0,
+}
+
 export class Bytes32 extends BytesBlob {
-  constructor(data: Uint8Array) {
+  /** Wrap raw bytes as Bytes32 without any length validation. */
+  static wrap32Unchecked(raw: Uint8Array): Bytes32 {
+    return new Bytes32(raw);
+  }
+
+  static wrap32(data: Uint8Array): Result<Bytes32, Bytes32Error> {
     if (data.length !== 32) {
-      throw new Error(`Invalid length of bytes32 (got: ${data.length})`);
+      return Result.err(Bytes32Error.NotEnoughData);
     }
+    return Result.ok<Bytes32, Bytes32Error>(new Bytes32(data));
+  }
+
+  protected constructor(data: Uint8Array) {
     super(data);
   }
 }
+
 const CODE_OF_0: i32 = "0".charCodeAt(0);
 const CODE_OF_9: i32 = "9".charCodeAt(0);
 const CODE_OF_a: i32 = "a".charCodeAt(0);

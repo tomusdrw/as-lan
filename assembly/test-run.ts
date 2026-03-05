@@ -1,6 +1,7 @@
 import * as bytes from "./core/bytes.test";
 import * as codec from "./core/codec.test";
 import * as types from "./jam/types.test";
+import * as sdk from "./sdk/index.test";
 
 import { Test } from "./test";
 
@@ -9,6 +10,7 @@ export function runAllTests(): void {
   a += run(bytes.TESTS, "bytes.ts");
   a += run(codec.TESTS, "codec.ts");
   a += run(types.TESTS, "types.ts");
+  a += run(sdk.TESTS, "sdk.ts");
 
   const okay = u32(a >> 32);
   const total = u32(a);
