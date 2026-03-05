@@ -38,10 +38,10 @@ my-service/
 
 Edit `assembly/service.ts`. You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service).
 
-Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a packed `u64` result. The SDK provides helpers for parsing and packing:
+Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a packed `u64` result. The SDK provides helpers for parsing arguments, and results are returned by calling `.toPtrAndLen()` on a `BytesBlob`:
 
 ```typescript
-import { Logger, Optional, RefineArgs, AccumulateArgs, packResult, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
+import { Logger, Optional, RefineArgs, AccumulateArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
 import { CodeHash } from "@fluffylabs/as-lan";
 
 const logger = new Logger("my-service");
@@ -55,7 +55,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
   const args = result.okay!;
   logger.info(`accumulate called for service ${args.serviceId} at slot ${args.slot}`);
   // TODO: implement your accumulate logic here
-  return packResult(encodeOptionalCodeHash(Optional.none<CodeHash>()));
+  return encodeOptionalCodeHash(Optional.none<CodeHash>()).toPtrAndLen();
 }
 
 export function refine(ptr: u32, len: u32): u64 {
@@ -67,7 +67,7 @@ export function refine(ptr: u32, len: u32): u64 {
   const args = result.okay!;
   logger.info(`refine called for service ${args.serviceId}`);
   // TODO: implement your refine logic here — for now, echo payload back
-  return packResult(args.payload.raw);
+  return args.payload.toPtrAndLen();
 }
 ```
 
@@ -83,7 +83,7 @@ If you prefer to set things up yourself:
 
 1. Add the SDK as a git submodule:
    ```bash
-   git submodule add https://github.com/aspect-build/aspect-cli.git sdk
+   git submodule add https://github.com/tomusdrw/as-lan.git sdk
    ```
 
 2. Add dependencies to `package.json`:

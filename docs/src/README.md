@@ -1,6 +1,6 @@
 # as-lan
 
-AssemblyScript SDK for building [JAM](https://jam.web3.foundation/) services.
+AssemblyScript SDK for building [JAM](https://graypaper.com/) services.
 
 ## Overview
 

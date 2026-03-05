@@ -113,7 +113,7 @@ TSEOF
 
 # --- assembly/service.ts ---
 cat > assembly/service.ts <<'TSEOF'
-import { Logger, Optional, RefineArgs, AccumulateArgs, packResult, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
+import { Logger, Optional, RefineArgs, AccumulateArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
 import { CodeHash } from "@fluffylabs/as-lan";
 
 const logger = new Logger("service");
@@ -127,7 +127,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
   const args = result.okay!;
   logger.info(`accumulate called for service ${args.serviceId} at slot ${args.slot}`);
   // TODO: implement your accumulate logic here
-  return packResult(encodeOptionalCodeHash(Optional.none<CodeHash>()));
+  return encodeOptionalCodeHash(Optional.none<CodeHash>()).toPtrAndLen();
 }
 
 export function refine(ptr: u32, len: u32): u64 {
@@ -139,7 +139,7 @@ export function refine(ptr: u32, len: u32): u64 {
   const args = result.okay!;
   logger.info(`refine called for service ${args.serviceId}`);
   // TODO: implement your refine logic here — for now, echo payload back
-  return packResult(args.payload.raw);
+  return args.payload.toPtrAndLen();
 }
 TSEOF
 
