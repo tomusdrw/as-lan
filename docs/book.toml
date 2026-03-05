@@ -1,0 +1,8 @@
+[book]
+title = "as-lan — AssemblyScript SDK for JAM Services"
+authors = ["Fluffylabs"]
+language = "en"
+src = "src"
+
+[output.html]
+site-url = "/as-lan/"

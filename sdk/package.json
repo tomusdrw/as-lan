@@ -1,0 +1,14 @@
+{
+  "name": "@fluffylabs/as-lan",
+  "version": "0.0.1",
+  "type": "module",
+  "ascMain": "index.ts",
+  "scripts": {
+    "asbuild:test": "asc test/test-run.ts --target test",
+    "test": "npm run asbuild:test && node ./bin/test.js"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.28.9",
+    "ecalli": "file:./test/ecalli"
+  }
+}
