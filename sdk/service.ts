@@ -19,6 +19,10 @@ let _accumulate: AccumulateFn | null = null;
 let _refine: RefineFn | null = null;
 let _isAuthorized: IsAuthorizedFn | null = null;
 
+// Result output globals — the host reads these after calling refine_ext/accumulate_ext
+export let result_ptr: u32 = 0;
+export let result_len: u32 = 0;
+
 /**
  * Register service callbacks. Call this once at module initialization.
  *
@@ -31,9 +35,27 @@ export function registerService(
   refine: RefineFn,
   isAuthorized: IsAuthorizedFn | null = null,
 ): void {
+  if (_accumulate !== null || _refine !== null) {
+    throw new Error("registerService() has already been called. It can only be called once.");
+  }
   _accumulate = accumulate;
   _refine = refine;
   _isAuthorized = isAuthorized;
+}
+
+// Raw memory helpers
+
+/** Read bytes from raw WASM linear memory into a managed Uint8Array. */
+function readFromMemory(ptr: u32, len: u32): Uint8Array {
+  const data = new Uint8Array(len);
+  memory.copy(data.dataStart, ptr, len);
+  return data;
+}
+
+/** Write a Uint8Array result to the exported result_ptr/result_len globals. */
+function writeResult(data: Uint8Array): void {
+  result_ptr = u32(data.dataStart);
+  result_len = data.byteLength;
 }
 
 // ABI helpers
@@ -69,9 +91,9 @@ function encodeOptionalCodeHash(hash: Optional<CodeHash>): Uint8Array {
   return out;
 }
 
-// Exported WASM entry points
+// Internal logic (takes/returns Uint8Array — used by tests)
 
-export function refine_ext(inData: Uint8Array): Uint8Array {
+export function refine_impl(inData: Uint8Array): Uint8Array {
   if (_refine === null) {
     throw new Error("No refine callback registered. Call registerService() first.");
   }
@@ -89,7 +111,7 @@ export function refine_ext(inData: Uint8Array): Uint8Array {
   return output.raw;
 }
 
-export function accumulate_ext(inData: Uint8Array): Uint8Array {
+export function accumulate_impl(inData: Uint8Array): Uint8Array {
   if (_accumulate === null) {
     throw new Error("No accumulate callback registered. Call registerService() first.");
   }
@@ -103,6 +125,20 @@ export function accumulate_ext(inData: Uint8Array): Uint8Array {
 
   const output = _accumulate!(slot, serviceId, argsLength);
   return encodeOptionalCodeHash(output);
+}
+
+// Exported WASM entry points — take raw pointers, write result to globals
+
+export function refine_ext(args_ptr: u32, args_len: u32): void {
+  const inData = readFromMemory(args_ptr, args_len);
+  const output = refine_impl(inData);
+  writeResult(output);
+}
+
+export function accumulate_ext(args_ptr: u32, args_len: u32): void {
+  const inData = readFromMemory(args_ptr, args_len);
+  const output = accumulate_impl(inData);
+  writeResult(output);
 }
 
 export function is_authorized(): u32 {

@@ -1,5 +1,6 @@
 import { Assert, BytesBlob, Test, test } from "as-lan-sdk";
-import { accumulate_ext, refine_ext } from "./index";
+import { accumulate_impl, refine_impl } from "as-lan-sdk/service";
+import { is_authorized } from "./index";
 
 function pushVarU64(out: u8[], v: u64): void {
   // Simple encoding: values < 128 fit in a single byte
@@ -47,7 +48,7 @@ function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, m
 }
 
 export const TESTS: Test[] = [
-  test("refine_ext echoes payload", () => {
+  test("refine_impl echoes payload", () => {
     const out: u8[] = [];
     const zeros32 = fromHex("0x0000000000000000000000000000000000000000000000000000000000000000");
 
@@ -57,19 +58,19 @@ export const TESTS: Test[] = [
     pushBytesVarLen(out, fromHex("0xdeadbeef")); // payload
     pushBytes(out, zeros32); // workPackageHash (32 bytes)
 
-    const result = refine_ext(toBytes(out));
+    const result = refine_impl(toBytes(out));
     const assert = new Assert();
     assertBytes(assert, result, fromHex("0xdeadbeef"), "refine output");
     return assert;
   }),
-  test("accumulate_ext default fib(10) = 55", () => {
+  test("accumulate_impl default fib(10) = 55", () => {
     const out: u8[] = [];
 
     pushVarU64(out, 7); // slot
     pushVarU64(out, 9); // serviceId
     pushVarU64(out, 0); // argsLength=0 means default n=10
 
-    const result = accumulate_ext(toBytes(out));
+    const result = accumulate_impl(toBytes(out));
     const assert = new Assert();
     // Returns Some(CodeHash) = 1 byte tag + 32 bytes
     assert.isEqual(result.length, 33, "result length");
@@ -82,14 +83,14 @@ export const TESTS: Test[] = [
     }
     return assert;
   }),
-  test("accumulate_ext fib(20) = 6765", () => {
+  test("accumulate_impl fib(20) = 6765", () => {
     const out: u8[] = [];
 
     pushVarU64(out, 1); // slot
     pushVarU64(out, 5); // serviceId
     pushVarU64(out, 20); // argsLength=20 means n=20
 
-    const result = accumulate_ext(toBytes(out));
+    const result = accumulate_impl(toBytes(out));
     const assert = new Assert();
     assert.isEqual(result.length, 33, "result length");
     assert.isEqual(result[0], 1, "some tag");
@@ -97,6 +98,43 @@ export const TESTS: Test[] = [
     assert.isEqual(result[1], 0x6d, "fib(20) byte 0");
     assert.isEqual(result[2], 0x1a, "fib(20) byte 1");
     for (let i = 3; i < 9; i++) {
+      assert.isEqual(result[i], 0, `fib result byte[${i}]`);
+    }
+    return assert;
+  }),
+  test("is_authorized returns 0 by default", () => {
+    const assert = new Assert();
+    assert.isEqual(is_authorized(), 0, "default is_authorized");
+    return assert;
+  }),
+  test("refine_impl with empty payload", () => {
+    const out: u8[] = [];
+    const zeros32 = fromHex("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+    pushVarU64(out, 1); // coreIndex
+    pushVarU64(out, 0); // itemIndex
+    pushVarU64(out, 10); // serviceId
+    pushBytesVarLen(out, new Uint8Array(0)); // empty payload
+    pushBytes(out, zeros32); // workPackageHash
+
+    const result = refine_impl(toBytes(out));
+    const assert = new Assert();
+    assert.isEqual(result.length, 0, "empty refine output");
+    return assert;
+  }),
+  test("accumulate_impl fib(1) = 1", () => {
+    const out: u8[] = [];
+
+    pushVarU64(out, 0); // slot
+    pushVarU64(out, 1); // serviceId
+    pushVarU64(out, 1); // argsLength=1 means n=1
+
+    const result = accumulate_impl(toBytes(out));
+    const assert = new Assert();
+    assert.isEqual(result.length, 33, "result length");
+    assert.isEqual(result[0], 1, "some tag");
+    assert.isEqual(result[1], 1, "fib(1) = 1");
+    for (let i = 2; i < 9; i++) {
       assert.isEqual(result[i], 0, `fib result byte[${i}]`);
     }
     return assert;
