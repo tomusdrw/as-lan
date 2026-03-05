@@ -1,6 +1,6 @@
 import { log } from "./imports";
 
-// Log levels matching JIP-1 specification
+/** Log levels matching JIP-1 specification */
 export enum LogLevel {
   Fatal = 0,
   Warning = 1,

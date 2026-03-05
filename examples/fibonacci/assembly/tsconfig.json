@@ -3,8 +3,8 @@
   "include": ["./**/*.ts"],
   "compilerOptions": {
     "paths": {
-      "as-lan-sdk": ["../../../sdk/index.ts"],
-      "as-lan-sdk/*": ["../../../sdk/*"]
+      "@fluffylabs/as-lan": ["../../../sdk/index.ts"],
+      "@fluffylabs/as-lan/*": ["../../../sdk/*"]
     }
   }
 }

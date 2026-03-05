@@ -24,22 +24,30 @@ export let result_ptr: u32 = 0;
 export let result_len: u32 = 0;
 
 /**
- * Register service callbacks. Call this once at module initialization.
+ * Register refine and accumulate callbacks. Call this once at module initialization.
+ * For authorization, use registerAuthorized() separately.
  *
- * @param accumulate - Called during the accumulate phase
  * @param refine - Called during the refine phase
- * @param isAuthorized - Optional authorization check (defaults to returning 0)
+ * @param accumulate - Called during the accumulate phase
  */
-export function registerService(
-  accumulate: AccumulateFn,
-  refine: RefineFn,
-  isAuthorized: IsAuthorizedFn | null = null,
-): void {
+export function registerService(refine: RefineFn, accumulate: AccumulateFn): void {
   if (_accumulate !== null || _refine !== null) {
     throw new Error("registerService() has already been called. It can only be called once.");
   }
   _accumulate = accumulate;
   _refine = refine;
+}
+
+/**
+ * Register an authorization callback. Call this once at module initialization.
+ * Cannot be combined with registerService() in the same module.
+ *
+ * @param isAuthorized - Authorization check callback
+ */
+export function registerAuthorized(isAuthorized: IsAuthorizedFn): void {
+  if (_isAuthorized !== null) {
+    throw new Error("registerAuthorized() has already been called. It can only be called once.");
+  }
   _isAuthorized = isAuthorized;
 }
 
@@ -141,7 +149,7 @@ export function accumulate_ext(args_ptr: u32, args_len: u32): void {
   writeResult(output);
 }
 
-export function is_authorized(): u32 {
+export function is_authorized_ext(): u32 {
   if (_isAuthorized !== null) {
     return _isAuthorized!();
   }

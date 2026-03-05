@@ -2,6 +2,22 @@
 
 AssemblyScript SDK for building [JAM](https://jam.web3.foundation/) services.
 
+**[Full Documentation](https://todr.me/as-lan/)**
+
+## Quick Start
+
+Scaffold a new service project with one command:
+
+```bash
+curl -sL https://todr.me/as-lan/start.sh | bash -s my-service
+cd my-service
+npm run build
+```
+
+This creates a ready-to-build project with the SDK wired up as a git submodule. Edit `assembly/service.ts` to implement your service logic.
+
+See the [Getting Started guide](https://todr.me/as-lan/getting-started.html) for details on what gets generated and next steps.
+
 ## Repository Structure
 
 ```
@@ -33,7 +49,7 @@ In your `package.json`:
 ```json
 {
   "devDependencies": {
-    "as-lan-sdk": "file:./sdk",
+    "@fluffylabs/as-lan": "file:./sdk",
     "assemblyscript": "^0.28.9"
   }
 }
@@ -44,8 +60,8 @@ In your `package.json`:
 Create `assembly/my-service.ts`:
 
 ```typescript
-import { BytesBlob, Bytes32, Logger, Optional } from "as-lan-sdk";
-import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "as-lan-sdk";
+import { BytesBlob, Bytes32, Logger, Optional } from "@fluffylabs/as-lan";
+import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "@fluffylabs/as-lan";
 
 const logger = new Logger("my-service");
 
@@ -73,14 +89,14 @@ export function refine(
 Create `assembly/index.ts`:
 
 ```typescript
-import { registerService } from "as-lan-sdk";
+import { registerService } from "@fluffylabs/as-lan";
 import { accumulate, refine } from "./my-service";
 
 // Register your callbacks (must be called once at module init)
-registerService(accumulate, refine);
+registerService(refine, accumulate);
 
 // Re-export WASM entry points that the host will call
-export { refine_ext, accumulate_ext, is_authorized } from "as-lan-sdk";
+export { refine_ext, accumulate_ext, is_authorized_ext } from "@fluffylabs/as-lan";
 ```
 
 ### 4. Configure AssemblyScript
@@ -111,10 +127,11 @@ npx asc assembly/index.ts --target release --runtime=stub
 
 ### Service Framework
 
-- **`registerService(accumulate, refine, isAuthorized?)`** — Register your service callbacks. Must be called exactly once at module initialization.
-- **`refine_ext`**, **`accumulate_ext`**, **`is_authorized`** — WASM entry points to re-export. The SDK handles ABI encoding/decoding.
+- **`registerService(refine, accumulate)`** — Register your service callbacks. Must be called exactly once at module initialization.
+- **`registerAuthorized(isAuthorized)`** — Register an authorization callback. Cannot be combined with `registerService` in the same module.
+- **`refine_ext`**, **`accumulate_ext`**, **`is_authorized_ext`** — WASM entry points to re-export. The SDK handles ABI encoding/decoding.
 
-### Types (from `as-lan-sdk`)
+### Types (from `@fluffylabs/as-lan`)
 
 | Type | Description |
 |------|-------------|

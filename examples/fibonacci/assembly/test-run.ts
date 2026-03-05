@@ -1,8 +1,8 @@
-import * as bytes from "as-lan-sdk/core/bytes.test";
-import * as codec from "as-lan-sdk/core/codec.test";
+import * as bytes from "@fluffylabs/as-lan/core/bytes.test";
+import * as codec from "@fluffylabs/as-lan/core/codec.test";
 import * as sdk from "./index.test";
 
-import { Test } from "as-lan-sdk";
+import { Test } from "@fluffylabs/as-lan";
 
 export function runAllTests(): void {
   let a: u64 = 0;

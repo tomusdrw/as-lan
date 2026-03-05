@@ -1,6 +1,6 @@
-import { Assert, BytesBlob, Test, test } from "as-lan-sdk";
-import { accumulate_impl, refine_impl } from "as-lan-sdk/service";
-import { is_authorized } from "./index";
+import { Assert, BytesBlob, Test, test } from "@fluffylabs/as-lan";
+import { accumulate_impl, refine_impl } from "@fluffylabs/as-lan/service";
+import { is_authorized_ext } from "./index";
 
 function pushVarU64(out: u8[], v: u64): void {
   // Simple encoding: values < 128 fit in a single byte
@@ -102,9 +102,9 @@ export const TESTS: Test[] = [
     }
     return assert;
   }),
-  test("is_authorized returns 0 by default", () => {
+  test("is_authorized_ext returns 0 by default", () => {
     const assert = new Assert();
-    assert.isEqual(is_authorized(), 0, "default is_authorized");
+    assert.isEqual(is_authorized_ext(), 0, "default is_authorized_ext");
     return assert;
   }),
   test("refine_impl with empty payload", () => {

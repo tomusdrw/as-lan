@@ -29,11 +29,12 @@ export { Logger, LogLevel } from "./logger";
 // Service framework
 export {
   registerService,
+  registerAuthorized,
   refine_ext,
   accumulate_ext,
   refine_impl,
   accumulate_impl,
-  is_authorized,
+  is_authorized_ext,
   result_ptr,
   result_len,
   AccumulateFn,

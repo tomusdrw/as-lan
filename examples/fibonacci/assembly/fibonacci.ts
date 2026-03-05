@@ -1,5 +1,5 @@
-import { Bytes32, BytesBlob, Logger, Optional } from "as-lan-sdk";
-import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "as-lan-sdk";
+import { Bytes32, BytesBlob, Logger, Optional } from "@fluffylabs/as-lan";
+import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "@fluffylabs/as-lan";
 
 const logger = new Logger("fib");
 

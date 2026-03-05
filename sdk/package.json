@@ -1,5 +1,5 @@
 {
-  "name": "as-lan-sdk",
+  "name": "@fluffylabs/as-lan",
   "version": "0.0.1",
   "ascMain": "index.ts"
 }
