@@ -108,38 +108,38 @@ JSONEOF
 
 # --- assembly/index.ts ---
 cat > assembly/index.ts <<'TSEOF'
-import { registerService } from "@fluffylabs/as-lan";
-import { accumulate, refine } from "./service";
-
-registerService(refine, accumulate);
-
-// Re-export the SDK's WASM entry points and result globals
-export { refine_ext, accumulate_ext, is_authorized_ext, result_ptr, result_len } from "@fluffylabs/as-lan";
+export { refine, accumulate } from "./service";
 TSEOF
 
 # --- assembly/service.ts ---
 cat > assembly/service.ts <<'TSEOF'
-import { BytesBlob, Logger, Optional } from "@fluffylabs/as-lan";
-import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "@fluffylabs/as-lan";
+import { Logger, Optional, RefineArgs, AccumulateArgs, packResult, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
+import { CodeHash } from "@fluffylabs/as-lan";
 
 const logger = new Logger("service");
 
-export function accumulate(slot: Slot, serviceId: ServiceId, argsLength: u32): Optional<CodeHash> {
-  logger.info(`accumulate called for service ${serviceId} at slot ${slot}`);
+export function accumulate(ptr: u32, len: u32): u64 {
+  const result = AccumulateArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse accumulate args: ${result.error}`);
+    return 0;
+  }
+  const args = result.okay!;
+  logger.info(`accumulate called for service ${args.serviceId} at slot ${args.slot}`);
   // TODO: implement your accumulate logic here
-  return Optional.none<CodeHash>();
+  return packResult(encodeOptionalCodeHash(Optional.none<CodeHash>()));
 }
 
-export function refine(
-  _core: CoreIndex,
-  _itemIdx: u32,
-  serviceId: ServiceId,
-  payload: BytesBlob,
-  _hash: WorkPackageHash,
-): WorkOutput {
-  logger.info(`refine called for service ${serviceId}`);
+export function refine(ptr: u32, len: u32): u64 {
+  const result = RefineArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse refine args: ${result.error}`);
+    return 0;
+  }
+  const args = result.okay!;
+  logger.info(`refine called for service ${args.serviceId}`);
   // TODO: implement your refine logic here — for now, echo payload back
-  return payload;
+  return packResult(args.payload.raw);
 }
 TSEOF
 

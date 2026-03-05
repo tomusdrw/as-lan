@@ -1,4 +1,4 @@
-import { Assert, Test, test } from "../test";
+import { Assert, Test, test } from "../test/utils";
 import { BlobParseError, BytesBlob } from "./bytes";
 
 export const TESTS: Test[] = [

@@ -1,46 +1,21 @@
 // Core types
-export { BytesBlob, Bytes32, BlobParseError, Bytes32Error } from "./core/bytes";
-export { Decoder, DecodeError, codec } from "./core/codec";
-export { U8WithError, u8WithError, u8IsError } from "./core/pack";
-export { Optional, OptionalN, Result, ResultN, Union } from "./core/result";
+export * from "./core/bytes";
+export * from "./core/codec";
+export * from "./core/mem";
+export * from "./core/pack";
+export * from "./core/result";
 
 // JAM types
-export {
-  CodeHash,
-  CoreIndex,
-  HeaderHash,
-  MmrPeakHash,
-  PayloadHash,
-  ServiceId,
-  Slot,
-  StateRootHash,
-  WorkOutput,
-  WorkPackageHash,
-  WorkPayload,
-  AuthOutput,
-} from "./jam/types";
+export * from "./jam/types";
 
-// Host imports
-export { gas, lookup, log } from "./imports";
+// Host calls
+export * from "./ecalli";
 
 // Logger
-export { Logger, LogLevel } from "./logger";
+export * from "./logger";
 
-// Service framework
-export {
-  registerService,
-  registerAuthorized,
-  refine_ext,
-  accumulate_ext,
-  refine_impl,
-  accumulate_impl,
-  is_authorized_ext,
-  result_ptr,
-  result_len,
-  AccumulateFn,
-  RefineFn,
-  IsAuthorizedFn,
-} from "./service";
+// Service helpers
+export * from "./service";
 
 // Test utilities
-export { Test, Assert, test } from "./test";
+export * from "./test/utils";

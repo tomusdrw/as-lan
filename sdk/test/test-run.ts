@@ -1,10 +1,12 @@
-import * as sdk from "./index.test";
+import * as bytes from "../core/bytes.test";
+import * as codec from "../core/codec.test";
 
-import { Test } from "@fluffylabs/as-lan";
+import { Test } from "./utils";
 
 export function runAllTests(): void {
   let a: u64 = 0;
-  a += run(sdk.TESTS, "fibonacci.ts");
+  a += run(bytes.TESTS, "bytes.ts");
+  a += run(codec.TESTS, "codec.ts");
 
   const okay = u32(a >> 32);
   const total = u32(a);

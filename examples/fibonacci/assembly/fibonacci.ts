@@ -1,32 +1,41 @@
-import { Bytes32, BytesBlob, Logger, Optional } from "@fluffylabs/as-lan";
-import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "@fluffylabs/as-lan";
+import { AccumulateArgs, Bytes32, Logger, Optional, RefineArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
+import { CodeHash } from "@fluffylabs/as-lan";
 
 const logger = new Logger("fib");
 
-export function accumulate(slot: Slot, serviceId: ServiceId, argsLength: u32): Optional<CodeHash> {
-  logger.info(`Fibonacci Service Accumulate, ${serviceId} @${slot}`);
+export function accumulate(ptr: u32, len: u32): u64 {
+  const result = AccumulateArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse accumulate args: ${result.error}`);
+    return 0;
+  }
 
-  const n: u64 = argsLength > 0 ? u64(argsLength) : 10;
-  const result = fibonacci(n);
-  logger.info(`fibonacci(${n}) = ${result}`);
+  const args = result.okay!;
+  logger.info(`Fibonacci Service Accumulate, ${args.serviceId} @${args.slot}`);
+
+  const n: u64 = args.argsLength > 0 ? u64(args.argsLength) : 10;
+  const fibResult = fibonacci(n);
+  logger.info(`fibonacci(${n}) = ${fibResult}`);
 
   // Encode the fibonacci result as a CodeHash (little-endian u64 in the first 8 bytes)
   const raw = new Uint8Array(32);
   for (let i = 0; i < 8; i++) {
-    raw[i] = u8((result >> (i * 8)) & 0xff);
+    raw[i] = u8((fibResult >> (i * 8)) & 0xff);
   }
-  return Optional.some<CodeHash>(Bytes32.wrap32Unchecked(raw));
+  const hash = Optional.some<CodeHash>(Bytes32.wrapUnchecked(raw));
+  return encodeOptionalCodeHash(hash).toPtrAndLen();
 }
 
-export function refine(
-  _core: CoreIndex,
-  _itemIdx: u32,
-  serviceId: ServiceId,
-  payload: BytesBlob,
-  _hash: WorkPackageHash,
-): WorkOutput {
-  logger.info(`Fibonacci Service Refine, ${serviceId}`);
-  return payload;
+export function refine(ptr: u32, len: u32): u64 {
+  const result = RefineArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse refine args: ${result.error}`);
+    return 0;
+  }
+
+  const args = result.okay!;
+  logger.info(`Fibonacci Service Refine, ${args.serviceId}`);
+  return args.payload.toPtrAndLen();
 }
 
 /// Calculate fibonacci number using accumulator pattern (iterative approach)

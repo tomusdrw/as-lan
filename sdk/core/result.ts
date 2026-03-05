@@ -1,15 +1,3 @@
-export class Union<A, B, C, D, E, F> {
-  protected constructor(
-    protected readonly tag: u32,
-    protected readonly a: A | null,
-    protected readonly b: B | null,
-    protected readonly c: C | null,
-    protected readonly d: D | null,
-    protected readonly e: E | null,
-    protected readonly f: F | null,
-  ) {}
-}
-
 /** Optional for nullable types. */
 export class Optional<T> {
   static some<T>(some: T): Optional<T> {

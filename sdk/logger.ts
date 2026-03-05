@@ -1,4 +1,4 @@
-import { log } from "./imports";
+import { log } from "./ecalli";
 
 /** Log levels matching JIP-1 specification */
 export enum LogLevel {

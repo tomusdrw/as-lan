@@ -1,157 +1,91 @@
 import { BytesBlob } from "./core/bytes";
 import { Decoder } from "./core/codec";
-import { Optional } from "./core/result";
-import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "./jam/types";
+import { readFromMemory } from "./core/mem";
+import { Optional, Result } from "./core/result";
+import { CodeHash, CoreIndex, ServiceId, Slot, WorkPackageHash } from "./jam/types";
 
-// Types for user-provided callbacks
-export type AccumulateFn = (slot: Slot, serviceId: ServiceId, argsLength: u32) => Optional<CodeHash>;
-export type RefineFn = (
-  core: CoreIndex,
-  itemIndex: u32,
-  serviceId: ServiceId,
-  payload: BytesBlob,
-  hash: WorkPackageHash,
-) => WorkOutput;
-export type IsAuthorizedFn = () => u32;
+export class RefineArgs {
+  constructor(
+    public coreIndex: CoreIndex,
+    public itemIndex: u32,
+    public serviceId: ServiceId,
+    public payload: BytesBlob,
+    public workPackageHash: WorkPackageHash,
+  ) {}
 
-// Registered callbacks — users call registerService() at module init
-let _accumulate: AccumulateFn | null = null;
-let _refine: RefineFn | null = null;
-let _isAuthorized: IsAuthorizedFn | null = null;
-
-// Result output globals — the host reads these after calling refine_ext/accumulate_ext
-export let result_ptr: u32 = 0;
-export let result_len: u32 = 0;
-
-/**
- * Register refine and accumulate callbacks. Call this once at module initialization.
- * For authorization, use registerAuthorized() separately.
- *
- * @param refine - Called during the refine phase
- * @param accumulate - Called during the accumulate phase
- */
-export function registerService(refine: RefineFn, accumulate: AccumulateFn): void {
-  if (_accumulate !== null || _refine !== null) {
-    throw new Error("registerService() has already been called. It can only be called once.");
-  }
-  _accumulate = accumulate;
-  _refine = refine;
-}
-
-/**
- * Register an authorization callback. Call this once at module initialization.
- * Cannot be combined with registerService() in the same module.
- *
- * @param isAuthorized - Authorization check callback
- */
-export function registerAuthorized(isAuthorized: IsAuthorizedFn): void {
-  if (_isAuthorized !== null) {
-    throw new Error("registerAuthorized() has already been called. It can only be called once.");
-  }
-  _isAuthorized = isAuthorized;
-}
-
-// Raw memory helpers
-
-/** Read bytes from raw WASM linear memory into a managed Uint8Array. */
-function readFromMemory(ptr: u32, len: u32): Uint8Array {
-  const data = new Uint8Array(len);
-  memory.copy(data.dataStart, ptr, len);
-  return data;
-}
-
-/** Write a Uint8Array result to the exported result_ptr/result_len globals. */
-function writeResult(data: Uint8Array): void {
-  result_ptr = u32(data.dataStart);
-  result_len = data.byteLength;
-}
-
-// ABI helpers
-
-function ensureDecodeOk(decoder: Decoder): void {
-  if (decoder.isError || !decoder.isFinished()) {
-    throw new Error("Invalid ABI payload");
+  /** Parse raw refine arguments from (ptr, len). Returns a Result. */
+  static parse(ptr: u32, len: u32): Result<RefineArgs, string> {
+    const inData = readFromMemory(ptr, len);
+    const decoder = Decoder.fromBlob(inData);
+    const coreIndex = decoder.varU64();
+    if (coreIndex > 0xffff) {
+      return Result.err<RefineArgs, string>("coreIndex exceeds u16 range");
+    }
+    const itemIndex = decoder.varU64();
+    if (itemIndex > 0xffff_ffff) {
+      return Result.err<RefineArgs, string>("itemIndex exceeds u32 range");
+    }
+    const serviceId = decoder.varU64();
+    if (serviceId > 0xffff_ffff) {
+      return Result.err<RefineArgs, string>("serviceId exceeds u32 range");
+    }
+    const payload = decoder.bytesVarLen();
+    const workPackageHash = decoder.bytes32();
+    if (decoder.isError) {
+      return Result.err<RefineArgs, string>("Decode error in refine ABI payload");
+    }
+    if (!decoder.isFinished()) {
+      return Result.err<RefineArgs, string>("Unexpected trailing bytes in refine ABI payload");
+    }
+    return Result.ok<RefineArgs, string>(
+      new RefineArgs(u16(coreIndex), u32(itemIndex), u32(serviceId), payload, workPackageHash),
+    );
   }
 }
 
-function strictU16(val: u64): u16 {
-  if (val > 0xffff) {
-    throw new Error("ABI value exceeds u16 range");
+export class AccumulateArgs {
+  constructor(
+    public slot: Slot,
+    public serviceId: ServiceId,
+    public argsLength: u32,
+  ) {}
+
+  /** Parse raw accumulate arguments from (ptr, len). Returns a Result. */
+  static parse(ptr: u32, len: u32): Result<AccumulateArgs, string> {
+    const inData = readFromMemory(ptr, len);
+    const decoder = Decoder.fromBlob(inData);
+    const slot = decoder.varU64();
+    if (slot > 0xffff_ffff) {
+      return Result.err<AccumulateArgs, string>("slot exceeds u32 range");
+    }
+    const serviceId = decoder.varU64();
+    if (serviceId > 0xffff_ffff) {
+      return Result.err<AccumulateArgs, string>("serviceId exceeds u32 range");
+    }
+    const argsLength = decoder.varU64();
+    if (argsLength > 0xffff_ffff) {
+      return Result.err<AccumulateArgs, string>("argsLength exceeds u32 range");
+    }
+    if (decoder.isError) {
+      return Result.err<AccumulateArgs, string>("Decode error in accumulate ABI payload");
+    }
+    if (!decoder.isFinished()) {
+      return Result.err<AccumulateArgs, string>("Unexpected trailing bytes in accumulate ABI payload");
+    }
+    return Result.ok<AccumulateArgs, string>(new AccumulateArgs(u32(slot), u32(serviceId), u32(argsLength)));
   }
-  return u16(val);
 }
 
-function strictU32(val: u64): u32 {
-  if (val > 0xffff_ffff) {
-    throw new Error("ABI value exceeds u32 range");
-  }
-  return u32(val);
-}
+// Result encoders
 
-function encodeOptionalCodeHash(hash: Optional<CodeHash>): Uint8Array {
+/** Encode an Optional<CodeHash> as bytes and pack into u64. */
+export function encodeOptionalCodeHash(hash: Optional<CodeHash>): BytesBlob {
   if (!hash.isSome) {
-    return new Uint8Array(1);
+    return BytesBlob.wrap(new Uint8Array(1));
   }
 
   const out = new Uint8Array(33);
   out[0] = 1;
   out.set(hash.val!.raw, 1);
-  return out;
-}
-
-// Internal logic (takes/returns Uint8Array — used by tests)
-
-export function refine_impl(inData: Uint8Array): Uint8Array {
-  if (_refine === null) {
-    throw new Error("No refine callback registered. Call registerService() first.");
-  }
-
-  const decoder = Decoder.fromBlob(inData);
-  const coreIndex = strictU16(decoder.varU64());
-  const itemIndex = strictU32(decoder.varU64());
-  const serviceId = strictU32(decoder.varU64());
-  const payload = decoder.bytesVarLen();
-  const workPackageHash = decoder.bytes32();
-
-  ensureDecodeOk(decoder);
-
-  const output = _refine!(coreIndex, itemIndex, serviceId, payload, workPackageHash);
-  return output.raw;
-}
-
-export function accumulate_impl(inData: Uint8Array): Uint8Array {
-  if (_accumulate === null) {
-    throw new Error("No accumulate callback registered. Call registerService() first.");
-  }
-
-  const decoder = Decoder.fromBlob(inData);
-  const slot = strictU32(decoder.varU64());
-  const serviceId = strictU32(decoder.varU64());
-  const argsLength = strictU32(decoder.varU64());
-
-  ensureDecodeOk(decoder);
-
-  const output = _accumulate!(slot, serviceId, argsLength);
-  return encodeOptionalCodeHash(output);
-}
-
-// Exported WASM entry points — take raw pointers, write result to globals
-
-export function refine_ext(args_ptr: u32, args_len: u32): void {
-  const inData = readFromMemory(args_ptr, args_len);
-  const output = refine_impl(inData);
-  writeResult(output);
-}
-
-export function accumulate_ext(args_ptr: u32, args_len: u32): void {
-  const inData = readFromMemory(args_ptr, args_len);
-  const output = accumulate_impl(inData);
-  writeResult(output);
-}
-
-export function is_authorized_ext(): u32 {
-  if (_isAuthorized !== null) {
-    return _isAuthorized!();
-  }
-  return 0;
+  return BytesBlob.wrap(out);
 }

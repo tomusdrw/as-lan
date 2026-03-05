@@ -127,7 +127,7 @@ export class Decoder {
   /** Decode a 32-byte sequence. */
   bytes32(): Bytes32 {
     const bytes = this.bytesFixLen(32);
-    return Bytes32.wrap32Unchecked(bytes.raw);
+    return Bytes32.wrapUnchecked(bytes.raw);
   }
 
   /** Decode a fixed-length sequence of bytes. */

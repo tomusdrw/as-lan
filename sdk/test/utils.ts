@@ -1,4 +1,4 @@
-import { BytesBlob } from "./core/bytes";
+import { BytesBlob } from "../core/bytes";
 
 export class Test {
   constructor(

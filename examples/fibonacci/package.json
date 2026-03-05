@@ -16,7 +16,7 @@
   "devDependencies": {
     "@fluffylabs/as-lan": "file:../../sdk",
     "assemblyscript": "^0.28.9",
-    "imports": "file:./imports"
+    "ecalli": "file:./ecalli"
   },
   "exports": {
     ".": {

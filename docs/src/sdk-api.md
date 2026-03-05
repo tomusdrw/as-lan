@@ -1,21 +1,73 @@
 # SDK API
 
-## Service Framework
+## Calling Convention
 
-- **`registerService(refine, accumulate)`** — Register your service callbacks. Must be called exactly once at module initialization.
-- **`registerAuthorized(isAuthorized)`** — Register an authorization callback. Cannot be combined with `registerService` in the same module.
-- **`refine_ext`**, **`accumulate_ext`**, **`is_authorized_ext`** — WASM entry points to re-export from your `assembly/index.ts`. The SDK handles ABI encoding/decoding between the host and your callbacks.
+Your service WASM module must export one of:
+- `refine(ptr: u32, len: u32) -> u64` and `accumulate(ptr: u32, len: u32) -> u64` for a regular service
+- `is_authorized(ptr: u32, len: u32) -> u64` for an authorizer service
+
+Arguments are passed as a pointer + length into linear memory. The return value is a packed `u64` where `ptr = result >> 32` and `len = result & 0xffffffff`.
+
+## Service Helpers
+
+The SDK provides helpers for parsing arguments and packing results:
+
+- **`RefineArgs.parse(ptr, len)`** — Parse raw refine arguments. Returns `Result<RefineArgs, string>`.
+- **`AccumulateArgs.parse(ptr, len)`** — Parse raw accumulate arguments. Returns `Result<AccumulateArgs, string>`.
+- **`packResult(data)`** — Pack a `Uint8Array` result into a `u64` return value.
+- **`encodeOptionalCodeHash(hash)`** — Encode an `Optional<CodeHash>` as bytes (for accumulate results).
+- **`readFromMemory(ptr, len)`** — Read raw bytes from WASM linear memory.
 
 ### Entry Point Pattern
 
 ```typescript
-import { registerService } from "@fluffylabs/as-lan";
-import { accumulate, refine } from "./service";
-
-registerService(refine, accumulate);
-
-export { refine_ext, accumulate_ext, is_authorized_ext, result_ptr, result_len } from "@fluffylabs/as-lan";
+// assembly/index.ts
+export { refine, accumulate } from "./service";
 ```
+
+```typescript
+// assembly/service.ts
+import { Logger, Optional, RefineArgs, AccumulateArgs, packResult, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
+import { CodeHash } from "@fluffylabs/as-lan";
+
+const logger = new Logger("my-service");
+
+export function accumulate(ptr: u32, len: u32): u64 {
+  const result = AccumulateArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse accumulate args: ${result.error}`);
+    return 0;
+  }
+  const args = result.okay!;
+  logger.info(`accumulate called for service ${args.serviceId}`);
+  return packResult(encodeOptionalCodeHash(Optional.none<CodeHash>()));
+}
+
+export function refine(ptr: u32, len: u32): u64 {
+  const result = RefineArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse refine args: ${result.error}`);
+    return 0;
+  }
+  const args = result.okay!;
+  logger.info(`refine called for service ${args.serviceId}`);
+  return packResult(args.payload.raw);
+}
+```
+
+### Parsed Argument Types
+
+**`RefineArgs`** (fields available after successful parse):
+- `coreIndex: CoreIndex` (`u16`)
+- `itemIndex: u32`
+- `serviceId: ServiceId` (`u32`)
+- `payload: BytesBlob`
+- `workPackageHash: WorkPackageHash` (`Bytes32`)
+
+**`AccumulateArgs`** (fields available after successful parse):
+- `slot: Slot` (`u32`)
+- `serviceId: ServiceId` (`u32`)
+- `argsLength: u32`
 
 ## Types
 

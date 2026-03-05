@@ -22,7 +22,7 @@ This will:
 ```
 my-service/
 ├── assembly/
-│   ├── index.ts          # Entry point — registers callbacks & re-exports WASM API
+│   ├── index.ts          # Entry point — re-exports refine & accumulate
 │   ├── service.ts        # Your service logic (accumulate + refine)
 │   └── tsconfig.json     # AssemblyScript path mappings
 ├── bin/
@@ -36,30 +36,38 @@ my-service/
 
 ## Implement Your Service
 
-Edit `assembly/service.ts`. You need to implement `refine` and `accumulate` callbacks (or `is_authorized` for authorizer service).
+Edit `assembly/service.ts`. You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service).
+
+Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a packed `u64` result. The SDK provides helpers for parsing and packing:
 
 ```typescript
-import { BytesBlob, Logger, Optional } from "@fluffylabs/as-lan";
-import {
-  CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash
-} from "@fluffylabs/as-lan";
+import { Logger, Optional, RefineArgs, AccumulateArgs, packResult, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
+import { CodeHash } from "@fluffylabs/as-lan";
 
 const logger = new Logger("my-service");
 
-export function accumulate(slot: Slot, serviceId: ServiceId, argsLength: u32): Optional<CodeHash> {
-  logger.info(`accumulate called for service ${serviceId} at slot ${slot}`);
-  return Optional.none<CodeHash>();
+export function accumulate(ptr: u32, len: u32): u64 {
+  const result = AccumulateArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse accumulate args: ${result.error}`);
+    return 0;
+  }
+  const args = result.okay!;
+  logger.info(`accumulate called for service ${args.serviceId} at slot ${args.slot}`);
+  // TODO: implement your accumulate logic here
+  return packResult(encodeOptionalCodeHash(Optional.none<CodeHash>()));
 }
 
-export function refine(
-  _core: CoreIndex,
-  _itemIdx: u32,
-  serviceId: ServiceId,
-  payload: BytesBlob,
-  _hash: WorkPackageHash,
-): WorkOutput {
-  logger.info(`refine called for service ${serviceId}`);
-  return payload;
+export function refine(ptr: u32, len: u32): u64 {
+  const result = RefineArgs.parse(ptr, len);
+  if (result.isError) {
+    logger.warn(`Failed to parse refine args: ${result.error}`);
+    return 0;
+  }
+  const args = result.okay!;
+  logger.info(`refine called for service ${args.serviceId}`);
+  // TODO: implement your refine logic here — for now, echo payload back
+  return packResult(args.payload.raw);
 }
 ```
 

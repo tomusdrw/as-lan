@@ -1,6 +1,5 @@
-import { Assert, BytesBlob, Test, test } from "@fluffylabs/as-lan";
-import { accumulate_impl, refine_impl } from "@fluffylabs/as-lan/service";
-import { is_authorized_ext } from "./index";
+import { Assert, BytesBlob, Test, readFromMemory, test } from "@fluffylabs/as-lan";
+import { accumulate, refine } from "./fibonacci";
 
 function pushVarU64(out: u8[], v: u64): void {
   // Simple encoding: values < 128 fit in a single byte
@@ -37,6 +36,14 @@ function fromHex(hex: string): Uint8Array {
   return BytesBlob.parseBlob(hex).okay!.raw;
 }
 
+/** Unpack a u64 result into (ptr, len) and read the bytes from memory.
+ *  ptrAndLen packs as (len << 32) | ptr, so upper bits = len, lower bits = ptr. */
+function unpackResult(result: u64): Uint8Array {
+  const len = u32(result >> 32);
+  const ptr = u32(result & 0xffffffff);
+  return readFromMemory(ptr, len);
+}
+
 function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, msg: string): void {
   assert.isEqual(actual.length, expected.length, `${msg}.length`);
   if (actual.length !== expected.length) {
@@ -47,8 +54,24 @@ function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, m
   }
 }
 
+/** Write bytes into WASM memory and return (ptr, len). */
+function writeToMemory(data: Uint8Array): u64 {
+  // Allocate by creating a copy in managed memory
+  const buf = new Uint8Array(data.length);
+  buf.set(data);
+  return (u64(buf.dataStart) << 32) | u64(buf.byteLength);
+}
+
+function callWithArgs(fn: (ptr: u32, len: u32) => u64, data: Uint8Array): Uint8Array {
+  const packed = writeToMemory(data);
+  const ptr = u32(packed >> 32);
+  const len = u32(packed & 0xffffffff);
+  const result = fn(ptr, len);
+  return unpackResult(result);
+}
+
 export const TESTS: Test[] = [
-  test("refine_impl echoes payload", () => {
+  test("refine echoes payload", () => {
     const out: u8[] = [];
     const zeros32 = fromHex("0x0000000000000000000000000000000000000000000000000000000000000000");
 
@@ -58,19 +81,19 @@ export const TESTS: Test[] = [
     pushBytesVarLen(out, fromHex("0xdeadbeef")); // payload
     pushBytes(out, zeros32); // workPackageHash (32 bytes)
 
-    const result = refine_impl(toBytes(out));
+    const result = callWithArgs(refine, toBytes(out));
     const assert = new Assert();
     assertBytes(assert, result, fromHex("0xdeadbeef"), "refine output");
     return assert;
   }),
-  test("accumulate_impl default fib(10) = 55", () => {
+  test("accumulate default fib(10) = 55", () => {
     const out: u8[] = [];
 
     pushVarU64(out, 7); // slot
     pushVarU64(out, 9); // serviceId
     pushVarU64(out, 0); // argsLength=0 means default n=10
 
-    const result = accumulate_impl(toBytes(out));
+    const result = callWithArgs(accumulate, toBytes(out));
     const assert = new Assert();
     // Returns Some(CodeHash) = 1 byte tag + 32 bytes
     assert.isEqual(result.length, 33, "result length");
@@ -83,14 +106,14 @@ export const TESTS: Test[] = [
     }
     return assert;
   }),
-  test("accumulate_impl fib(20) = 6765", () => {
+  test("accumulate fib(20) = 6765", () => {
     const out: u8[] = [];
 
     pushVarU64(out, 1); // slot
     pushVarU64(out, 5); // serviceId
     pushVarU64(out, 20); // argsLength=20 means n=20
 
-    const result = accumulate_impl(toBytes(out));
+    const result = callWithArgs(accumulate, toBytes(out));
     const assert = new Assert();
     assert.isEqual(result.length, 33, "result length");
     assert.isEqual(result[0], 1, "some tag");
@@ -102,12 +125,7 @@ export const TESTS: Test[] = [
     }
     return assert;
   }),
-  test("is_authorized_ext returns 0 by default", () => {
-    const assert = new Assert();
-    assert.isEqual(is_authorized_ext(), 0, "default is_authorized_ext");
-    return assert;
-  }),
-  test("refine_impl with empty payload", () => {
+  test("refine with empty payload", () => {
     const out: u8[] = [];
     const zeros32 = fromHex("0x0000000000000000000000000000000000000000000000000000000000000000");
 
@@ -117,19 +135,19 @@ export const TESTS: Test[] = [
     pushBytesVarLen(out, new Uint8Array(0)); // empty payload
     pushBytes(out, zeros32); // workPackageHash
 
-    const result = refine_impl(toBytes(out));
+    const result = callWithArgs(refine, toBytes(out));
     const assert = new Assert();
     assert.isEqual(result.length, 0, "empty refine output");
     return assert;
   }),
-  test("accumulate_impl fib(1) = 1", () => {
+  test("accumulate fib(1) = 1", () => {
     const out: u8[] = [];
 
     pushVarU64(out, 0); // slot
     pushVarU64(out, 1); // serviceId
     pushVarU64(out, 1); // argsLength=1 means n=1
 
-    const result = accumulate_impl(toBytes(out));
+    const result = callWithArgs(accumulate, toBytes(out));
     const assert = new Assert();
     assert.isEqual(result.length, 33, "result length");
     assert.isEqual(result[0], 1, "some tag");

@@ -1,4 +1,4 @@
-import { U8WithError, u8IsError, u8WithError } from "./pack";
+import { U8WithError, ptrAndLen, u8IsError, u8WithError } from "./pack";
 import { Result } from "./result";
 
 export enum BlobParseError {
@@ -47,27 +47,36 @@ export class BytesBlob {
   toString(): string {
     return bytesToHexString(this.raw);
   }
+
+  toPtrAndLen(): u64 {
+    return ptrAndLen(this.raw);
+  }
 }
 
 export enum Bytes32Error {
   NotEnoughData = 0,
 }
 
-export class Bytes32 extends BytesBlob {
+export class Bytes32 {
   /** Wrap raw bytes as Bytes32 without any length validation. */
-  static wrap32Unchecked(raw: Uint8Array): Bytes32 {
+  static wrapUnchecked(raw: Uint8Array): Bytes32 {
     return new Bytes32(raw);
   }
 
-  static wrap32(data: Uint8Array): Result<Bytes32, Bytes32Error> {
+  static wrap(data: Uint8Array): Result<Bytes32, Bytes32Error> {
     if (data.length !== 32) {
       return Result.err(Bytes32Error.NotEnoughData);
     }
     return Result.ok<Bytes32, Bytes32Error>(new Bytes32(data));
   }
 
+  public readonly bytes: BytesBlob;
+  public readonly raw: Uint8Array;
+
   protected constructor(data: Uint8Array) {
-    super(data);
+    const bytes = BytesBlob.wrap(data);
+    this.bytes = bytes;
+    this.raw = bytes.raw;
   }
 }
 

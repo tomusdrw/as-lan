@@ -8,10 +8,11 @@
     "lint": "biome lint --write; biome check --write",
     "qa": "biome ci",
     "qa-fix": "npm run format; npm run lint",
+    "sdk:test": "cd sdk && npm install && npm test",
     "example:build": "cd examples/fibonacci && npm install && npm run build",
     "example:test": "cd examples/fibonacci && npm install && npm test",
     "build": "npm run example:build",
-    "test": "npm run example:test"
+    "test": "npm run sdk:test && npm run example:test"
   },
   "author": "Fluffy Labs",
   "license": "MPL-2.0",
