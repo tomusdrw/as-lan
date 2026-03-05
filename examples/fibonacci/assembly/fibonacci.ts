@@ -1,7 +1,14 @@
-import { AccumulateArgs, Bytes32, Logger, Optional, RefineArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
-import { CodeHash } from "@fluffylabs/as-lan";
+import {
+  AccumulateArgs,
+  Bytes32,
+  CodeHash,
+  encodeOptionalCodeHash,
+  Logger,
+  Optional,
+  RefineArgs,
+} from "@fluffylabs/as-lan";
 
-const logger = new Logger("fib");
+const logger: Logger = new Logger("fib");
 
 export function accumulate(ptr: u32, len: u32): u64 {
   const result = AccumulateArgs.parse(ptr, len);
