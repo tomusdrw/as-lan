@@ -36,10 +36,7 @@ my-service/
 
 ## Implement Your Service
 
-Edit `assembly/service.ts`. You need to implement two callbacks:
-
-- **`refine`** — Pure computation executed on a core. Receives a payload, returns a work output.
-- **`accumulate`** — State transition executed on-chain. Reads refine results and updates service state.
+Edit `assembly/service.ts`. You need to implement `refine` and `accumulate` callbacks (or `is_authorized` for authorizer service).
 
 ```typescript
 import { BytesBlob, Logger, Optional } from "@fluffylabs/as-lan";
