@@ -14,7 +14,7 @@ This will:
 
 1. Create a `my-service/` directory with a git repo
 2. Add the as-lan SDK as a git submodule
-3. Generate all boilerplate (`package.json`, `asconfig.json`, entry point, stub imports)
+3. Download template files from the [fibonacci example](https://github.com/fluffylabs/as-lan/tree/main/examples/fibonacci) and patch paths
 4. Run `npm install`
 
 ## What You Get
@@ -23,12 +23,15 @@ This will:
 my-service/
 ├── assembly/
 │   ├── index.ts          # Entry point — re-exports refine & accumulate
-│   ├── service.ts        # Your service logic (accumulate + refine)
+│   ├── fibonacci.ts      # Example service logic (fibonacci computation)
+│   ├── index.test.ts     # Unit tests
+│   ├── test-run.ts       # Test runner entry point
 │   └── tsconfig.json     # AssemblyScript path mappings
 ├── bin/
-│   └── test.js           # Test runner
-├── imports/
-│   └── index.js          # Stub host imports for local testing
+│   └── test.js           # Test runner (node)
+├── ecalli/
+│   ├── index.js          # Stub host imports for local testing
+│   └── package.json
 ├── sdk/                  # as-lan SDK (git submodule)
 ├── asconfig.json
 └── package.json
@@ -36,7 +39,7 @@ my-service/
 
 ## Implement Your Service
 
-Edit `assembly/service.ts`. You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service).
+Edit `assembly/fibonacci.ts` (rename it to match your service). You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service).
 
 Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a packed `u64` result. The SDK provides helpers for parsing arguments, and results are returned by calling `.toPtrAndLen()` on a `BytesBlob`:
 

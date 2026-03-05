@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Scaffold a new JAM service project using the as-lan SDK.
-# Usage: init-service.sh <service-name>
+# Uses the fibonacci example as a template, fetching files from GitHub Pages.
+# Usage: start.sh <service-name>
 
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <service-name>"
@@ -11,7 +12,8 @@ if [ $# -lt 1 ]; then
 fi
 
 NAME="$1"
-AS_LAN_REPO="${AS_LAN_REPO:-https://github.com/aspect-build/aspect-cli.git}"
+AS_LAN_REPO="${AS_LAN_REPO:-https://github.com/fluffylabs/as-lan.git}"
+BASE_URL="${BASE_URL:-https://todr.me/as-lan/fibonacci}"
 
 if [ -d "$NAME" ]; then
   echo "Error: directory '$NAME' already exists."
@@ -28,187 +30,40 @@ git init -q
 echo "Adding as-lan SDK as git submodule..."
 git submodule add -q "$AS_LAN_REPO" sdk
 
-# --- package.json ---
-cat > package.json <<JSONEOF
-{
-  "name": "$NAME",
-  "version": "0.0.1",
-  "description": "$NAME — a JAM service built with as-lan SDK",
-  "type": "module",
-  "scripts": {
-    "asbuild:debug": "asc assembly/index.ts --target debug --runtime=stub",
-    "asbuild:release": "asc assembly/index.ts --target release --runtime=stub",
-    "asbuild": "npm run asbuild:debug && npm run asbuild:release",
-    "build": "npm run asbuild",
-    "test": "echo \"No tests configured yet. See bin/test.js for the test runner.\""
-  },
-  "author": "",
-  "license": "MPL-2.0",
-  "devDependencies": {
-    "@fluffylabs/as-lan": "file:./sdk",
-    "assemblyscript": "^0.28.9",
-    "imports": "file:./imports"
-  },
-  "exports": {
-    ".": {
-      "import": "./build/release.js",
-      "types": "./build/release.d.ts"
-    }
-  }
-}
-JSONEOF
+# --- Download template files from the fibonacci example ---
+FILES=(
+  asconfig.json
+  assembly/index.ts
+  assembly/fibonacci.ts
+  assembly/index.test.ts
+  assembly/test-run.ts
+  assembly/tsconfig.json
+  ecalli/index.js
+  ecalli/package.json
+  bin/test.js
+  package.json
+)
 
-# --- asconfig.json ---
-cat > asconfig.json <<'JSONEOF'
-{
-  "entries": ["assembly/index.ts"],
-  "targets": {
-    "debug": {
-      "outFile": "build/debug.wasm",
-      "textFile": "build/debug.wat",
-      "sourceMap": true,
-      "debug": true
-    },
-    "release": {
-      "outFile": "build/release.wasm",
-      "textFile": "build/release.wat",
-      "sourceMap": true,
-      "optimizeLevel": 3,
-      "shrinkLevel": 0,
-      "converge": false,
-      "noAssert": false
-    },
-    "test": {
-      "outFile": "build/test.wasm",
-      "textFile": "build/test.wat",
-      "sourceMap": true,
-      "debug": true
-    }
-  },
-  "options": {
-    "bindings": "esm"
-  }
-}
-JSONEOF
+for file in "${FILES[@]}"; do
+  mkdir -p "$(dirname "$file")"
+  echo "  Downloading $file..."
+  curl -sfL "$BASE_URL/$file" -o "$file"
+done
 
-# --- assembly/tsconfig.json ---
-mkdir -p assembly
-cat > assembly/tsconfig.json <<'JSONEOF'
-{
-  "extends": "assemblyscript/std/assembly.json",
-  "include": ["./**/*.ts"],
-  "compilerOptions": {
-    "paths": {
-      "@fluffylabs/as-lan": ["../sdk/index.ts"],
-      "@fluffylabs/as-lan/*": ["../sdk/*"]
-    }
-  }
-}
-JSONEOF
+# --- Patch package.json: name and SDK path ---
+sed -i.bak \
+  -e "s|@fluffylabs/as-lan-fibonacci-example|$NAME|" \
+  -e 's|file:../../sdk|file:./sdk|' \
+  package.json
+rm package.json.bak
 
-# --- assembly/index.ts ---
-cat > assembly/index.ts <<'TSEOF'
-export { refine, accumulate } from "./service";
-TSEOF
+# --- Patch assembly/tsconfig.json: SDK paths ---
+sed -i.bak \
+  -e 's|\.\./\.\./\.\./sdk/|../sdk/|g' \
+  assembly/tsconfig.json
+rm assembly/tsconfig.json.bak
 
-# --- assembly/service.ts ---
-cat > assembly/service.ts <<'TSEOF'
-import { Logger, Optional, RefineArgs, AccumulateArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
-import { CodeHash } from "@fluffylabs/as-lan";
-
-const logger = new Logger("service");
-
-export function accumulate(ptr: u32, len: u32): u64 {
-  const result = AccumulateArgs.parse(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse accumulate args: ${result.error}`);
-    return 0;
-  }
-  const args = result.okay!;
-  logger.info(`accumulate called for service ${args.serviceId} at slot ${args.slot}`);
-  // TODO: implement your accumulate logic here
-  return encodeOptionalCodeHash(Optional.none<CodeHash>()).toPtrAndLen();
-}
-
-export function refine(ptr: u32, len: u32): u64 {
-  const result = RefineArgs.parse(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse refine args: ${result.error}`);
-    return 0;
-  }
-  const args = result.okay!;
-  logger.info(`refine called for service ${args.serviceId}`);
-  // TODO: implement your refine logic here — for now, echo payload back
-  return args.payload.toPtrAndLen();
-}
-TSEOF
-
-# --- imports/index.js ---
-mkdir -p imports
-cat > imports/index.js <<'JSEOF'
-// Stub implementations of host-provided imports for testing
-
-let wasmMemory = null;
-
-const LOG_LEVELS = ["FATAL", "WARN ", "INFO ", "DEBUG", "TRACE"];
-
-function readUtf8(ptr, len) {
-  if (!wasmMemory || !len) return null;
-  const bytes = new Uint8Array(wasmMemory.buffer, ptr, len);
-  return new TextDecoder().decode(bytes);
-}
-
-export function setMemory(memory) {
-  wasmMemory = memory;
-}
-
-export function gas() {
-  return 0n;
-}
-
-export function lookup(_service, _hash_ptr, _out_ptr, _out_len) {
-  return 0;
-}
-
-export function log(level, target_ptr, target_len, message_ptr, message_len) {
-  const levelStr = LOG_LEVELS[level] ?? `LVL${level}`;
-  const target = readUtf8(target_ptr, target_len);
-  const message = readUtf8(message_ptr, message_len);
-
-  if (target && message) {
-    console.log(`[${levelStr}] ${target}: ${message}`);
-  } else if (message) {
-    console.log(`[${levelStr}] ${message}`);
-  } else {
-    console.log(`[${levelStr}] (ptr=${message_ptr} len=${message_len})`);
-  }
-  return 0;
-}
-JSEOF
-
-# --- imports/package.json ---
-cat > imports/package.json <<'JSONEOF'
-{
-  "name": "imports",
-  "version": "0.0.1",
-  "type": "module",
-  "main": "index.js"
-}
-JSONEOF
-
-# --- bin/test.js ---
-mkdir -p bin
-cat > bin/test.js <<'JSEOF'
-#!/usr/bin/env node
-
-import { setMemory } from "imports";
-import { memory, runAllTests } from "../build/test.js";
-
-setMemory(memory);
-runAllTests();
-JSEOF
-
-# --- .gitignore ---
+# --- Generate .gitignore (not worth a fetch) ---
 cat > .gitignore <<'IGNEOF'
 node_modules
 build
@@ -223,5 +78,6 @@ echo ""
 echo "Next steps:"
 echo "  cd $NAME"
 echo "  npm run build          # compile WASM (debug + release)"
-echo "  # edit assembly/service.ts to implement your service logic"
+echo "  npm test               # run tests"
+echo "  # edit assembly/fibonacci.ts to implement your service logic"
 echo ""
