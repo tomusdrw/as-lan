@@ -1,4 +1,4 @@
-import { U8WithError, ptrAndLen, u8IsError, u8WithError } from "./pack";
+import { ptrAndLen, U8WithError, u8IsError, u8WithError } from "./pack";
 import { Result } from "./result";
 
 export enum BlobParseError {

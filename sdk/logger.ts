@@ -9,7 +9,7 @@ export enum LogLevel {
   Pedantic = 4,
 }
 
-// @ts-ignore: ASC_OPTIMIZE_LEVEL is an AssemblyScript compile-time constant
+// @ts-expect-error: ASC_OPTIMIZE_LEVEL is an AssemblyScript compile-time constant
 const DEBUG_LOGGING: bool = ASC_OPTIMIZE_LEVEL < 3;
 
 export class Logger {

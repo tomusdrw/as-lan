@@ -4,12 +4,10 @@ export * from "./core/codec";
 export * from "./core/mem";
 export * from "./core/pack";
 export * from "./core/result";
-
-// JAM types
-export * from "./jam/types";
-
 // Host calls
 export * from "./ecalli";
+// JAM types
+export * from "./jam/types";
 
 // Logger
 export * from "./logger";

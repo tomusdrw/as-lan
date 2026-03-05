@@ -1,6 +1,5 @@
-import * as sdk from "./index.test";
-
 import { Test } from "@fluffylabs/as-lan";
+import * as sdk from "./index.test";
 
 export function runAllTests(): void {
   let a: u64 = 0;

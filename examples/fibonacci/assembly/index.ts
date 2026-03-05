@@ -1,1 +1,1 @@
-export { refine, accumulate } from "./fibonacci";
+export { accumulate, refine } from "./fibonacci";
