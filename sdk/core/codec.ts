@@ -238,9 +238,6 @@ export class Decoder {
 
   private hasBytes(bytes: u32): boolean {
     if (this.offset + bytes > <u32>this.source.length) {
-      console.log(
-        `Attempting to decode more data than there is left. Need ${bytes}, left: ${this.source.length - this.offset}.`,
-      );
       return false;
     }
     return true;

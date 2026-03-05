@@ -9,9 +9,8 @@ export enum LogLevel {
   Pedantic = 4,
 }
 
-// Set to false to disable all logging at compile time.
-// When false, the compiler will eliminate all log calls as dead code.
-const LOGGING_ENABLED = true;
+// @ts-ignore: ASC_OPTIMIZE_LEVEL is an AssemblyScript compile-time constant
+const DEBUG_LOGGING: bool = ASC_OPTIMIZE_LEVEL < 3;
 
 export class Logger {
   private readonly target: string;
@@ -21,33 +20,32 @@ export class Logger {
   }
 
   fatal(message: string): void {
-    this.log(LogLevel.Fatal, message);
+    this._log(LogLevel.Fatal, message);
   }
 
   warn(message: string): void {
-    this.log(LogLevel.Warning, message);
+    this._log(LogLevel.Warning, message);
   }
 
   info(message: string): void {
-    this.log(LogLevel.Important, message);
+    this._log(LogLevel.Important, message);
   }
 
   debug(message: string): void {
-    this.log(LogLevel.Helpful, message);
+    if (DEBUG_LOGGING) {
+      this._log(LogLevel.Helpful, message);
+    }
   }
 
   trace(message: string): void {
-    this.log(LogLevel.Pedantic, message);
+    if (DEBUG_LOGGING) {
+      this._log(LogLevel.Pedantic, message);
+    }
   }
 
-  private log(level: LogLevel, message: string): void {
-    if (!LOGGING_ENABLED) {
-      return;
-    }
-
+  private _log(level: LogLevel, message: string): void {
     const targetBuf = String.UTF8.encode(this.target);
     const msgBuf = String.UTF8.encode(message);
-
     log(level, changetype<u32>(targetBuf), targetBuf.byteLength, changetype<u32>(msgBuf), msgBuf.byteLength);
   }
 }

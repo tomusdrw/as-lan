@@ -12,9 +12,9 @@
       "textFile": "build/release.wat",
       "sourceMap": true,
       "optimizeLevel": 3,
-      "shrinkLevel": 0,
+      "shrinkLevel": 2,
       "converge": false,
-      "noAssert": false
+      "noAssert": true
     },
     "test": {
       "outFile": "build/test.wasm",
