@@ -1,5 +1,4 @@
-import { BytesBlob } from "../core/bytes";
-import { Assert, Test, test } from "../test";
+import { Assert, BytesBlob, Test, test } from "as-lan-sdk";
 import { accumulate_ext, refine_ext } from "./index";
 
 function pushVarU64(out: u8[], v: u64): void {

@@ -1,15 +1,13 @@
-import * as bytes from "./core/bytes.test";
-import * as codec from "./core/codec.test";
-import * as types from "./jam/types.test";
-import * as sdk from "./sdk/index.test";
+import * as bytes from "as-lan-sdk/core/bytes.test";
+import * as codec from "as-lan-sdk/core/codec.test";
+import * as sdk from "./index.test";
 
-import { Test } from "./test";
+import { Test } from "as-lan-sdk";
 
 export function runAllTests(): void {
   let a: u64 = 0;
   a += run(bytes.TESTS, "bytes.ts");
   a += run(codec.TESTS, "codec.ts");
-  a += run(types.TESTS, "types.ts");
   a += run(sdk.TESTS, "sdk.ts");
 
   const okay = u32(a >> 32);

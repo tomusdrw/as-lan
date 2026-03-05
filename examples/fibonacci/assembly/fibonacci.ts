@@ -1,11 +1,5 @@
-import { Bytes32, BytesBlob } from "../core/bytes";
-import { Optional } from "../core/result";
-import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "../jam/types";
-import { Logger } from "./logger";
-
-export function is_authorized(): u32 {
-  return 0;
-}
+import { Bytes32, BytesBlob, Logger, Optional } from "as-lan-sdk";
+import { CodeHash, CoreIndex, ServiceId, Slot, WorkOutput, WorkPackageHash } from "as-lan-sdk";
 
 const logger = new Logger("fib");
 

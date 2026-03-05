@@ -1,4 +1,5 @@
 {
+  "entries": ["assembly/index.ts"],
   "targets": {
     "debug": {
       "outFile": "build/debug.wasm",
@@ -23,6 +24,10 @@
     }
   },
   "options": {
-    "bindings": "esm"
+    "bindings": "esm",
+    "paths": {
+      "as-lan-sdk": ["../../sdk/index.ts"],
+      "as-lan-sdk/*": ["../../sdk/*"]
+    }
   }
 }

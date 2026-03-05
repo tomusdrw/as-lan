@@ -1,0 +1,10 @@
+{
+  "extends": "assemblyscript/std/assembly.json",
+  "include": ["./**/*.ts"],
+  "compilerOptions": {
+    "paths": {
+      "as-lan-sdk": ["../../../sdk/index.ts"],
+      "as-lan-sdk/*": ["../../../sdk/*"]
+    }
+  }
+}
