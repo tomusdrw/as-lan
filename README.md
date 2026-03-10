@@ -8,6 +8,7 @@ AssemblyScript SDK for building [JAM](https://graypaper.com/) services.
 
 - [Node.js](https://nodejs.org/) (v22+)
 - [wasm-pvm-cli](https://crates.io/crates/wasm-pvm-cli) — compiles WASM to JAM PVM binaries
+
   ```bash
   cargo install wasm-pvm-cli
   ```

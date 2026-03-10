@@ -30,7 +30,7 @@ jobs:
         key: wasm-pvm-cli-0.5.0
     - name: Install wasm-pvm-cli
       if: steps.cache-wasm-pvm.outputs.cache-hit != 'true'
-      run: cargo install wasm-pvm-cli
+      run: cargo install wasm-pvm-cli@0.5.0
     - run: npm ci
     - run: npm run qa
     - run: npm run build
