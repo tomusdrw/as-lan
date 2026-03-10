@@ -75,7 +75,7 @@ export declare function fetch(dest_ptr: u32, offset: u32, length: u32, kind: u32
  * Look up a preimage by its hash for the given (or current) service.
  *
  * Registers:
- * - r7  (in)  = a — service ID (u64_max = current service)
+ * - r7  (in)  = a — service ID (u32_max = current service)
  * - r7  (out)     — total preimage length, or NONE if not found
  * - r8  (in)  = h — memory address of 32-byte hash
  * - r9  (in)  = o — destination memory address
@@ -97,7 +97,7 @@ export declare function lookup(service: u32, hash_ptr: u32, out_ptr: u32, offset
  * Read a value from service storage by key.
  *
  * Registers:
- * - r7  (in)  = a   — service ID (u64_max = current service)
+ * - r7  (in)  = a   — service ID (u32_max = current service)
  * - r7  (out)       — total value length, or NONE if not found
  * - r8  (in)  = k_o — storage key memory address
  * - r9  (in)  = k_z — storage key byte length
@@ -147,7 +147,7 @@ export declare function write(key_ptr: u32, key_len: u32, value_ptr: u32, value_
  *   created_slot (4B), last_accumulation_slot (4B), parent_service (4B)
  *
  * Registers:
- * - r7  (in)  = a — service ID (u64_max = current service)
+ * - r7  (in)  = a — service ID (u32_max = current service)
  * - r7  (out)     — total info length (96), or NONE if account missing
  * - r8  (in)  = o — destination memory address
  * - r9  (in)  = f — offset within info

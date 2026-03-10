@@ -1,9 +1,9 @@
 ;; PVM adapter for as-lan services.
 ;;
 ;; Maps WASM imports declared in sdk/ecalli.ts to PVM ecalli host calls.
-;; Used by wasm-pvm (>= 0.5.0) via --adapter flag during WASM -> PVM compilation.
+;; Used by wasm-pvm (>= 0.5.1) via --adapter flag during WASM -> PVM compilation.
 ;;
-;; Host call convention: host_call_N where N = number of data registers (r7-r11).
+;; Host call convention: host_call_N where N = number of data registers (r7-r12).
 ;; All variants take ecalli index as first i64 param and return r7.
 ;;
 ;; Ecalli index reference (GP Appendix B):
@@ -18,6 +18,7 @@
   (import "env" "host_call_0" (func $host_call_0 (param i64) (result i64)))
   (import "env" "host_call_4" (func $host_call_4 (param i64 i64 i64 i64 i64) (result i64)))
   (import "env" "host_call_5" (func $host_call_5 (param i64 i64 i64 i64 i64 i64) (result i64)))
+  (import "env" "host_call_6" (func $host_call_6 (param i64 i64 i64 i64 i64 i64 i64) (result i64)))
   (import "env" "pvm_ptr" (func $pvm_ptr (param i64) (result i64)))
 
   ;; abort — AssemblyScript runtime panic, trap immediately.
@@ -36,27 +37,20 @@
 
   ;; -----------------------------------------------------------------------
   ;; fetch(dest, offset, length, kind, p1, p2) -> i64          [ecalli 1]
-  ;; r7=dest, r8=offset, r9=length, r10=kind, r11=p1
-  ;; (r12=p2 is not settable with host_call_5; only 5 data regs available)
+  ;; r7=dest, r8=offset, r9=length, r10=kind, r11=p1, r12=p2
   ;; -----------------------------------------------------------------------
-  ;; NOTE: the PVM ecalli convention uses r7-r11 (5 data registers).
-  ;; fetch needs 6 values (dest, offset, length, kind, p1, p2) but the
-  ;; adapter can only pass 5 via host_call_5. The 6th parameter (p2/r12)
-  ;; must be set by the caller in WASM memory or handled differently.
-  ;; For now we pass the first 5 and drop p2 — this covers all fetch kinds
-  ;; except OtherWorkItemExtrinsics (3) and OtherWorkItemImports (5) which
-  ;; need both r11 and r12.
   (func (export "fetch")
     (param $dest_ptr i32) (param $offset i32) (param $length i32)
     (param $kind i32) (param $param1 i32) (param $param2 i32)
     (result i64)
-    (call $host_call_5
+    (call $host_call_6
       (i64.const 1)                                                    ;; ecalli 1: fetch
       (call $pvm_ptr (i64.extend_i32_u (local.get $dest_ptr)))         ;; r7:  destination PVM pointer
       (i64.extend_i32_u (local.get $offset))                           ;; r8:  offset
       (i64.extend_i32_u (local.get $length))                           ;; r9:  length
       (i64.extend_i32_u (local.get $kind))                             ;; r10: fetch kind
       (i64.extend_i32_u (local.get $param1))                           ;; r11: param1
+      (i64.extend_i32_u (local.get $param2))                           ;; r12: param2
     )
   )
 
@@ -81,23 +75,20 @@
   ;; -----------------------------------------------------------------------
   ;; read(service, key_ptr, key_len, out_ptr, offset, length) -> i64
   ;;                                                           [ecalli 3]
-  ;; r7=service, r8=key_ptr, r9=key_len, r10=out_ptr, r11=offset
-  ;; (r12=length — same limitation as fetch, only 5 data regs)
+  ;; r7=service, r8=key_ptr, r9=key_len, r10=out_ptr, r11=offset, r12=length
   ;; -----------------------------------------------------------------------
-  ;; NOTE: read needs 6 data values but host_call_5 only passes 5.
-  ;; The 6th parameter (length/r12) is not forwarded. Callers should
-  ;; pass a sufficiently large buffer and rely on the returned total length.
   (func (export "read")
     (param $service i32) (param $key_ptr i32) (param $key_len i32)
     (param $out_ptr i32) (param $offset i32) (param $length i32)
     (result i64)
-    (call $host_call_5
+    (call $host_call_6
       (i64.const 3)                                                    ;; ecalli 3: read
       (i64.extend_i32_u (local.get $service))                          ;; r7:  service ID
       (call $pvm_ptr (i64.extend_i32_u (local.get $key_ptr)))          ;; r8:  key PVM pointer
       (i64.extend_i32_u (local.get $key_len))                          ;; r9:  key length
       (call $pvm_ptr (i64.extend_i32_u (local.get $out_ptr)))          ;; r10: destination PVM pointer
       (i64.extend_i32_u (local.get $offset))                           ;; r11: offset
+      (i64.extend_i32_u (local.get $length))                           ;; r12: max length
     )
   )
 
