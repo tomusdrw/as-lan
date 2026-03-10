@@ -50,10 +50,11 @@ for file in "${FILES[@]}"; do
   curl -sfL "$BASE_URL/$file" -o "$file"
 done
 
-# --- Patch package.json: name and SDK path ---
+# --- Patch package.json: name, SDK path, PVM adapter path ---
 sed -i.bak \
   -e "s|@fluffylabs/as-lan-fibonacci-example|$NAME|" \
   -e 's|file:../../sdk|file:./sdk|' \
+  -e 's|../../pvm-adapter.wat|./sdk/pvm-adapter.wat|' \
   package.json
 rm package.json.bak
 
@@ -77,7 +78,10 @@ echo "Success! Your JAM service '$NAME' is ready."
 echo ""
 echo "Next steps:"
 echo "  cd $NAME"
-echo "  npm run build          # compile WASM (debug + release)"
+echo "  npm run build          # compile WASM + PVM (release)"
 echo "  npm test               # run tests"
 echo "  # edit assembly/fibonacci.ts to implement your service logic"
+echo ""
+echo "Note: 'npm run build' produces a .pvm binary in build/."
+echo "  Make sure 'wasm-pvm' is installed: cargo install wasm-pvm-cli"
 echo ""

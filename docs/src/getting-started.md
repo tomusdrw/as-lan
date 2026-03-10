@@ -33,6 +33,7 @@ my-service/
 │   ├── index.js          # Stub host imports for local testing
 │   └── package.json
 ├── sdk/                  # as-lan SDK (git submodule)
+│   └── pvm-adapter.wat   # Adapter mapping WASM imports to PVM ecalli host calls
 ├── asconfig.json
 └── package.json
 ```
@@ -77,8 +78,16 @@ export function refine(ptr: u32, len: u32): u64 {
 ## Build & Test
 
 ```bash
-npm run build          # compile WASM (debug + release)
+npm run build          # compile WASM (debug + release) and PVM binary
 ```
+
+The build pipeline:
+1. Compiles AssemblyScript to WASM (debug + release targets)
+2. Converts the release WASM to a JAM PVM binary (`.pvm`) using [`wasm-pvm`](https://crates.io/crates/wasm-pvm-cli)
+
+The resulting `build/release.pvm` is the JAM SPI binary ready for deployment.
+
+**Prerequisite:** Install the PVM compiler with `cargo install wasm-pvm-cli`.
 
 ## Manual Setup (without the script)
 

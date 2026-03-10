@@ -8,7 +8,8 @@
     "asbuild:release": "asc assembly/index.ts --target release --runtime=stub",
     "asbuild:test": "asc assembly/test-run.ts --target test",
     "asbuild": "npm run asbuild:debug && npm run asbuild:release",
-    "build": "npm run asbuild",
+    "pvm": "wasm-pvm compile build/release.wasm -o build/release.pvm --adapter ../../pvm-adapter.wat",
+    "build": "npm run asbuild && npm run pvm",
     "test": "npm run asbuild:test && node ./bin/test.js"
   },
   "author": "Fluffy Labs",
