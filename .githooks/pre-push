@@ -1,24 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Pre-push hook: Run QA checks and tests before allowing push
-# Exit on any failure
-
-set -e
-
-echo "🔍 Running pre-push checks..."
-
-echo ""
-echo "📋 Running QA (linting & formatting)..."
+echo "pre-push: running QA checks..."
 npm run qa
 
-echo ""
-echo "🔨 Building..."
+echo "pre-push: building..."
 npm run build
 
-echo ""
-echo "🧪 Running tests..."
+echo "pre-push: running tests..."
 npm test
 
-echo ""
-echo "✅ All pre-push checks passed!"
-exit 0
+echo "pre-push: all checks passed."

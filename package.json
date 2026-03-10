@@ -12,7 +12,8 @@
     "example:build": "cd examples/fibonacci && npm install && npm run build",
     "example:test": "cd examples/fibonacci && npm install && npm test",
     "build": "npm run example:build",
-    "test": "npm run sdk:test && npm run example:test"
+    "test": "npm run sdk:test && npm run example:test",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "author": "Fluffy Labs",
   "license": "MPL-2.0",
