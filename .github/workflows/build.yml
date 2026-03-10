@@ -27,7 +27,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/wasm-pvm
-        key: wasm-pvm-cli-0.4.0
+        key: wasm-pvm-cli-0.5.0
     - name: Install wasm-pvm-cli
       if: steps.cache-wasm-pvm.outputs.cache-hit != 'true'
       run: cargo install wasm-pvm-cli
