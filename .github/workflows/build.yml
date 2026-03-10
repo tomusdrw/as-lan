@@ -19,15 +19,18 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-    - name: Cache wasm-pvm-cli
+    - name: Install LLVM 18 and Rust toolchain
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq llvm-18-dev
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Cache wasm-pvm binary
+      id: cache-wasm-pvm
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/wasm-pvm
         key: wasm-pvm-cli-0.4.0
     - name: Install wasm-pvm-cli
-      run: command -v wasm-pvm || cargo install wasm-pvm-cli
+      if: steps.cache-wasm-pvm.outputs.cache-hit != 'true'
+      run: cargo install wasm-pvm-cli
     - run: npm ci
     - run: npm run qa
     - run: npm run build
