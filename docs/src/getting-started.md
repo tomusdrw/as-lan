@@ -77,17 +77,17 @@ export function refine(ptr: u32, len: u32): u64 {
 
 ## Build & Test
 
+You need [`wasm-pvm`](https://crates.io/crates/wasm-pvm-cli) installed (`cargo install wasm-pvm-cli`) to produce PVM binaries.
+
 ```bash
 npm run build          # compile WASM (debug + release) and PVM binary
 ```
 
 The build pipeline:
 1. Compiles AssemblyScript to WASM (debug + release targets)
-2. Converts the release WASM to a JAM PVM binary (`.pvm`) using [`wasm-pvm`](https://crates.io/crates/wasm-pvm-cli)
+2. Converts the release WASM to a JAM PVM binary (`.pvm`) using `wasm-pvm`
 
 The resulting `build/release.pvm` is the JAM SPI binary ready for deployment.
-
-**Prerequisite:** Install the PVM compiler with `cargo install wasm-pvm-cli`.
 
 ## Manual Setup (without the script)
 
