@@ -1,12 +1,16 @@
 import * as bytes from "../core/bytes.test";
-import * as codec from "../core/codec.test";
+import * as decode from "../core/codec/decode.test";
+import * as encode from "../core/codec/encode.test";
+import * as roundtrip from "../core/codec/index.test";
 
 import { Test } from "./utils";
 
 export function runAllTests(): void {
   let a: u64 = 0;
   a += run(bytes.TESTS, "bytes.ts");
-  a += run(codec.TESTS, "codec.ts");
+  a += run(decode.TESTS, "decode.ts");
+  a += run(encode.TESTS, "encode.ts");
+  a += run(roundtrip.TESTS, "roundtrip.ts");
 
   const okay = u32(a >> 32);
   const total = u32(a);
