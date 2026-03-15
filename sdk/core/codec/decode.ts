@@ -5,6 +5,12 @@ export enum DecodeError {
   Invalid = 0,
 }
 
+/**
+ * Interface for types that can decode a value from a [`Decoder`].
+ *
+ * Prefer implementing this on a dedicated codec class rather than
+ * on the data type directly. See [`TryEncode`] for an example.
+ */
 export interface TryDecode<T, E = DecodeError> {
   decode(d: Decoder): Result<T, E>;
 }
@@ -48,7 +54,7 @@ export class Decoder {
    * Return the number of bytes read from the source
    * (i.e. current offset within the source).
    */
-  bytesRead(): number {
+  bytesRead(): u32 {
     return this.offset;
   }
 
@@ -233,10 +239,7 @@ export class Decoder {
   }
 
   private hasBytes(bytes: u32): boolean {
-    if (this.offset + bytes > <u32>this.source.length) {
-      return false;
-    }
-    return true;
+    return bytes <= <u32>this.source.length - this.offset;
   }
 }
 

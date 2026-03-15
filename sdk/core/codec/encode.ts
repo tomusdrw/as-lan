@@ -1,12 +1,39 @@
 import { Bytes32, BytesBlob } from "../bytes";
 
-export interface TryEncode {
-  encode(e: Encoder): void;
+// Default capacity of the encoder buffer.
+const DEFAULT_CAPACITY = 32;
+
+/**
+ * Interface for a codec that can encode values of type `T` into an [`Encoder`].
+ *
+ * Implement this on a dedicated, stateless codec class rather than
+ * on the data type directly. For example, for a `Point` data type
+ * create a separate `PointCodec` class:
+ *
+ * ```ts
+ * class Point { constructor(public x: u32, public y: u32) {} }
+ *
+ * class PointCodec implements TryEncode<Point>, TryDecode<Point> {
+ *   encode(value: Point, e: Encoder): void { e.u32(value.x); e.u32(value.y); }
+ *   requiredSize(value: Point): u32 { return 8; }
+ *   decode(d: Decoder): Result<Point, DecodeError> { ... }
+ * }
+ * ```
+ */
+export interface TryEncode<T> {
+  /** Encode the given value into the encoder. */
+  encode(value: T, e: Encoder): void;
+  /** Number of bytes needed to encode the given value. */
+  requiredSize(value: T): u32;
 }
 
 export class Encoder {
-  /** Create a growable [`Encoder`] with the given initial capacity. */
-  static create(initialCapacity: u32 = 64): Encoder {
+  /**
+   * Create a growable [`Encoder`] with the given initial capacity.
+   *
+   * NOTE: prefer [`Encoder.into`] for known payload sizes to avoid overallocating.
+   */
+  static create(initialCapacity: u32 = DEFAULT_CAPACITY): Encoder {
     return new Encoder(new Uint8Array(initialCapacity), true);
   }
 
@@ -132,32 +159,32 @@ export class Encoder {
     this.bytesFixLen(value.raw);
   }
 
-  /** Encode a composite object. */
-  object(value: TryEncode): void {
-    value.encode(this);
+  /** Encode a composite object using the given codec. */
+  object<T>(codec: TryEncode<T>, value: T): void {
+    codec.encode(value, this);
   }
 
-  /** Encode a possibly optional value. */
-  optional<T extends TryEncode>(value: T | null): void {
+  /** Encode a possibly optional value using the given codec. */
+  optional<T>(codec: TryEncode<T>, value: T | null): void {
     if (value === null) {
       this.u8(0);
     } else {
       this.u8(1);
-      value.encode(this);
+      codec.encode(value, this);
     }
   }
 
-  /** Encode a known-length sequence of elements. */
-  sequenceFixLen<T extends TryEncode>(values: StaticArray<T>): void {
+  /** Encode a known-length sequence of elements using the given codec. */
+  sequenceFixLen<T>(codec: TryEncode<T>, values: StaticArray<T>): void {
     for (let i: u32 = 0; i < <u32>values.length; i += 1) {
-      values[i].encode(this);
+      codec.encode(values[i], this);
     }
   }
 
-  /** Encode a variable-length sequence of elements (length-prefixed). */
-  sequenceVarLen<T extends TryEncode>(values: StaticArray<T>): void {
+  /** Encode a variable-length sequence of elements (length-prefixed) using the given codec. */
+  sequenceVarLen<T>(codec: TryEncode<T>, values: StaticArray<T>): void {
     this.varU64(u64(values.length));
-    this.sequenceFixLen(values);
+    this.sequenceFixLen(codec, values);
   }
 
   /**
@@ -169,8 +196,8 @@ export class Encoder {
       return false;
     }
 
-    const required = this.offset + bytes;
-    if (required <= <u32>this.data.length) {
+    const remaining = <u32>this.data.length - this.offset;
+    if (bytes <= remaining) {
       return true;
     }
 
@@ -179,7 +206,11 @@ export class Encoder {
       return false;
     }
 
+    const required = this.offset + bytes;
     let newCapacity = <u32>this.data.length;
+    if (newCapacity === 0) {
+      newCapacity = DEFAULT_CAPACITY;
+    }
     while (newCapacity < required) {
       newCapacity *= 2;
     }

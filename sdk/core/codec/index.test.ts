@@ -4,15 +4,21 @@ import { Result } from "../result";
 import { DecodeError, Decoder, TryDecode } from "./decode";
 import { Encoder, TryEncode } from "./encode";
 
-class Point implements TryDecode<Point>, TryEncode {
+class Point {
   constructor(
     public x: u32 = 0,
     public y: u32 = 0,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.u32(this.x);
-    e.u32(this.y);
+class PointCodec implements TryDecode<Point>, TryEncode<Point> {
+  encode(value: Point, e: Encoder): void {
+    e.u32(value.x);
+    e.u32(value.y);
+  }
+
+  requiredSize(_value: Point): u32 {
+    return 8; // 2 × u32
   }
 
   decode(d: Decoder): Result<Point, DecodeError> {
@@ -189,14 +195,15 @@ export const TESTS: Test[] = [
   }),
 
   test("roundtrip object", () => {
+    const codec = new PointCodec();
     const point = new Point(42, 99);
 
     const e = Encoder.create();
-    e.object(point);
+    e.object(codec, point);
 
     const d = Decoder.fromBlob(e.finish());
     const assert = new Assert();
-    const result = d.object<Point>(new Point());
+    const result = d.object<Point>(codec);
     assert.isEqual(result.isOkay, true, "decoded ok");
     assert.isEqual(result.okay!.x, 42, "x");
     assert.isEqual(result.okay!.y, 99, "y");
@@ -206,14 +213,14 @@ export const TESTS: Test[] = [
   }),
 
   test("roundtrip optional present", () => {
-    const point = new Point(10, 20);
+    const codec = new PointCodec();
 
     const e = Encoder.create();
-    e.optional<Point>(point);
+    e.optional<Point>(codec, new Point(10, 20));
 
     const d = Decoder.fromBlob(e.finish());
     const assert = new Assert();
-    const result = d.optional<Point>(new Point());
+    const result = d.optional<Point>(codec);
     assert.isEqual(result.isOkay, true, "decoded ok");
     const val = result.okay!;
     assert.isEqual(val !== null, true, "is some");
@@ -224,12 +231,14 @@ export const TESTS: Test[] = [
   }),
 
   test("roundtrip optional absent", () => {
+    const codec = new PointCodec();
+
     const e = Encoder.create();
-    e.optional<Point>(null);
+    e.optional<Point>(codec, null);
 
     const d = Decoder.fromBlob(e.finish());
     const assert = new Assert();
-    const result = d.optional<Point>(new Point());
+    const result = d.optional<Point>(codec);
     assert.isEqual(result.isOkay, true, "decoded ok");
     assert.isEqual(result.okay === null, true, "is none");
     assert.isEqual(d.isFinished(), true, "finished");
