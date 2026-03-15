@@ -1,6 +1,6 @@
-import { Assert, Test, test } from "../test/utils";
-import { BytesBlob } from "./bytes";
-import { Decoder } from "./codec";
+import { Assert, Test, test } from "../../test/utils";
+import { BytesBlob } from "../bytes";
+import { Decoder } from "./decode";
 
 export const TESTS: Test[] = [
   test("decode judgemenet", () => {
