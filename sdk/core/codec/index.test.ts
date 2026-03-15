@@ -25,7 +25,7 @@ class PointCodec implements TryDecode<Point>, TryEncode<Point> {
     const x = d.u32();
     const y = d.u32();
     if (d.isError) {
-      return Result.err<Point, DecodeError>(DecodeError.Invalid);
+      return Result.err<Point, DecodeError>(DecodeError.MissingBytes);
     }
     return Result.ok<Point, DecodeError>(new Point(x, y));
   }
@@ -224,8 +224,8 @@ export const TESTS: Test[] = [
     assert.isEqual(result.isOkay, true, "decoded ok");
     const val = result.okay!;
     assert.isEqual(val !== null, true, "is some");
-    assert.isEqual(val!.x, 10, "x");
-    assert.isEqual(val!.y, 20, "y");
+    assert.isEqual(val.x, 10, "x");
+    assert.isEqual(val.y, 20, "y");
     assert.isEqual(d.isFinished(), true, "finished");
     return assert;
   }),

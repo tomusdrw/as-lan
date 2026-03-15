@@ -2,7 +2,10 @@ import { Bytes32, BytesBlob } from "../bytes";
 import { Result } from "../result";
 
 export enum DecodeError {
-  Invalid = 0,
+  /** Not enough bytes in the buffer to decode request data. */
+  MissingBytes = 0,
+  /** Collection would be too large to decode. */
+  TooLarge,
 }
 
 /**
@@ -111,6 +114,10 @@ export class Decoder {
     }
 
     offset = this.moveOffset(l);
+    if (offset === -1) {
+      return 0;
+    }
+
     if (l === 8) {
       return this.dataView.getUint64(offset, true);
     }
@@ -128,22 +135,35 @@ export class Decoder {
     return Bytes32.wrapUnchecked(bytes.raw);
   }
 
-  /** Decode a fixed-length sequence of bytes. */
+  /**
+   * Decode a fixed-length sequence of bytes.
+   *
+   * NOTE: this method may return an empty blob in case there is a decoding error.
+   * We don't return a `Result` here to allow simpler handling of the error state
+   * via just single `isError` check at the very end.
+   **/
   bytesFixLen(len: u32): BytesBlob {
     if (len === 0) {
       return BytesBlob.empty();
     }
     const offset = this.moveOffset(len);
     if (offset === -1) {
-      // TODO [ToDr] we probably should not allocate here?
-      return BytesBlob.wrap(new Uint8Array(len));
+      // Return empty blob on error — avoid allocating attacker-controlled len.
+      // Callers like bytes32() / bytesVarLen() should check isError.
+      return BytesBlob.wrap(new Uint8Array(0));
     }
 
     const bytes = this.source.subarray(offset, offset + len);
     return BytesBlob.wrap(bytes);
   }
 
-  /** Decode a variable-length sequence of bytes. */
+  /**
+   * Decode a variable-length sequence of bytes.
+   *
+   * NOTE: this method may return an empty blob in case there is a decoding error
+   * We don't return a `Result` here to allow simpler handling of the error state
+   * via just single `isError` check at the very end.
+   */
   bytesVarLen(): BytesBlob {
     // TODO [ToDr] limit large collections?
     const len = this.varU64();
@@ -160,11 +180,14 @@ export class Decoder {
 
   /** Decode a possibly optional value. */
   optional<T>(decode: TryDecode<T>): Result<T | null, DecodeError> {
-    // TODO [ToDr] handle non-canonical different than `1` value?
-    const isSet = this.u8() !== 0;
-    if (!isSet) {
+    const presenceByte = this.u8();
+    if (this._isError) {
+      return Result.err<T | null, DecodeError>(DecodeError.MissingBytes);
+    }
+    if (presenceByte === 0) {
       return Result.ok<T | null, DecodeError>(null);
     }
+    // NOTE [ToDr] we don't detect non-canonical data here to to save few bytes
     const result = decode.decode(this);
     if (result.isOkay) {
       return Result.ok<T | null, DecodeError>(result.okay!);
@@ -180,7 +203,7 @@ export class Decoder {
       if (v.isOkay) {
         result[i] = v.okay!;
       } else {
-        return Result.err<StaticArray<T>, DecodeError>(DecodeError.Invalid);
+        return Result.err<StaticArray<T>, DecodeError>(v.error);
       }
     }
     return Result.ok<StaticArray<T>, DecodeError>(result);
@@ -188,10 +211,13 @@ export class Decoder {
 
   /** Decode a variable-length sequence of elements. */
   sequenceVarLen<T>(decode: TryDecode<T>): Result<StaticArray<T>, DecodeError> {
-    // TODO [ToDr] limit large collections?
     const len = this.varU64();
+    if (this._isError) {
+      return Result.err<StaticArray<T>, DecodeError>(DecodeError.MissingBytes);
+    }
     if (len > 0xffff_ffff) {
       this._isError = true;
+      return Result.err<StaticArray<T>, DecodeError>(DecodeError.TooLarge);
     }
     return this.sequenceFixLen<T>(decode, u32(len));
   }
