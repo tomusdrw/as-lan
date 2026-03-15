@@ -1,0 +1,181 @@
+name: Artifact Sizes
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  NODE_VERSION: 22.x
+
+permissions:
+  pull-requests: write
+
+jobs:
+  report-sizes:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+
+    - name: Use Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install LLVM 18 and Rust toolchain
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq llvm-18-dev libpolly-18-dev
+
+    - uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache wasm-pvm binary
+      id: cache-wasm-pvm
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/wasm-pvm
+        key: wasm-pvm-cli-0.5.1
+
+    - name: Install wasm-pvm-cli
+      if: steps.cache-wasm-pvm.outputs.cache-hit != 'true'
+      run: cargo install wasm-pvm-cli@0.5.1 --locked
+
+    # --- Build PR branch ---
+    - name: Install dependencies (PR)
+      run: npm ci
+
+    - name: Build examples and collect sizes (PR)
+      run: |
+        mkdir -p /tmp/sizes/pr
+        for example_dir in examples/*/; do
+          example=$(basename "$example_dir")
+          if [ ! -f "$example_dir/package.json" ]; then
+            continue
+          fi
+
+          cd "$example_dir"
+          npm install
+          npm run asbuild:release
+
+          wasm_size=$(stat -c%s "build/release.wasm" 2>/dev/null || echo "0")
+
+          pvm_output=$(wasm-pvm compile build/release.wasm -o build/release.pvm --adapter ../../pvm-adapter.wat 2>&1) || true
+          pvm_size=$(stat -c%s "build/release.pvm" 2>/dev/null || echo "0")
+
+          # Save as JSON
+          printf '{"wasm":%s,"pvm":%s}\n' "$wasm_size" "$pvm_size" > "/tmp/sizes/pr/${example}.json"
+          echo "$pvm_output" > "/tmp/sizes/pr/${example}.pvm.log"
+
+          cd "$GITHUB_WORKSPACE"
+        done
+
+    # --- Build base branch ---
+    - name: Checkout base branch
+      run: git checkout ${{ github.event.pull_request.base.sha }}
+
+    - name: Install dependencies (base)
+      run: npm ci
+
+    - name: Build examples and collect sizes (base)
+      run: |
+        mkdir -p /tmp/sizes/base
+        for example_dir in examples/*/; do
+          example=$(basename "$example_dir")
+          if [ ! -f "$example_dir/package.json" ]; then
+            continue
+          fi
+
+          cd "$example_dir"
+          npm install
+          npm run asbuild:release
+
+          wasm_size=$(stat -c%s "build/release.wasm" 2>/dev/null || echo "0")
+
+          pvm_output=$(wasm-pvm compile build/release.wasm -o build/release.pvm --adapter ../../pvm-adapter.wat 2>&1) || true
+          pvm_size=$(stat -c%s "build/release.pvm" 2>/dev/null || echo "0")
+
+          printf '{"wasm":%s,"pvm":%s}\n' "$wasm_size" "$pvm_size" > "/tmp/sizes/base/${example}.json"
+          echo "$pvm_output" > "/tmp/sizes/base/${example}.pvm.log"
+
+          cd "$GITHUB_WORKSPACE"
+        done
+
+    - name: Generate PR comment
+      id: comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          function readSizes(dir) {
+            const results = {};
+            if (!fs.existsSync(dir)) return results;
+            for (const file of fs.readdirSync(dir)) {
+              if (!file.endsWith('.json')) continue;
+              const name = file.replace('.json', '');
+              const data = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+              const logFile = path.join(dir, `${name}.pvm.log`);
+              data.pvmOutput = fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf8').trim() : '';
+              results[name] = data;
+            }
+            return results;
+          }
+
+          function formatBytes(bytes) {
+            if (bytes === 0) return 'N/A';
+            if (bytes < 1024) return `${bytes} B`;
+            return `${(bytes / 1024).toFixed(2)} KiB`;
+          }
+
+          function formatDiff(current, base) {
+            if (base === 0 && current === 0) return '—';
+            if (base === 0) return '🆕 new';
+            const diff = current - base;
+            if (diff === 0) return '✅ ±0';
+            const pct = ((diff / base) * 100).toFixed(1);
+            const sign = diff > 0 ? '+' : '';
+            const arrow = diff > 0 ? '📈' : '📉';
+            return `${arrow} ${sign}${diff} B (${sign}${pct}%)`;
+          }
+
+          const prData = readSizes('/tmp/sizes/pr');
+          const baseData = readSizes('/tmp/sizes/base');
+          const allExamples = [...new Set([...Object.keys(prData), ...Object.keys(baseData)])].sort();
+
+          let table = '| Example | WASM (release) | PVM | WASM diff | PVM diff |\n';
+          table += '|---------|---------------|-----|-----------|----------|\n';
+
+          let details = '';
+
+          for (const name of allExamples) {
+            const pr = prData[name] || { wasm: 0, pvm: 0, pvmOutput: '' };
+            const base = baseData[name] || { wasm: 0, pvm: 0, pvmOutput: '' };
+
+            table += `| \`${name}\` | ${formatBytes(pr.wasm)} | ${formatBytes(pr.pvm)} | ${formatDiff(pr.wasm, base.wasm)} | ${formatDiff(pr.pvm, base.pvm)} |\n`;
+
+            if (pr.pvmOutput) {
+              details += `<details>\n<summary><code>${name}</code> — wasm-pvm compilation output</summary>\n\n\`\`\`\n${pr.pvmOutput}\n\`\`\`\n\n</details>\n\n`;
+            }
+          }
+
+          const body = `## Artifact Sizes Report\n\n${table}\n${details}`;
+
+          core.setOutput('body', body);
+
+    - name: Find existing comment
+      uses: peter-evans/find-comment@v3
+      id: find_comment
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: '## Artifact Sizes Report'
+
+    - name: Create or update PR comment
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ steps.find_comment.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: ${{ steps.comment.outputs.body }}
+        edit-mode: replace
