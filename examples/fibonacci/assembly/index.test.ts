@@ -1,4 +1,5 @@
-import { Assert, BytesBlob, readFromMemory, Test, test } from "@fluffylabs/as-lan";
+import { BytesBlob, readFromMemory } from "@fluffylabs/as-lan";
+import { Assert, Test, test } from "@fluffylabs/as-lan/test";
 import { accumulate, refine } from "./fibonacci";
 
 function pushVarU64(out: u8[], v: u64): void {

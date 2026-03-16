@@ -29,13 +29,17 @@ my-service/
 │   └── tsconfig.json     # AssemblyScript path mappings
 ├── bin/
 │   └── test.js           # Test runner (node)
-├── ecalli/
-│   ├── index.js          # Stub host imports for local testing
-│   └── package.json
 ├── sdk/                  # as-lan SDK (git submodule)
+│   ├── sdk-ecalli-mocks/ # Configurable ecalli stubs for testing
 │   └── pvm-adapter.wat   # Adapter mapping WASM imports to PVM ecalli host calls
 ├── asconfig.json
 └── package.json
+```
+
+The ecalli host call stubs used for testing live in `sdk/sdk-ecalli-mocks/` and are shared across all services. There is no per-service `ecalli/` directory — just a dependency in `package.json`:
+
+```json
+"ecalli": "file:./sdk/sdk-ecalli-mocks"
 ```
 
 ## Implement Your Service
@@ -81,6 +85,7 @@ You need [`wasm-pvm`](https://crates.io/crates/wasm-pvm-cli) installed (`cargo i
 
 ```bash
 npm run build          # compile WASM (debug + release) and PVM binary
+npm test               # compile test target and run tests
 ```
 
 The build pipeline:
@@ -88,6 +93,8 @@ The build pipeline:
 2. Converts the release WASM to a JAM PVM binary (`.pvm`) using `wasm-pvm`
 
 The resulting `build/release.pvm` is the JAM SPI binary ready for deployment.
+
+See the [Testing](./testing.md) guide for details on writing tests and configuring ecalli mocks.
 
 ## Manual Setup (without the script)
 
@@ -103,11 +110,18 @@ If you prefer to set things up yourself:
    {
      "devDependencies": {
        "@fluffylabs/as-lan": "file:./sdk",
-       "assemblyscript": "^0.28.9"
+       "assemblyscript": "^0.28.9",
+       "ecalli": "file:./sdk/sdk-ecalli-mocks"
      }
    }
    ```
 
-3. Follow the patterns in the scaffolded project for `assembly/index.ts`, `asconfig.json`, etc.
+3. Build the ecalli mocks before first use:
+
+   ```bash
+   cd sdk/sdk-ecalli-mocks && npm install && npm run build && cd ../..
+   ```
+
+4. Follow the patterns in the scaffolded project for `assembly/index.ts`, `asconfig.json`, etc.
 
 See the [SDK API](./sdk-api.md) reference for the full list of available types and utilities.

@@ -8,7 +8,7 @@
     "test": "npm run asbuild:test && node ./bin/test.js"
   },
   "devDependencies": {
-    "assemblyscript": "^0.28.9",
-    "ecalli": "file:./test/ecalli"
+    "assemblyscript": "^0.28.10",
+    "ecalli": "file:../sdk-ecalli-mocks"
   }
 }

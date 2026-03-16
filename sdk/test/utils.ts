@@ -39,3 +39,53 @@ export class Assert {
 export function test(name: string, ptr: () => Assert): Test {
   return new Test(name, ptr);
 }
+
+export class TestSuite {
+  constructor(
+    public tests: Test[],
+    public name: string,
+  ) {}
+}
+
+/** Run all test suites, print results, and throw on failure. */
+export function runTestSuites(suites: TestSuite[]): void {
+  let a: u64 = 0;
+  for (let s = 0; s < suites.length; s++) {
+    a += runSuite(suites[s].tests, suites[s].name);
+  }
+
+  const okay = u32(a >> 32);
+  const total = u32(a);
+
+  printSummary("\n\nTotal", okay, total);
+  if (okay !== total) {
+    throw new Error("Some tests failed.");
+  }
+}
+
+function runSuite(tests: Test[], file: string): u64 {
+  let ok: u32 = 0;
+  console.log(`> ${file}`);
+  for (let i = 0; i < tests.length; i++) {
+    console.log(`  >>> ${tests[i].name}`);
+    const res = tests[i].ptr();
+    if (res.isOkay) {
+      console.log(`  <<< ${tests[i].name} ✅`);
+      ok += 1;
+    } else {
+      for (let j = 0; j < res.errors.length; j++) {
+        console.log(`    ${res.errors[j]}`);
+      }
+      console.log(`  <<< ${tests[i].name} 🔴`);
+    }
+  }
+
+  printSummary(`< ${file}`, ok, tests.length);
+
+  return (u64(ok) << 32) + tests.length;
+}
+
+function printSummary(msg: string, okay: u32, total: u32): void {
+  const ico = okay === total ? "✅" : "🔴";
+  console.log(`${msg} ${okay} / ${total} ${ico}`);
+}
