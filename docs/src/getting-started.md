@@ -117,6 +117,7 @@ If you prefer to set things up yourself:
    ```
 
 3. Build the ecalli mocks before first use:
+
    ```bash
    cd sdk/sdk-ecalli-mocks && npm install && npm run build && cd ../..
    ```

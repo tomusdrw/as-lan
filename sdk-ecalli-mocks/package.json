@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc"
   },
+  "files": ["dist"],
   "devDependencies": {
     "typescript": "^5.0.0"
   }

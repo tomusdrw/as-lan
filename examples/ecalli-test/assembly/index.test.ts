@@ -1,5 +1,5 @@
 import { BytesBlob, Decoder, Encoder, readFromMemory } from "@fluffylabs/as-lan";
-import { Assert, Test, test } from "@fluffylabs/as-lan/test";
+import { Assert, Test, TestStorage, test } from "@fluffylabs/as-lan/test";
 import { EcalliIndex } from "./ecalli-index";
 import { refine } from "./service";
 
@@ -130,6 +130,14 @@ export const TESTS: Test[] = [
   }),
 
   test("read: reads back previously written value", () => {
+    // Pre-populate storage so this test is self-contained
+    const val = new Uint8Array(4);
+    val[0] = 0xca;
+    val[1] = 0xfe;
+    val[2] = 0xba;
+    val[3] = 0xbe;
+    TestStorage.set(strBlob("mykey"), BytesBlob.wrap(val));
+
     const p = Encoder.create();
     p.varU64(EcalliIndex.Read);
     p.varU64(u64(u32.MAX_VALUE)); // service
@@ -148,7 +156,15 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
-  test("write: second write returns previous value length", () => {
+  test("write: overwrite returns previous value length", () => {
+    // Pre-populate storage so this test is self-contained
+    const val = new Uint8Array(4);
+    val[0] = 0xca;
+    val[1] = 0xfe;
+    val[2] = 0xba;
+    val[3] = 0xbe;
+    TestStorage.set(strBlob("mykey"), BytesBlob.wrap(val));
+
     const p = Encoder.create();
     p.varU64(EcalliIndex.Write);
     p.bytesVarLen(strBlob("mykey")); // key

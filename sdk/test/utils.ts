@@ -64,7 +64,7 @@ export function runTestSuites(suites: TestSuite[]): void {
 }
 
 function runSuite(tests: Test[], file: string): u64 {
-  let ok = 0;
+  let ok: u32 = 0;
   console.log(`> ${file}`);
   for (let i = 0; i < tests.length; i++) {
     console.log(`  >>> ${tests[i].name}`);

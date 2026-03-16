@@ -7,7 +7,7 @@ against your JAM service, with configurable ecalli host call mocks.
 
 Testing involves two layers that work together:
 
-```
+```text
 ┌─────────────────────────────────────┐
 │  AssemblyScript test code (WASM)    │
 │                                     │
