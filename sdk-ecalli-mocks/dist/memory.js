@@ -3,8 +3,10 @@ export function setMemory(memory) {
     wasmMemory = memory;
 }
 export function readUtf8(ptr, len) {
-    if (!wasmMemory || !len)
+    if (!wasmMemory)
         return null;
+    if (!len)
+        return "";
     const bytes = new Uint8Array(wasmMemory.buffer, ptr, len);
     return new TextDecoder().decode(bytes);
 }

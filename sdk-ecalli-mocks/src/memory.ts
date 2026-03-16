@@ -5,7 +5,8 @@ export function setMemory(memory: WebAssembly.Memory): void {
 }
 
 export function readUtf8(ptr: number, len: number): string | null {
-  if (!wasmMemory || !len) return null;
+  if (!wasmMemory) return null;
+  if (!len) return "";
   const bytes = new Uint8Array(wasmMemory.buffer, ptr, len);
   return new TextDecoder().decode(bytes);
 }
