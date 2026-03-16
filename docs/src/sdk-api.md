@@ -12,8 +12,8 @@ Arguments are passed as a pointer + length into linear memory. The return value 
 
 The SDK provides helpers for parsing arguments and encoding results:
 
-- **`RefineArgs.parse(ptr, len)`** — Parse raw refine arguments. Returns `Result<RefineArgs, string>`.
-- **`AccumulateArgs.parse(ptr, len)`** — Parse raw accumulate arguments. Returns `Result<AccumulateArgs, string>`.
+- **`RefineArgs.parse(ptr, len)`** — Parse raw refine arguments. Returns `Result<RefineArgs, ParseError>`.
+- **`AccumulateArgs.parse(ptr, len)`** — Parse raw accumulate arguments. Returns `Result<AccumulateArgs, ParseError>`.
 - **`encodeOptionalCodeHash(hash)`** — Encode an `Optional<CodeHash>` as a `BytesBlob` (for accumulate results).
 - **`readFromMemory(ptr, len)`** — Read raw bytes from WASM linear memory.
 - **`ptrAndLen(data)`** — Pack a raw `Uint8Array` into a `u64` return value.
@@ -71,6 +71,34 @@ export function refine(ptr: u32, len: u32): u64 {
 - `serviceId: ServiceId` (`u32`)
 - `argsLength: u32`
 
+### ParseError
+
+Both `RefineArgs.parse()` and `AccumulateArgs.parse()` return
+`Result<T, ParseError>`. The `ParseError` enum (defined in `sdk/service.ts`)
+has the following variants:
+
+| Variant | Value | Trigger |
+|---------|-------|---------|
+| `CoreIndexOutOfRange` | 0 | Decoded core index exceeds `u16` range |
+| `ItemIndexOutOfRange` | 1 | Decoded item index exceeds `u32` range |
+| `ServiceIdOutOfRange` | 2 | Decoded service ID exceeds `u32` range |
+| `SlotOutOfRange` | 3 | Decoded slot exceeds `u32` range |
+| `ArgsLengthOutOfRange` | 4 | Decoded args length exceeds `u32` range |
+| `DecodeError` | 5 | Underlying `Decoder` failed (malformed varint, truncated input, etc.) |
+| `TrailingBytes` | 6 | Input was not fully consumed after parsing all fields |
+
+Handling example:
+
+```typescript
+const result = AccumulateArgs.parse(ptr, len);
+if (result.isError) {
+  // result.error is a ParseError (i32 enum value)
+  logger.str("parse failed: ").i32(result.error).warn();
+  return 0;
+}
+const args = result.okay!;
+```
+
 ## Types
 
 All types are imported from `"@fluffylabs/as-lan"`.
@@ -111,6 +139,40 @@ const logger = new Logger("my-service");
 logger.info("processing work item");
 logger.debug(`payload length: ${payload.length}`);
 ```
+
+> **Binary size note:** `Logger` accepts `string` messages, so using template literals
+> (`` `value: ${n}` ``) pulls in AssemblyScript's string concatenation, UTF-8 encoding,
+> and number-to-string machinery. This can add ~1.3 KiB to the WASM output.
+> If binary size is a concern, use `LogMsg` instead (see below).
+
+### LogMsg (lightweight logger)
+
+A buffer-based logger that writes directly to a fixed-size byte buffer,
+bypassing AssemblyScript's `String` machinery entirely. It uses a builder
+pattern to append text and numbers, then sends the raw bytes to the host.
+
+Using `LogMsg` instead of `Logger` can reduce WASM output by 5KB and PVM
+output by 8KB for a typical service. Note that for large services the
+trade-off between code size and readability & debuggability might not be worth it.
+
+```typescript
+import { LogMsg } from "@fluffylabs/as-lan";
+
+const logger = new LogMsg("my-service");
+logger.str("processing item ").u32(itemId).info();
+logger.str("result: ").u64(value).str(" bytes").debug();
+```
+
+Builder methods (all return `LogMsg` for chaining):
+- **`.str(s)`** — append an ASCII string
+- **`.u32(v)`** — append an unsigned 32-bit number as decimal
+- **`.u64(v)`** — append an unsigned 64-bit number as decimal
+- **`.i32(v)`** — append a signed 32-bit number as decimal
+
+Terminal methods (send the message and reset the buffer):
+- **`.fatal()`**, **`.warn()`**, **`.info()`**, **`.debug()`**, **`.trace()`**
+
+`debug` and `trace` are compiled out at optimization level 3, same as `Logger`.
 
 ### Decoder
 

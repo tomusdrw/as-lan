@@ -8,7 +8,7 @@ export * from "./core/result";
 export * from "./ecalli";
 // JAM types
 export * from "./jam/types";
-
+export * from "./log-msg";
 // Logger
 export * from "./logger";
 
