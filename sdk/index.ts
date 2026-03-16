@@ -14,6 +14,3 @@ export * from "./logger";
 
 // Service helpers
 export * from "./service";
-
-// Test utilities
-export * from "./test/utils";

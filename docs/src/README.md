@@ -14,3 +14,4 @@ AssemblyScript SDK for building [JAM](https://graypaper.com/) services.
 
 - [Quick Start](./getting-started.md) — scaffold a new service in one command
 - [SDK API](./sdk-api.md) — types, service framework, and utilities reference
+- [Testing](./testing.md) — test framework and configurable ecalli mocks

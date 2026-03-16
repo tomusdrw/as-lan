@@ -179,7 +179,7 @@ Declared host functions available to services:
 The SDK exports test helpers for writing AssemblyScript tests:
 
 ```typescript
-import { test, Assert } from "@fluffylabs/as-lan";
+import { test, Assert } from "@fluffylabs/as-lan/test";
 
 const allTests = [
   test("my test", (): Assert => {
@@ -189,3 +189,6 @@ const allTests = [
   }),
 ];
 ```
+
+See the [Testing](./testing.md) guide for the full test framework, including
+configurable ecalli mocks (`TestGas`, `TestFetch`, `TestLookup`, `TestStorage`).

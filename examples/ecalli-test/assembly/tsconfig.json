@@ -1,0 +1,10 @@
+{
+  "extends": "assemblyscript/std/assembly.json",
+  "include": ["./**/*.ts"],
+  "compilerOptions": {
+    "paths": {
+      "@fluffylabs/as-lan": ["../../../sdk/index.ts"],
+      "@fluffylabs/as-lan/*": ["../../../sdk/*"]
+    }
+  }
+}
