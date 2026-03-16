@@ -112,6 +112,40 @@ logger.info("processing work item");
 logger.debug(`payload length: ${payload.length}`);
 ```
 
+> **Binary size note:** `Logger` accepts `string` messages, so using template literals
+> (`` `value: ${n}` ``) pulls in AssemblyScript's string concatenation, UTF-8 encoding,
+> and number-to-string machinery. This can add ~1.3 KiB to the WASM output.
+> If binary size is a concern, use `LogMsg` instead (see below).
+
+### LogMsg (lightweight logger)
+
+A buffer-based logger that writes directly to a fixed-size byte buffer,
+bypassing AssemblyScript's `String` machinery entirely. It uses a builder
+pattern to append text and numbers, then sends the raw bytes to the host.
+
+Using `LogMsg` instead of `Logger` can reduce WASM output by 5KB and PVM
+output by 8KB for a typical service. Note that for large services the 
+trade-off between code size and readability & debugability might not be worth it.
+
+```typescript
+import { LogMsg } from "@fluffylabs/as-lan";
+
+const logger = new LogMsg("my-service");
+logger.str("processing item ").u32(itemId).info();
+logger.str("result: ").u64(value).str(" bytes").debug();
+```
+
+Builder methods (all return `LogMsg` for chaining):
+- **`.str(s)`** — append an ASCII string
+- **`.u32(v)`** — append an unsigned 32-bit number as decimal
+- **`.u64(v)`** — append an unsigned 64-bit number as decimal
+- **`.i32(v)`** — append a signed 32-bit number as decimal
+
+Terminal methods (send the message and reset the buffer):
+- **`.fatal()`**, **`.warn()`**, **`.info()`**, **`.debug()`**, **`.trace()`**
+
+`debug` and `trace` are compiled out at optimization level 3, same as `Logger`.
+
 ### Decoder
 
 Binary protocol decoder for reading host-provided data.

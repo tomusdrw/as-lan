@@ -3,26 +3,29 @@ import {
   Bytes32,
   CodeHash,
   encodeOptionalCodeHash,
-  Logger,
+  LogMsg,
   Optional,
   RefineArgs,
 } from "@fluffylabs/as-lan";
 
-const logger: Logger = new Logger("fib");
+// LogMsg is a lightweight buffer-based logger that avoids pulling in
+// AssemblyScript's String machinery (~24% smaller WASM than Logger).
+// You can also use `new Logger("fib")` with template literals for convenience.
+const logger: LogMsg = new LogMsg("fib");
 
 export function accumulate(ptr: u32, len: u32): u64 {
   const result = AccumulateArgs.parse(ptr, len);
   if (result.isError) {
-    logger.warn(`Failed to parse accumulate args: ${result.error}`);
+    logger.str("Failed to parse accumulate args: ").i32(result.error).warn();
     return 0;
   }
 
   const args = result.okay!;
-  logger.info(`Fibonacci Service Accumulate, ${args.serviceId} @${args.slot}`);
+  logger.str("Fibonacci Service Accumulate, ").u32(args.serviceId).str(" @").u32(args.slot).info();
 
   const n: u64 = args.argsLength > 0 ? u64(args.argsLength) : 10;
   const fibResult = fibonacci(n);
-  logger.info(`fibonacci(${n}) = ${fibResult}`);
+  logger.str("fibonacci(").u64(n).str(") = ").u64(fibResult).info();
 
   // Encode the fibonacci result as a CodeHash (little-endian u64 in the first 8 bytes)
   const raw = new Uint8Array(32);
@@ -36,12 +39,12 @@ export function accumulate(ptr: u32, len: u32): u64 {
 export function refine(ptr: u32, len: u32): u64 {
   const result = RefineArgs.parse(ptr, len);
   if (result.isError) {
-    logger.warn(`Failed to parse refine args: ${result.error}`);
+    logger.str("Failed to parse refine args: ").i32(result.error).warn();
     return 0;
   }
 
   const args = result.okay!;
-  logger.info(`Fibonacci Service Refine, ${args.serviceId}`);
+  logger.str("Fibonacci Service Refine, ").u32(args.serviceId).info();
   return args.payload.toPtrAndLen();
 }
 
