@@ -9,6 +9,6 @@
   },
   "devDependencies": {
     "assemblyscript": "^0.28.9",
-    "ecalli": "file:./test/ecalli"
+    "ecalli": "file:../sdk-ecalli-mocks"
   }
 }

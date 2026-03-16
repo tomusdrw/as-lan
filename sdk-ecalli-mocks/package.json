@@ -1,0 +1,14 @@
+{
+  "name": "@fluffylabs/sdk-ecalli-mocks",
+  "version": "0.0.1",
+  "description": "Configurable ecalli host call stubs for testing JAM services",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

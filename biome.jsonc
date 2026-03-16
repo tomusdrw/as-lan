@@ -46,6 +46,13 @@
     }
   },
   "files": {
-    "includes": ["**/sdk/**", "**/examples/**", "!**/build", "!**/node_modules", "!**/sdk/ecalli"]
+    "includes": [
+      "**/sdk/**",
+      "**/examples/**",
+      "!**/build",
+      "!**/node_modules",
+      "!**/sdk/ecalli",
+      "!**/sdk/test/test-ecalli"
+    ]
   }
 }

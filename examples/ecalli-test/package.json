@@ -1,7 +1,7 @@
 {
-  "name": "@fluffylabs/as-lan-fibonacci-example",
+  "name": "@fluffylabs/as-lan-ecalli-test-example",
   "version": "0.0.1",
-  "description": "Fibonacci service example using as-lan SDK",
+  "description": "Example service exercising all available ecalli host calls",
   "type": "module",
   "scripts": {
     "asbuild:debug": "asc assembly/index.ts --target debug --runtime=stub",
