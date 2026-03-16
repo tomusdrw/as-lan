@@ -71,6 +71,34 @@ export function refine(ptr: u32, len: u32): u64 {
 - `serviceId: ServiceId` (`u32`)
 - `argsLength: u32`
 
+### ParseError
+
+Both `RefineArgs.parse()` and `AccumulateArgs.parse()` return
+`Result<T, ParseError>`. The `ParseError` enum (defined in `sdk/service.ts`)
+has the following variants:
+
+| Variant | Value | Trigger |
+|---------|-------|---------|
+| `CoreIndexOutOfRange` | 0 | Decoded core index exceeds `u16` range |
+| `ItemIndexOutOfRange` | 1 | Decoded item index exceeds `u32` range |
+| `ServiceIdOutOfRange` | 2 | Decoded service ID exceeds `u32` range |
+| `SlotOutOfRange` | 3 | Decoded slot exceeds `u32` range |
+| `ArgsLengthOutOfRange` | 4 | Decoded args length exceeds `u32` range |
+| `DecodeError` | 5 | Underlying `Decoder` failed (malformed varint, truncated input, etc.) |
+| `TrailingBytes` | 6 | Input was not fully consumed after parsing all fields |
+
+Handling example:
+
+```typescript
+const result = AccumulateArgs.parse(ptr, len);
+if (result.isError) {
+  // result.error is a ParseError (i32 enum value)
+  logger.str("parse failed: ").i32(result.error).warn();
+  return 0;
+}
+const args = result.okay!;
+```
+
 ## Types
 
 All types are imported from `"@fluffylabs/as-lan"`.
@@ -124,8 +152,8 @@ bypassing AssemblyScript's `String` machinery entirely. It uses a builder
 pattern to append text and numbers, then sends the raw bytes to the host.
 
 Using `LogMsg` instead of `Logger` can reduce WASM output by 5KB and PVM
-output by 8KB for a typical service. Note that for large services the 
-trade-off between code size and readability & debugability might not be worth it.
+output by 8KB for a typical service. Note that for large services the
+trade-off between code size and readability & debuggability might not be worth it.
 
 ```typescript
 import { LogMsg } from "@fluffylabs/as-lan";
