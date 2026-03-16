@@ -4,6 +4,17 @@ import { readFromMemory } from "./core/mem";
 import { Optional, Result } from "./core/result";
 import { CodeHash, CoreIndex, ServiceId, Slot, WorkPackageHash } from "./jam/types";
 
+/** Errors returned when parsing ABI arguments for refine or accumulate. */
+export enum ParseError {
+  CoreIndexOutOfRange = 0,
+  ItemIndexOutOfRange,
+  ServiceIdOutOfRange,
+  SlotOutOfRange,
+  ArgsLengthOutOfRange,
+  DecodeError,
+  TrailingBytes,
+}
+
 export class RefineArgs {
   constructor(
     public coreIndex: CoreIndex,
@@ -14,30 +25,30 @@ export class RefineArgs {
   ) {}
 
   /** Parse raw refine arguments from (ptr, len). Returns a Result. */
-  static parse(ptr: u32, len: u32): Result<RefineArgs, string> {
+  static parse(ptr: u32, len: u32): Result<RefineArgs, ParseError> {
     const inData = readFromMemory(ptr, len);
     const decoder = Decoder.fromBlob(inData);
     const coreIndex = decoder.varU64();
     if (coreIndex > 0xffff) {
-      return Result.err<RefineArgs, string>("coreIndex exceeds u16 range");
+      return Result.err<RefineArgs, ParseError>(ParseError.CoreIndexOutOfRange);
     }
     const itemIndex = decoder.varU64();
     if (itemIndex > 0xffff_ffff) {
-      return Result.err<RefineArgs, string>("itemIndex exceeds u32 range");
+      return Result.err<RefineArgs, ParseError>(ParseError.ItemIndexOutOfRange);
     }
     const serviceId = decoder.varU64();
     if (serviceId > 0xffff_ffff) {
-      return Result.err<RefineArgs, string>("serviceId exceeds u32 range");
+      return Result.err<RefineArgs, ParseError>(ParseError.ServiceIdOutOfRange);
     }
     const payload = decoder.bytesVarLen();
     const workPackageHash = decoder.bytes32();
     if (decoder.isError) {
-      return Result.err<RefineArgs, string>("Decode error in refine ABI payload");
+      return Result.err<RefineArgs, ParseError>(ParseError.DecodeError);
     }
     if (!decoder.isFinished()) {
-      return Result.err<RefineArgs, string>("Unexpected trailing bytes in refine ABI payload");
+      return Result.err<RefineArgs, ParseError>(ParseError.TrailingBytes);
     }
-    return Result.ok<RefineArgs, string>(
+    return Result.ok<RefineArgs, ParseError>(
       new RefineArgs(u16(coreIndex), u32(itemIndex), u32(serviceId), payload, workPackageHash),
     );
   }
@@ -51,28 +62,28 @@ export class AccumulateArgs {
   ) {}
 
   /** Parse raw accumulate arguments from (ptr, len). Returns a Result. */
-  static parse(ptr: u32, len: u32): Result<AccumulateArgs, string> {
+  static parse(ptr: u32, len: u32): Result<AccumulateArgs, ParseError> {
     const inData = readFromMemory(ptr, len);
     const decoder = Decoder.fromBlob(inData);
     const slot = decoder.varU64();
     if (slot > 0xffff_ffff) {
-      return Result.err<AccumulateArgs, string>("slot exceeds u32 range");
+      return Result.err<AccumulateArgs, ParseError>(ParseError.SlotOutOfRange);
     }
     const serviceId = decoder.varU64();
     if (serviceId > 0xffff_ffff) {
-      return Result.err<AccumulateArgs, string>("serviceId exceeds u32 range");
+      return Result.err<AccumulateArgs, ParseError>(ParseError.ServiceIdOutOfRange);
     }
     const argsLength = decoder.varU64();
     if (argsLength > 0xffff_ffff) {
-      return Result.err<AccumulateArgs, string>("argsLength exceeds u32 range");
+      return Result.err<AccumulateArgs, ParseError>(ParseError.ArgsLengthOutOfRange);
     }
     if (decoder.isError) {
-      return Result.err<AccumulateArgs, string>("Decode error in accumulate ABI payload");
+      return Result.err<AccumulateArgs, ParseError>(ParseError.DecodeError);
     }
     if (!decoder.isFinished()) {
-      return Result.err<AccumulateArgs, string>("Unexpected trailing bytes in accumulate ABI payload");
+      return Result.err<AccumulateArgs, ParseError>(ParseError.TrailingBytes);
     }
-    return Result.ok<AccumulateArgs, string>(new AccumulateArgs(u32(slot), u32(serviceId), u32(argsLength)));
+    return Result.ok<AccumulateArgs, ParseError>(new AccumulateArgs(u32(slot), u32(serviceId), u32(argsLength)));
   }
 }
 

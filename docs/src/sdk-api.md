@@ -12,8 +12,8 @@ Arguments are passed as a pointer + length into linear memory. The return value 
 
 The SDK provides helpers for parsing arguments and encoding results:
 
-- **`RefineArgs.parse(ptr, len)`** — Parse raw refine arguments. Returns `Result<RefineArgs, string>`.
-- **`AccumulateArgs.parse(ptr, len)`** — Parse raw accumulate arguments. Returns `Result<AccumulateArgs, string>`.
+- **`RefineArgs.parse(ptr, len)`** — Parse raw refine arguments. Returns `Result<RefineArgs, ParseError>`.
+- **`AccumulateArgs.parse(ptr, len)`** — Parse raw accumulate arguments. Returns `Result<AccumulateArgs, ParseError>`.
 - **`encodeOptionalCodeHash(hash)`** — Encode an `Optional<CodeHash>` as a `BytesBlob` (for accumulate results).
 - **`readFromMemory(ptr, len)`** — Read raw bytes from WASM linear memory.
 - **`ptrAndLen(data)`** — Pack a raw `Uint8Array` into a `u64` return value.
