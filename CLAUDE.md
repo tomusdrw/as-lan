@@ -4,7 +4,7 @@ AssemblyScript SDK for writing JAM (Join-Accumulate Machine) services.
 
 ## Project Structure
 
-```
+```text
 sdk/                        AssemblyScript SDK library
   ecalli/                   Host call declarations (@external decorators)
     general/                Ecalli 0-5, 100 (gas, fetch, lookup, read, write, info, log)

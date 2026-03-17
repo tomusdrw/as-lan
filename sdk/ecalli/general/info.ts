@@ -1,5 +1,5 @@
 /**
- * Ecalli 5: Service info (Omega_I).
+ * Ecalli 5: Service info.
  *
  * Get account info for the given (or current) service.
  * Returns a 96-byte encoded structure:

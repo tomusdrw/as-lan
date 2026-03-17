@@ -1,5 +1,5 @@
 /**
- * Ecalli 25: Yield result hash (Omega_M).
+ * Ecalli 25: Yield result hash.
  *
  * Provide the accumulation result hash.
  *

@@ -1,5 +1,5 @@
 /**
- * Ecalli 16: Designate validators (Omega_D).
+ * Ecalli 16: Designate validators.
  *
  * Set the next epoch's validator keys.
  *

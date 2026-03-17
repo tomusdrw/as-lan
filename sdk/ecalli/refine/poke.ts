@@ -1,5 +1,5 @@
 /**
- * Ecalli 10: Poke inner machine memory (Omega_K).
+ * Ecalli 10: Poke inner machine memory.
  *
  * Write data into an inner PVM machine's memory.
  *

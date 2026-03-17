@@ -9,33 +9,33 @@
 ;; (must be called in the same function as the preceding host_call_Nb).
 ;;
 ;; Ecalli index reference (GP Appendix B):
-;;   0   = gas remaining         (Omega_G)
-;;   1   = fetch                 (Omega_Y)
-;;   2   = lookup preimage       (Omega_L)
-;;   3   = read storage          (Omega_R)
-;;   4   = write storage         (Omega_W)
-;;   5   = info                  (Omega_I)
-;;   6   = historical_lookup     (Omega_H)
-;;   7   = export                (Omega_E)
-;;   8   = machine               (Omega_N)
-;;   9   = peek                  (Omega_P)
-;;   10  = poke                  (Omega_K)
-;;   11  = pages                 (Omega_A)
-;;   12  = invoke                (Omega_V)
-;;   13  = expunge               (Omega_X)
-;;   14  = bless                 (Omega_B)
-;;   15  = assign                (Omega_C)
-;;   16  = designate             (Omega_D)
-;;   17  = checkpoint            (Omega_T)
-;;   18  = new_service           (Omega_S)
-;;   19  = upgrade               (Omega_U)
-;;   20  = transfer              (Omega_F)
-;;   21  = eject                 (Omega_J)
-;;   22  = query                 (Omega_Q)
-;;   23  = solicit               (Omega_O)
-;;   24  = forget                (Omega_Z)
-;;   25  = yield_result          (Omega_M)
-;;   26  = provide               (Omega_P)
+;;   0   = gas remaining
+;;   1   = fetch
+;;   2   = lookup preimage
+;;   3   = read storage
+;;   4   = write storage
+;;   5   = info
+;;   6   = historical_lookup
+;;   7   = export
+;;   8   = machine
+;;   9   = peek
+;;   10  = poke
+;;   11  = pages
+;;   12  = invoke
+;;   13  = expunge
+;;   14  = bless
+;;   15  = assign
+;;   16  = designate
+;;   17  = checkpoint
+;;   18  = new_service
+;;   19  = upgrade
+;;   20  = transfer
+;;   21  = eject
+;;   22  = query
+;;   23  = solicit
+;;   24  = forget
+;;   25  = yield_result
+;;   26  = provide
 ;;   100 = JIP-1 debug log
 (module
   (import "env" "memory" (memory 0))

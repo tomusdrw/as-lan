@@ -1,5 +1,5 @@
 /**
- * Ecalli 1: Fetch context data (Omega_Y).
+ * Ecalli 1: Fetch context data.
  *
  * Fetch data for the current work item: constants, entropy,
  * extrinsics, imports, work package details, etc.

@@ -1,5 +1,5 @@
 /**
- * Ecalli 7: Export segment (Omega_E).
+ * Ecalli 7: Export segment.
  *
  * Export a segment of data from the current work item.
  *

@@ -1,5 +1,5 @@
 /**
- * Ecalli 26: Provide preimage (Omega_P).
+ * Ecalli 26: Provide preimage.
  *
  * Supply a preimage for a previously solicited hash.
  *

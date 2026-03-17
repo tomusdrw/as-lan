@@ -1,5 +1,5 @@
 /**
- * Ecalli 9: Peek inner machine memory (Omega_P).
+ * Ecalli 9: Peek inner machine memory.
  *
  * Read data from an inner PVM machine's memory.
  *

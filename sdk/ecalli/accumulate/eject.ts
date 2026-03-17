@@ -1,5 +1,5 @@
 /**
- * Ecalli 21: Eject service (Omega_J).
+ * Ecalli 21: Eject service.
  *
  * Remove a service from the system and recover its balance.
  *

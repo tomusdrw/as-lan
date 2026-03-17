@@ -1,5 +1,5 @@
 /**
- * Ecalli 19: Upgrade service code (Omega_U).
+ * Ecalli 19: Upgrade service code.
  *
  * Upgrade the current service's code.
  *

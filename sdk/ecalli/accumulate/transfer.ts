@@ -1,5 +1,5 @@
 /**
- * Ecalli 20: Transfer funds (Omega_F).
+ * Ecalli 20: Transfer funds.
  *
  * Transfer balance to another service and optionally attach a memo.
  *

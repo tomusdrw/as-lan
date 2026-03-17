@@ -1,5 +1,5 @@
 /**
- * Ecalli 23: Solicit preimage (Omega_O).
+ * Ecalli 23: Solicit preimage.
  *
  * Request that a preimage be made available.
  *

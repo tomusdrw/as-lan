@@ -1,5 +1,5 @@
 /**
- * Ecalli 13: Expunge inner machine (Omega_X).
+ * Ecalli 13: Expunge inner machine.
  *
  * Destroy an inner PVM machine and recover its resources.
  *

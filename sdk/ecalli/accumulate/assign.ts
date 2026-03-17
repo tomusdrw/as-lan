@@ -1,5 +1,5 @@
 /**
- * Ecalli 15: Assign core (Omega_C).
+ * Ecalli 15: Assign core.
  *
  * Assign a core to authorization work.
  *

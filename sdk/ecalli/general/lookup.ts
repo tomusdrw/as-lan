@@ -1,5 +1,5 @@
 /**
- * Ecalli 2: Lookup preimage (Omega_L).
+ * Ecalli 2: Lookup preimage.
  *
  * Look up a preimage by its hash for the given (or current) service.
  *

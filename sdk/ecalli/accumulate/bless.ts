@@ -1,5 +1,5 @@
 /**
- * Ecalli 14: Bless (Omega_B).
+ * Ecalli 14: Bless.
  *
  * Set the blessed/privileged service configuration.
  *

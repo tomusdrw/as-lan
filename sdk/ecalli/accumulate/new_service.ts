@@ -1,5 +1,5 @@
 /**
- * Ecalli 18: New service (Omega_S).
+ * Ecalli 18: New service.
  *
  * Create a new service account.
  *

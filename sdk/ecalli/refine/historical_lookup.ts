@@ -1,5 +1,5 @@
 /**
- * Ecalli 6: Historical lookup preimage (Omega_H).
+ * Ecalli 6: Historical lookup preimage.
  *
  * Look up a preimage by its hash for a given service in a historical context.
  * Same signature as `lookup` but uses the historical state.

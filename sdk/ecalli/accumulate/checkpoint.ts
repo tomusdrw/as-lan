@@ -1,5 +1,5 @@
 /**
- * Ecalli 17: Checkpoint (Omega_T).
+ * Ecalli 17: Checkpoint.
  *
  * Create a state checkpoint, committing all changes up to this point.
  * Returns remaining gas after the checkpoint (same semantics as gas).

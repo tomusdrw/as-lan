@@ -1,5 +1,5 @@
 /**
- * Ecalli 3: Read storage (Omega_R).
+ * Ecalli 3: Read storage.
  *
  * Read a value from service storage by key.
  *

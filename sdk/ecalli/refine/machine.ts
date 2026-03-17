@@ -1,5 +1,5 @@
 /**
- * Ecalli 8: Create inner PVM machine (Omega_N).
+ * Ecalli 8: Create inner PVM machine.
  *
  * Create a new inner PVM for nested execution.
  *

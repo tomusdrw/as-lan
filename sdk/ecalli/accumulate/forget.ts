@@ -1,5 +1,5 @@
 /**
- * Ecalli 24: Forget preimage (Omega_Z).
+ * Ecalli 24: Forget preimage.
  *
  * Cancel a previous preimage solicitation.
  *

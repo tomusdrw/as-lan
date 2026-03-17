@@ -1,5 +1,5 @@
 /**
- * Ecalli 11: Set inner machine page access (Omega_A).
+ * Ecalli 11: Set inner machine page access.
  *
  * Configure page access permissions for an inner PVM machine.
  *

@@ -1,5 +1,5 @@
 /**
- * Ecalli 4: Write storage (Omega_W).
+ * Ecalli 4: Write storage.
  *
  * Write a value to the current service's storage.
  * Pass `value_len = 0` to delete the entry.

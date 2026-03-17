@@ -1,5 +1,5 @@
 /**
- * Ecalli 0: Gas remaining (Omega_G).
+ * Ecalli 0: Gas remaining.
  *
  * Returns the remaining gas after this call.
  *

@@ -1,5 +1,5 @@
 /**
- * Ecalli 22: Query preimage status (Omega_Q).
+ * Ecalli 22: Query preimage status.
  *
  * Check whether a preimage is available and its status.
  *
@@ -16,4 +16,4 @@
  */
 // @ts-expect-error: decorator
 @external("ecalli", "query")
-export declare function query(hash_ptr: u32, length: u32, out_r8: usize): i64;
+export declare function query(hash_ptr: u32, length: u32, out_r8: u32): i64;
