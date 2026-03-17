@@ -8,6 +8,7 @@
 // via @external("ecalli", ...) WASM imports. For example, TestGas.set()
 // calls setGasValue() exported by sdk-ecalli-mocks/src/gas.ts.
 
+export { TestAccumulate } from "./accumulate";
 export { TestGas } from "./gas";
 export { TestFetch } from "./fetch";
 export { TestLookup } from "./lookup";

@@ -78,6 +78,10 @@ export class Bytes32 {
     this.bytes = bytes;
     this.raw = bytes.raw;
   }
+
+  toString(): string {
+    return this.bytes.toString();
+  }
 }
 
 const CODE_OF_0: i32 = "0".charCodeAt(0);

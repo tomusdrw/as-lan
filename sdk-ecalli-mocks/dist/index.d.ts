@@ -1,6 +1,6 @@
 export { setMemory } from "./memory.js";
 export { gas, setGasValue } from "./general/index.js";
-export { fetch, setFetchData } from "./general/index.js";
+export { fetch, setFetchData, setAccumulateItems, setAccumulateItem, encodeOperand, encodeTransfer, } from "./general/index.js";
 export { lookup, setLookupPreimage } from "./general/index.js";
 export { read, write, setStorageEntry } from "./general/index.js";
 export { info } from "./general/index.js";

@@ -1,4 +1,5 @@
 import { BytesBlob } from "../core/bytes";
+import { readFromMemory } from "../core/mem";
 
 export class Test {
   constructor(
@@ -38,6 +39,22 @@ export class Assert {
 
 export function test(name: string, ptr: () => Assert): Test {
   return new Test(name, ptr);
+}
+
+/** Wrap a string as a BytesBlob (via UTF-8 encoding). */
+export function strBlob(s: string): BytesBlob {
+  const buf = String.UTF8.encode(s);
+  return BytesBlob.wrap(Uint8Array.wrap(buf));
+}
+
+/**
+ * Unpack a ptrAndLen-packed u64 result and read the bytes from WASM memory.
+ * The packing is (len << 32) | ptr.
+ */
+export function unpackResult(result: u64): Uint8Array {
+  const len = u32(result >> 32);
+  const ptr = u32(result & 0xffffffff);
+  return readFromMemory(ptr, len);
 }
 
 export class TestSuite {
