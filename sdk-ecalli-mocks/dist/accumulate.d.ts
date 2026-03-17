@@ -1,0 +1,14 @@
+export declare function bless(_manager: number, _auth_queue_ptr: number, _delegator: number, _registrar: number, _auto_accum_ptr: number, _auto_accum_count: number): bigint;
+export declare function assign(_core: number, _auth_queue_ptr: number, _assigners: number): bigint;
+export declare function designate(_validators_ptr: number): bigint;
+export declare function checkpoint(): bigint;
+export declare function new_service(_code_hash_ptr: number, _code_len: number, _gas: bigint, _allowance: bigint, _gratis_storage: number, _requested_id: number): bigint;
+export declare function upgrade(_code_hash_ptr: number, _gas: bigint, _allowance: bigint): bigint;
+export declare function transfer(_dest: number, _amount: bigint, _gas_fee: bigint, _memo_ptr: number): bigint;
+export declare function eject(_service: number, _prev_code_hash_ptr: number): bigint;
+export declare function query(_hash_ptr: number, _length: number, out_r8: number): bigint;
+export declare function solicit(_hash_ptr: number, _length: number): bigint;
+export declare function forget(_hash_ptr: number, _length: number): bigint;
+export declare function yield_result(_hash_ptr: number): bigint;
+export declare function provide(_service: number, _preimage_ptr: number, _preimage_len: number): bigint;
+export declare function resetAccumulate(): void;

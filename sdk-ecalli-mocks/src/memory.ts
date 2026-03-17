@@ -26,3 +26,8 @@ export function writeToMem(ptr: number, data: Uint8Array, offset: number, maxLen
     }
   }
 }
+
+export function writeI64(ptr: number, value: bigint): void {
+  if (!wasmMemory || ptr < 0 || ptr + 8 > wasmMemory.buffer.byteLength) return;
+  new DataView(wasmMemory.buffer).setBigInt64(ptr, value, true);
+}
