@@ -1,4 +1,4 @@
-import { readUtf8 } from "./memory.js";
+import { readUtf8 } from "../memory.js";
 
 const LOG_LEVELS = ["FATAL", "WARN ", "INFO ", "DEBUG", "TRACE"];
 

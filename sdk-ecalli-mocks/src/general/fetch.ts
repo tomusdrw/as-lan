@@ -1,4 +1,4 @@
-import { readBytes, writeToMem } from "./memory.js";
+import { readBytes, writeToMem } from "../memory.js";
 
 let fetchData: Uint8Array | null = null;
 

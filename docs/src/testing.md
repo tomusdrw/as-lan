@@ -28,9 +28,9 @@ Testing involves two layers that work together:
 ```
 
 - **`sdk-ecalli-mocks/`** — A TypeScript (Node.js) package that provides stub
-  implementations of the 7 ecalli host calls (`gas`, `fetch`, `lookup`, `read`,
-  `write`, `info`, `log`). These stubs satisfy the WASM imports at test time
-  and hold configurable state (gas value, storage map, preimage data, etc.).
+  implementations of all 27 ecalli host calls (general 0-5 + 100, refine 6-13,
+  accumulate 14-26). These stubs satisfy the WASM imports at test time and hold
+  configurable state (gas value, storage map, preimage data, etc.).
 
 - **`sdk/test/test-ecalli/`** — AssemblyScript wrapper classes (`TestGas`,
   `TestFetch`, `TestLookup`, `TestStorage`, `TestEcalli`) that bridge to the
@@ -161,6 +161,8 @@ TestEcalli.reset();
 
 ## Default Stub Behavior
 
+**General (0-5, 100):**
+
 | Ecalli | Default |
 |--------|---------|
 | `gas()` | Returns `1_000_000` |
@@ -170,6 +172,37 @@ TestEcalli.reset();
 | `write()` | Writes to in-memory Map; returns previous value length or `NONE` |
 | `info()` | Returns a 96-byte structure (code\_hash=`0xAA...`, balance=`1000`) |
 | `log()` | Prints `[LEVEL] target: message` to console |
+
+**Refine (6-13):**
+
+| Ecalli | Default |
+|--------|---------|
+| `historical_lookup()` | Writes `"test-historical"` (15 bytes), returns `15` |
+| `export_()` | Returns incrementing segment index (0, 1, 2, ...) |
+| `machine()` | Returns incrementing machine ID (0, 1, 2, ...) |
+| `peek()` | Returns `OK` (0) |
+| `poke()` | Returns `OK` (0) |
+| `pages()` | Returns `OK` (0) |
+| `invoke()` | Returns `HALT` (0), writes `r8 = 0` |
+| `expunge()` | Returns `OK` (0) |
+
+**Accumulate (14-26):**
+
+| Ecalli | Default |
+|--------|---------|
+| `bless()` | Returns `OK` (0) |
+| `assign()` | Returns `OK` (0) |
+| `designate()` | Returns `OK` (0) |
+| `checkpoint()` | Returns remaining gas (delegates to `gas()` mock) |
+| `new_service()` | Returns incrementing service ID (256, 257, ...) |
+| `upgrade()` | Returns `OK` (0) |
+| `transfer()` | Returns `OK` (0) |
+| `eject()` | Returns `OK` (0) |
+| `query()` | Returns `NONE` (-1), writes `r8 = 0` |
+| `solicit()` | Returns `OK` (0) |
+| `forget()` | Returns `OK` (0) |
+| `yield_result()` | Returns `OK` (0) |
+| `provide()` | Returns `OK` (0) |
 
 
 See the [fibonacci](https://github.com/fluffylabs/as-lan/tree/main/examples/fibonacci)

@@ -1,34 +1,35 @@
 // Configurable ecalli host call stubs for testing JAM services.
 //
 // This package provides the **JS-side** (Node.js) stub implementations that
-// satisfy WASM ecalli imports at test time. Each ecalli function (gas, fetch,
-// lookup, read, write, info, log) has its own module with a stub and an
-// optional configuration function (e.g. setGasValue, setFetchData).
+// satisfy WASM ecalli imports at test time. Each ecalli function has its own
+// module with a stub and optional configuration (e.g. setGasValue, setFetchData).
 //
 // The corresponding **AS-side** wrappers live in sdk/test/test-ecalli/.
-// Those wrappers (TestGas, TestFetch, TestLookup, TestStorage, TestEcalli)
-// provide a high-level API for configuring stubs from within AssemblyScript
-// test code. They bridge to this package via @external("ecalli", ...) WASM
-// imports — e.g. TestGas.set(v) calls setGasValue(v) here.
 // Setup
 export { setMemory } from "./memory.js";
-// Ecalli stubs
-export { gas, setGasValue } from "./gas.js";
-export { fetch, setFetchData } from "./fetch.js";
-export { lookup, setLookupPreimage } from "./lookup.js";
-export { read, write, setStorageEntry } from "./storage.js";
-export { info } from "./info.js";
-export { log } from "./log.js";
+// General ecalli stubs (0-5, 100)
+export { gas, setGasValue } from "./general/index.js";
+export { fetch, setFetchData } from "./general/index.js";
+export { lookup, setLookupPreimage } from "./general/index.js";
+export { read, write, setStorageEntry } from "./general/index.js";
+export { info } from "./general/index.js";
+export { log } from "./general/index.js";
+// Refine ecalli stubs (6-13)
+export { historical_lookup, setHistoricalLookupPreimage } from "./refine/index.js";
+export { export_ as export } from "./refine/index.js";
+export { machine, peek, poke, pages, invoke, expunge } from "./refine/index.js";
+// Accumulate ecalli stubs (14-26)
+export { bless, assign, designate } from "./accumulate/index.js";
+export { checkpoint } from "./accumulate/index.js";
+export { new_service, upgrade, eject } from "./accumulate/index.js";
+export { transfer } from "./accumulate/index.js";
+export { query, solicit, forget, yield_result, provide } from "./accumulate/index.js";
 // Reset
-import { resetGas } from "./gas.js";
-import { resetFetch } from "./fetch.js";
-import { resetInfo } from "./info.js";
-import { resetLookup } from "./lookup.js";
-import { resetStorage } from "./storage.js";
+import { resetGeneral } from "./general/index.js";
+import { resetRefine } from "./refine/index.js";
+import { resetAccumulate } from "./accumulate/index.js";
 export function resetAll() {
-    resetGas();
-    resetFetch();
-    resetLookup();
-    resetStorage();
-    resetInfo();
+    resetGeneral();
+    resetRefine();
+    resetAccumulate();
 }

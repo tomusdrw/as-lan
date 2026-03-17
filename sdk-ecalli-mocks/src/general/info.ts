@@ -1,4 +1,4 @@
-import { writeToMem } from "./memory.js";
+import { writeToMem } from "../memory.js";
 
 function buildDefaultInfoData(): Uint8Array {
   const data = new Uint8Array(96);

@@ -1,4 +1,4 @@
-import { readBytes, writeToMem } from "./memory.js";
+import { readBytes, writeToMem } from "../memory.js";
 
 const DEFAULT_PREIMAGE = new TextEncoder().encode("test-preimage");
 

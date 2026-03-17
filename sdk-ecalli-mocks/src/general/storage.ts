@@ -1,4 +1,4 @@
-import { readBytes, writeToMem } from "./memory.js";
+import { readBytes, writeToMem } from "../memory.js";
 
 const DELETE_SENTINEL = 0xffff_ffff;
 const storage = new Map<string, Uint8Array>();

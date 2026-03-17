@@ -34,10 +34,6 @@ export class EcalliResult {
   static readonly HUH: i64 = -9;
 }
 
-export { FetchKind, fetch } from "./fetch";
-export { gas } from "./gas";
-export { info } from "./info";
-export { log } from "./log";
-export { lookup } from "./lookup";
-export { read } from "./read";
-export { write } from "./write";
+export * from "./general";
+export * from "./refine";
+export * from "./accumulate";

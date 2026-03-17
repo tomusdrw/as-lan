@@ -26,3 +26,8 @@ export function writeToMem(ptr, data, offset, maxLen) {
         }
     }
 }
+export function writeI64(ptr, value) {
+    if (!wasmMemory)
+        return;
+    new DataView(wasmMemory.buffer).setBigInt64(ptr, value, true);
+}
