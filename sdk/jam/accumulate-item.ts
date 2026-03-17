@@ -160,10 +160,11 @@ export class PendingTransfer {
     e.u32(this.source);
     e.u32(this.destination);
     e.u64(this.amount);
-    // Memo is always exactly TRANSFER_MEMO_SIZE bytes; pad if shorter.
+    // Memo must be at most TRANSFER_MEMO_SIZE bytes; pad if shorter.
     const raw = this.memo.raw;
-    if (<u32>raw.length >= TRANSFER_MEMO_SIZE) {
-      e.bytesFixLen(raw.subarray(0, TRANSFER_MEMO_SIZE));
+    assert(<u32>raw.length <= TRANSFER_MEMO_SIZE, `memo too large: ${raw.length} > ${TRANSFER_MEMO_SIZE}`);
+    if (<u32>raw.length === TRANSFER_MEMO_SIZE) {
+      e.bytesFixLen(raw);
     } else {
       const padded = new Uint8Array(TRANSFER_MEMO_SIZE);
       padded.set(raw);

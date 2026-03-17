@@ -42,14 +42,11 @@ export function encodeOperand(fields: {
   const parts: Uint8Array[] = [];
   // tag = 0 (operand)
   parts.push(encodeVarU64(0n));
-  // hash (32 bytes)
-  parts.push(fields.hash ?? new Uint8Array(32));
-  // exportsRoot (32 bytes)
-  parts.push(fields.exportsRoot ?? new Uint8Array(32));
-  // authorizerHash (32 bytes)
-  parts.push(fields.authorizerHash ?? new Uint8Array(32));
-  // payloadHash (32 bytes)
-  parts.push(fields.payloadHash ?? new Uint8Array(32));
+  // hash fields (each exactly 32 bytes)
+  parts.push(assertBytes32(fields.hash, "hash"));
+  parts.push(assertBytes32(fields.exportsRoot, "exportsRoot"));
+  parts.push(assertBytes32(fields.authorizerHash, "authorizerHash"));
+  parts.push(assertBytes32(fields.payloadHash, "payloadHash"));
   // gas (varU64)
   parts.push(encodeVarU64(fields.gas ?? 100000n));
   // result: WorkExecResult (varint tag + optional blob)
@@ -144,6 +141,12 @@ export function resetFetch(): void {
 }
 
 // --- Encoding helpers ---
+
+function assertBytes32(field: Uint8Array | undefined, name: string): Uint8Array {
+  if (field === undefined) return new Uint8Array(32);
+  if (field.length !== 32) throw new RangeError(`${name} must be 32 bytes, got ${field.length}`);
+  return field;
+}
 
 function encodeVarU64(value: bigint): Uint8Array {
   if (value < 0n) throw new Error("varU64: negative value");

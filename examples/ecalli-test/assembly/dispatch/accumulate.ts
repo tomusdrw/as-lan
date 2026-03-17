@@ -11,6 +11,7 @@ import {
   query,
   Response,
   solicit,
+  TRANSFER_MEMO_SIZE,
   transfer,
   upgrade,
   yield_result,
@@ -127,7 +128,11 @@ export function dispatchTransfer(d: Decoder): u64 {
     return 0;
   }
 
-  const result = transfer(dest, amount, gasFee, u32(memo.raw.dataStart));
+  // Pad memo to exactly TRANSFER_MEMO_SIZE bytes as required by the host call.
+  const padded = new Uint8Array(TRANSFER_MEMO_SIZE);
+  const raw = memo.raw;
+  padded.set(raw.subarray(0, min(<i32>raw.length, <i32>TRANSFER_MEMO_SIZE)));
+  const result = transfer(dest, amount, gasFee, u32(padded.dataStart));
   logger.info(`transfer() = ${result}`);
 
   return Response.with(result);
