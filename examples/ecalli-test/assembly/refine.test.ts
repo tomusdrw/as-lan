@@ -1,56 +1,11 @@
-import { BytesBlob, Decoder, Encoder, readFromMemory } from "@fluffylabs/as-lan";
+import { BytesBlob, Encoder } from "@fluffylabs/as-lan";
 import { Assert, Test, TestStorage, test } from "@fluffylabs/as-lan/test";
 import { EcalliIndex } from "./ecalli-index";
-import { refine } from "./service";
-
-/** Wrap a string as a BytesBlob (String.UTF8.encode returns ArrayBuffer). */
-function strBlob(s: string): BytesBlob {
-  const buf = String.UTF8.encode(s);
-  return BytesBlob.wrap(Uint8Array.wrap(buf));
-}
-
-function unpackResult(result: u64): Uint8Array {
-  const len = u32(result >> 32);
-  const ptr = u32(result & 0xffffffff);
-  return readFromMemory(ptr, len);
-}
-
-/** Build full refine args encoding with the given inner payload. */
-function buildRefineArgs(payload: Uint8Array): Uint8Array {
-  const enc = Encoder.create();
-  enc.varU64(0); // coreIndex
-  enc.varU64(0); // itemIndex
-  enc.varU64(42); // serviceId
-  enc.bytesVarLen(BytesBlob.wrap(payload));
-  enc.bytesFixLen(new Uint8Array(32)); // workPackageHash (zeros)
-  return enc.finish();
-}
-
-/** Call refine with the given ecalli dispatch payload. */
-function callRefine(payload: Uint8Array): Response {
-  const args = buildRefineArgs(payload);
-  const buf = new Uint8Array(args.length);
-  buf.set(args);
-  const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
-  return Response.decode(raw);
-}
-
-/** Decoded ecalli response: result code + output data. */
-class Response {
-  constructor(
-    public result: i64,
-    public data: BytesBlob,
-  ) {}
-
-  static decode(raw: Uint8Array): Response {
-    const d = Decoder.fromBlob(raw);
-    const result = i64(d.u64());
-    const data = d.bytesVarLen();
-    return new Response(result, data);
-  }
-}
+import { callRefine, strBlob } from "./test-helpers";
 
 export const TESTS: Test[] = [
+  // === General ecallis (0-5, 100) ===
+
   test("gas: returns remaining gas", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Gas);
@@ -130,7 +85,6 @@ export const TESTS: Test[] = [
   }),
 
   test("read: reads back previously written value", () => {
-    // Pre-populate storage so this test is self-contained
     const val = new Uint8Array(4);
     val[0] = 0xca;
     val[1] = 0xfe;
@@ -157,7 +111,6 @@ export const TESTS: Test[] = [
   }),
 
   test("write: overwrite returns previous value length", () => {
-    // Pre-populate storage so this test is self-contained
     const val = new Uint8Array(4);
     val[0] = 0xca;
     val[1] = 0xfe;
@@ -187,10 +140,8 @@ export const TESTS: Test[] = [
     const assert = new Assert();
     assert.isEqual(resp.result, 96, "info total length");
     assert.isEqual(resp.data.raw.length, 96, "info data length");
-    // Stub fills code_hash with 0xAA
     assert.isEqual(resp.data.raw[0], 0xaa, "code_hash[0]");
     assert.isEqual(resp.data.raw[31], 0xaa, "code_hash[31]");
-    // Stub sets balance to 1000 LE
     assert.isEqual(resp.data.raw[32], 0xe8, "balance[0]");
     assert.isEqual(resp.data.raw[33], 0x03, "balance[1]");
     return assert;
@@ -206,6 +157,118 @@ export const TESTS: Test[] = [
     const resp = callRefine(p.finish());
     const assert = new Assert();
     assert.isEqual(resp.result, 0, "log returns 0");
+    return assert;
+  }),
+
+  // === Refine ecallis (6-13) ===
+
+  test("historical_lookup: returns historical preimage", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.HistoricalLookup);
+    p.varU64(u64(u32.MAX_VALUE)); // service: current
+    p.bytesFixLen(new Uint8Array(32)); // hash: zeros
+    p.varU64(0); // offset
+    p.varU64(256); // maxLen
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 15, "historical_lookup total length");
+    assert.isEqual(resp.data.raw.length, 15, "preimage data length");
+    return assert;
+  }),
+
+  test("export: exports a segment", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.Export);
+    const segment = new Uint8Array(8);
+    segment[0] = 0x42;
+    p.bytesVarLen(BytesBlob.wrap(segment));
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 0, "export returns segment index 0");
+    return assert;
+  }),
+
+  test("machine: creates inner PVM", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.Machine);
+    const code = new Uint8Array(4);
+    p.bytesVarLen(BytesBlob.wrap(code));
+    p.varU64(0); // entrypoint
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 0, "machine returns machine ID 0");
+    return assert;
+  }),
+
+  test("peek: reads from inner machine memory", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.Peek);
+    p.varU64(0); // machine_id
+    p.varU64(0); // source address
+    p.varU64(8); // length
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 0, "peek returns OK");
+    assert.isEqual(resp.data.raw.length, 8, "peek data length");
+    return assert;
+  }),
+
+  test("poke: writes to inner machine memory", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.Poke);
+    p.varU64(0); // machine_id
+    const data = new Uint8Array(4);
+    data[0] = 0xde;
+    data[1] = 0xad;
+    p.bytesVarLen(BytesBlob.wrap(data));
+    p.varU64(0x1000); // dest address in machine
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 0, "poke returns OK");
+    return assert;
+  }),
+
+  test("pages: sets inner machine page access", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.Pages);
+    p.varU64(0); // machine_id
+    p.varU64(0); // start_page
+    p.varU64(1); // page_count
+    p.varU64(3); // access_type (read+write)
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 0, "pages returns OK");
+    return assert;
+  }),
+
+  test("invoke: runs inner PVM machine", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.Invoke);
+    p.varU64(0); // machine_id
+    const io = new Uint8Array(8); // I/O structure
+    p.bytesVarLen(BytesBlob.wrap(io));
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 0, "invoke returns HALT");
+    assert.isEqual(resp.data.raw.length, 8, "invoke returns r8 output");
+    return assert;
+  }),
+
+  test("expunge: destroys inner machine", () => {
+    const p = Encoder.create();
+    p.varU64(EcalliIndex.Expunge);
+    p.varU64(0); // machine_id
+
+    const resp = callRefine(p.finish());
+    const assert = new Assert();
+    assert.isEqual(resp.result, 0, "expunge returns OK");
     return assert;
   }),
 ];

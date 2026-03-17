@@ -1,5 +1,5 @@
-import { BytesBlob, readFromMemory } from "@fluffylabs/as-lan";
-import { Assert, Test, test } from "@fluffylabs/as-lan/test";
+import { BytesBlob } from "@fluffylabs/as-lan";
+import { Assert, Test, test, unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate, refine } from "./fibonacci";
 
 function pushVarU64(out: u8[], v: u64): void {
@@ -35,14 +35,6 @@ function toBytes(out: u8[]): Uint8Array {
 
 function fromHex(hex: string): Uint8Array {
   return BytesBlob.parseBlob(hex).okay!.raw;
-}
-
-/** Unpack a u64 result into (ptr, len) and read the bytes from memory.
- *  ptrAndLen packs as (len << 32) | ptr, so upper bits = len, lower bits = ptr. */
-function unpackResult(result: u64): Uint8Array {
-  const len = u32(result >> 32);
-  const ptr = u32(result & 0xffffffff);
-  return readFromMemory(ptr, len);
 }
 
 function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, msg: string): void {

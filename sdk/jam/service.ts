@@ -1,8 +1,10 @@
-import { BytesBlob } from "./core/bytes";
-import { Decoder } from "./core/codec";
-import { readFromMemory } from "./core/mem";
-import { Optional, Result } from "./core/result";
-import { CodeHash, CoreIndex, ServiceId, Slot, WorkPackageHash } from "./jam/types";
+import { BytesBlob } from "../core/bytes";
+import { Decoder } from "../core/codec/decode";
+import { Encoder } from "../core/codec/encode";
+import { readFromMemory } from "../core/mem";
+import { ptrAndLen } from "../core/pack";
+import { Optional, Result } from "../core/result";
+import { CodeHash, CoreIndex, ServiceId, Slot, WorkPackageHash } from "./types";
 
 /** Errors returned when parsing ABI arguments for refine or accumulate. */
 export enum ParseError {
@@ -52,6 +54,15 @@ export class RefineArgs {
       new RefineArgs(u16(coreIndex), u32(itemIndex), u32(serviceId), payload, workPackageHash),
     );
   }
+
+  /** Encode refine arguments into an Encoder. */
+  encode(e: Encoder): void {
+    e.varU64(u64(this.coreIndex));
+    e.varU64(u64(this.itemIndex));
+    e.varU64(u64(this.serviceId));
+    e.bytesVarLen(this.payload);
+    e.bytesFixLen(this.workPackageHash.raw);
+  }
 }
 
 export class AccumulateArgs {
@@ -84,6 +95,56 @@ export class AccumulateArgs {
       return Result.err<AccumulateArgs, ParseError>(ParseError.TrailingBytes);
     }
     return Result.ok<AccumulateArgs, ParseError>(new AccumulateArgs(u32(slot), u32(serviceId), u32(argsLength)));
+  }
+
+  /** Encode accumulate arguments into an Encoder. */
+  encode(e: Encoder): void {
+    e.varU64(u64(this.slot));
+    e.varU64(u64(this.serviceId));
+    e.varU64(u64(this.argsLength));
+  }
+}
+
+/**
+ * Response from a refine or accumulate entry point.
+ *
+ * Encoding: result(u64 LE) + data(bytesVarLen)
+ */
+export class Response {
+  constructor(
+    /** Ecalli result code. */
+    public result: i64,
+    /** Output data (may be empty). */
+    public data: BytesBlob,
+  ) {}
+
+  /** Decode a response from raw bytes. */
+  static decode(raw: Uint8Array): Response {
+    const d = Decoder.fromBlob(raw);
+    const result = i64(d.u64());
+    const data = d.bytesVarLen();
+    return new Response(result, data);
+  }
+
+  /**
+   * Encode a response and return it as a ptrAndLen-packed u64.
+   * This is the primary way dispatch functions return results.
+   */
+  static with(ecalliResult: i64, data: Uint8Array | null = null): u64 {
+    const enc = Encoder.create();
+    enc.u64(u64(ecalliResult));
+    if (data !== null) {
+      enc.bytesVarLen(BytesBlob.wrap(data));
+    } else {
+      enc.varU64(0);
+    }
+    return ptrAndLen(enc.finish());
+  }
+
+  /** Encode response into an Encoder. */
+  encode(e: Encoder): void {
+    e.u64(u64(this.result));
+    e.bytesVarLen(this.data);
   }
 }
 
