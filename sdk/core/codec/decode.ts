@@ -98,6 +98,19 @@ export class Decoder {
   }
 
   /**
+   * Decode a variable-length u64 and validate it fits in a u32.
+   * Sets isError if the value overflows u32 range.
+   */
+  varU32(): u32 {
+    const val = this.varU64();
+    if (val > 0xffff_ffff) {
+      this._isError = true;
+      return 0;
+    }
+    return u32(val);
+  }
+
+  /**
    * Decode a variable-length encoding of natural numbers (up to 2**64).
    */
   varU64(): u64 {
@@ -166,11 +179,8 @@ export class Decoder {
    */
   bytesVarLen(): BytesBlob {
     // TODO [ToDr] limit large collections?
-    const len = this.varU64();
-    if (len > 0xffff_ffff) {
-      this._isError = true;
-    }
-    return this.bytesFixLen(u32(len));
+    const len = this.varU32();
+    return this.bytesFixLen(len);
   }
 
   /** Decode a composite object. */
@@ -211,15 +221,15 @@ export class Decoder {
 
   /** Decode a variable-length sequence of elements. */
   sequenceVarLen<T>(decode: TryDecode<T>): Result<StaticArray<T>, DecodeError> {
-    const len = this.varU64();
+    const rawLen = this.varU64();
     if (this._isError) {
       return Result.err<StaticArray<T>, DecodeError>(DecodeError.MissingBytes);
     }
-    if (len > 0xffff_ffff) {
+    if (rawLen > 0xffff_ffff) {
       this._isError = true;
       return Result.err<StaticArray<T>, DecodeError>(DecodeError.TooLarge);
     }
-    return this.sequenceFixLen<T>(decode, u32(len));
+    return this.sequenceFixLen<T>(decode, u32(rawLen));
   }
 
   /**

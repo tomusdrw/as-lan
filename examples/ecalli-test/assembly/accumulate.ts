@@ -77,7 +77,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
     const d = Decoder.fromBlob(buf.subarray(0, dataLen));
 
     // Decode discriminator tag
-    const tag = u32(d.varU64());
+    const tag = d.varU32();
     if (d.isError) {
       logger.warn(`Failed to decode item ${i} tag`);
       continue;

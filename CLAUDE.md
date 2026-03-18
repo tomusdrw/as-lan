@@ -81,4 +81,5 @@ npm test         # Build mocks + run SDK tests + example tests
 - Each ecalli gets a dedicated SDK declaration file. Tightly-coupled calls share mock files.
 - The WAT adapter uses `i64.extend_i32_u` for u32 params and `$pvm_ptr` for pointer-to-memory args.
 - Dispatch functions return `Response.with(result, data?)` — never use raw `ptrAndLen` encoding.
+- Use `d.varU32()` (not `u32(d.varU64())`) when decoding a varint that must fit in u32 — it validates the range and sets `isError` on overflow.
 - Test helpers for configuring mock state from AS go in `sdk/test/test-ecalli/` using `@external("ecalli", ...)` bridging.

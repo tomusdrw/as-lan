@@ -10,11 +10,11 @@ export function dispatchGas(): u64 {
 
 /** Ecalli 1: fetch(kind, param1, param2, offset, maxLen). */
 export function dispatchFetch(d: Decoder): u64 {
-  const kind = u32(d.varU64());
-  const param1 = u32(d.varU64());
-  const param2 = u32(d.varU64());
-  const offset = u32(d.varU64());
-  const maxLen = u32(d.varU64());
+  const kind = d.varU32();
+  const param1 = d.varU32();
+  const param2 = d.varU32();
+  const offset = d.varU32();
+  const maxLen = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode fetch params");
     return 0;
@@ -29,10 +29,10 @@ export function dispatchFetch(d: Decoder): u64 {
 
 /** Ecalli 2: lookup(service, hash[32], offset, maxLen). */
 export function dispatchLookup(d: Decoder): u64 {
-  const service = u32(d.varU64());
+  const service = d.varU32();
   const hash = d.bytes32();
-  const offset = u32(d.varU64());
-  const maxLen = u32(d.varU64());
+  const offset = d.varU32();
+  const maxLen = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode lookup params");
     return 0;
@@ -47,10 +47,10 @@ export function dispatchLookup(d: Decoder): u64 {
 
 /** Ecalli 3: read(service, key[bytesVarLen], offset, maxLen). */
 export function dispatchRead(d: Decoder): u64 {
-  const service = u32(d.varU64());
+  const service = d.varU32();
   const key = d.bytesVarLen();
-  const offset = u32(d.varU64());
-  const maxLen = u32(d.varU64());
+  const offset = d.varU32();
+  const maxLen = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode read params");
     return 0;
@@ -80,9 +80,9 @@ export function dispatchWrite(d: Decoder): u64 {
 
 /** Ecalli 5: info(service, offset, maxLen). */
 export function dispatchInfo(d: Decoder): u64 {
-  const service = u32(d.varU64());
-  const offset = u32(d.varU64());
-  const maxLen = u32(d.varU64());
+  const service = d.varU32();
+  const offset = d.varU32();
+  const maxLen = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode info params");
     return 0;
@@ -97,7 +97,7 @@ export function dispatchInfo(d: Decoder): u64 {
 
 /** Ecalli 100: log(level, target[bytesVarLen], message[bytesVarLen]). */
 export function dispatchLog(d: Decoder): u64 {
-  const level = u32(d.varU64());
+  const level = d.varU32();
   const target = d.bytesVarLen();
   const message = d.bytesVarLen();
   if (d.isError) {
