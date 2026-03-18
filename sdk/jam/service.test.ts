@@ -1,7 +1,6 @@
 import { Bytes32, BytesBlob } from "../core/bytes";
-import { Decoder } from "../core/codec/decode";
 import { Encoder } from "../core/codec/encode";
-import { Assert, Test, test } from "../test/utils";
+import { Assert, Test, test, unpackResult } from "../test/utils";
 import { AccumulateArgs, RefineArgs, Response } from "./service";
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
@@ -21,57 +20,58 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
+    const blob = e.finish();
+    const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
     const assert = new Assert();
-    const coreIndex = u16(d.varU64());
-    const itemIndex = u32(d.varU64());
-    const serviceId = u32(d.varU64());
-    const decodedPayload = d.bytesVarLen();
-    const workPackageHash = d.bytes32();
-
-    assert.isEqual(coreIndex, 5, "coreIndex");
-    assert.isEqual(itemIndex, 10, "itemIndex");
-    assert.isEqual(serviceId, 42, "serviceId");
-    assert.isEqualBytes(decodedPayload, payload, "payload");
-    assert.isEqualBytes(BytesBlob.wrap(workPackageHash.raw), BytesBlob.wrap(hash.raw), "workPackageHash");
-    assert.isEqual(d.isFinished(), true, "finished");
-    assert.isEqual(d.isError, false, "no error");
+    assert.isEqual(result.isOkay, true, "parse ok");
+    const parsed = result.okay!;
+    assert.isEqual(parsed.coreIndex, 5, "coreIndex");
+    assert.isEqual(parsed.itemIndex, 10, "itemIndex");
+    assert.isEqual(parsed.serviceId, 42, "serviceId");
+    assert.isEqualBytes(parsed.payload, payload, "payload");
+    assert.isEqualBytes(BytesBlob.wrap(parsed.workPackageHash.raw), BytesBlob.wrap(hash.raw), "workPackageHash");
     return assert;
   }),
 
   test("RefineArgs roundtrip with empty payload", () => {
-    const original = new RefineArgs(0, 0, 0, BytesBlob.empty(), bytes32Fill(0x00));
+    const hash = bytes32Fill(0x00);
+    const original = new RefineArgs(0, 0, 0, BytesBlob.empty(), hash);
 
     const e = Encoder.create();
     original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
+    const blob = e.finish();
+    const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
     const assert = new Assert();
-    assert.isEqual(u16(d.varU64()), 0, "coreIndex");
-    assert.isEqual(u32(d.varU64()), 0, "itemIndex");
-    assert.isEqual(u32(d.varU64()), 0, "serviceId");
-    assert.isEqualBytes(d.bytesVarLen(), BytesBlob.empty(), "empty payload");
-    assert.isEqualBytes(BytesBlob.wrap(d.bytes32().raw), BytesBlob.wrap(bytes32Fill(0x00).raw), "zero hash");
-    assert.isEqual(d.isFinished(), true, "finished");
+    assert.isEqual(result.isOkay, true, "parse ok");
+    const parsed = result.okay!;
+    assert.isEqual(parsed.coreIndex, 0, "coreIndex");
+    assert.isEqual(parsed.itemIndex, 0, "itemIndex");
+    assert.isEqual(parsed.serviceId, 0, "serviceId");
+    assert.isEqualBytes(parsed.payload, BytesBlob.empty(), "empty payload");
+    assert.isEqualBytes(BytesBlob.wrap(parsed.workPackageHash.raw), BytesBlob.wrap(hash.raw), "zero hash");
     return assert;
   }),
 
   test("RefineArgs roundtrip with max values", () => {
     const payload = BytesBlob.parseBlob("0xff").okay!;
-    const original = new RefineArgs(0xffff, 0xffffffff, 0xffffffff, payload, bytes32Fill(0xff));
+    const hash = bytes32Fill(0xff);
+    const original = new RefineArgs(0xffff, 0xffffffff, 0xffffffff, payload, hash);
 
     const e = Encoder.create();
     original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
+    const blob = e.finish();
+    const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
     const assert = new Assert();
-    assert.isEqual(u16(d.varU64()), 0xffff, "coreIndex max");
-    assert.isEqual(d.varU64(), 0xffffffff, "itemIndex max");
-    assert.isEqual(d.varU64(), 0xffffffff, "serviceId max");
-    assert.isEqualBytes(d.bytesVarLen(), payload, "payload");
-    assert.isEqualBytes(BytesBlob.wrap(d.bytes32().raw), BytesBlob.wrap(bytes32Fill(0xff).raw), "hash all ff");
-    assert.isEqual(d.isFinished(), true, "finished");
+    assert.isEqual(result.isOkay, true, "parse ok");
+    const parsed = result.okay!;
+    assert.isEqual(parsed.coreIndex, 0xffff, "coreIndex max");
+    assert.isEqual(parsed.itemIndex, 0xffffffff, "itemIndex max");
+    assert.isEqual(parsed.serviceId, 0xffffffff, "serviceId max");
+    assert.isEqualBytes(parsed.payload, payload, "payload");
+    assert.isEqualBytes(BytesBlob.wrap(parsed.workPackageHash.raw), BytesBlob.wrap(hash.raw), "hash all ff");
     return assert;
   }),
 
@@ -82,14 +82,15 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
+    const blob = e.finish();
+    const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
     const assert = new Assert();
-    assert.isEqual(u32(d.varU64()), 12345, "slot");
-    assert.isEqual(u32(d.varU64()), 678, "serviceId");
-    assert.isEqual(u32(d.varU64()), 3, "argsLength");
-    assert.isEqual(d.isFinished(), true, "finished");
-    assert.isEqual(d.isError, false, "no error");
+    assert.isEqual(result.isOkay, true, "parse ok");
+    const parsed = result.okay!;
+    assert.isEqual(parsed.slot, 12345, "slot");
+    assert.isEqual(parsed.serviceId, 678, "serviceId");
+    assert.isEqual(parsed.argsLength, 3, "argsLength");
     return assert;
   }),
 
@@ -98,13 +99,15 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
+    const blob = e.finish();
+    const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
     const assert = new Assert();
-    assert.isEqual(u32(d.varU64()), 0, "slot");
-    assert.isEqual(u32(d.varU64()), 0, "serviceId");
-    assert.isEqual(u32(d.varU64()), 0, "argsLength");
-    assert.isEqual(d.isFinished(), true, "finished");
+    assert.isEqual(result.isOkay, true, "parse ok");
+    const parsed = result.okay!;
+    assert.isEqual(parsed.slot, 0, "slot");
+    assert.isEqual(parsed.serviceId, 0, "serviceId");
+    assert.isEqual(parsed.argsLength, 0, "argsLength");
     return assert;
   }),
 
@@ -113,13 +116,15 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
+    const blob = e.finish();
+    const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
     const assert = new Assert();
-    assert.isEqual(d.varU64(), 0xffffffff, "slot max");
-    assert.isEqual(d.varU64(), 0xffffffff, "serviceId max");
-    assert.isEqual(d.varU64(), 0xffffffff, "argsLength max");
-    assert.isEqual(d.isFinished(), true, "finished");
+    assert.isEqual(result.isOkay, true, "parse ok");
+    const parsed = result.okay!;
+    assert.isEqual(parsed.slot, 0xffffffff, "slot max");
+    assert.isEqual(parsed.serviceId, 0xffffffff, "serviceId max");
+    assert.isEqual(parsed.argsLength, 0xffffffff, "argsLength max");
     return assert;
   }),
 
@@ -176,6 +181,17 @@ export const TESTS: Test[] = [
     const assert = new Assert();
     assert.isEqual(decoded.result, -4, "result WHO sentinel");
     assert.isEqualBytes(decoded.data, BytesBlob.parseBlob("0xff").okay!, "data");
+    return assert;
+  }),
+
+  test("Response.with null data roundtrip", () => {
+    const packed = Response.with(7, null);
+    const raw = unpackResult(packed);
+    const decoded = Response.decode(raw);
+
+    const assert = new Assert();
+    assert.isEqual(decoded.result, 7, "result");
+    assert.isEqualBytes(decoded.data, BytesBlob.empty(), "null data decodes as empty");
     return assert;
   }),
 ];

@@ -80,6 +80,7 @@ export const TESTS: Test[] = [
       const decoded = roundtripWorkExecResult(new WorkExecResult(kinds[i], BytesBlob.empty()));
       assert.isEqual(decoded.kind, kinds[i], `kind[${i}]`);
       assert.isEqual(decoded.isOk, false, `isOk[${i}]`);
+      assert.isEqualBytes(decoded.okBlob, BytesBlob.empty(), `okBlob[${i}]`);
     }
     return assert;
   }),
