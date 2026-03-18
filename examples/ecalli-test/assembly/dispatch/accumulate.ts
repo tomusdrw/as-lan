@@ -20,12 +20,12 @@ import { logger } from "./common";
 
 /** Ecalli 14: bless(manager, auth_queue[bytesVarLen], delegator, registrar, auto_accum[bytesVarLen], count). */
 export function dispatchBless(d: Decoder): u64 {
-  const manager = u32(d.varU64());
+  const manager = d.varU32();
   const authQueue = d.bytesVarLen();
-  const delegator = u32(d.varU64());
-  const registrar = u32(d.varU64());
+  const delegator = d.varU32();
+  const registrar = d.varU32();
   const autoAccum = d.bytesVarLen();
-  const autoAccumCount = u32(d.varU64());
+  const autoAccumCount = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode bless params");
     return 0;
@@ -46,9 +46,9 @@ export function dispatchBless(d: Decoder): u64 {
 
 /** Ecalli 15: assign(core, auth_queue[bytesVarLen], assigners). */
 export function dispatchAssign(d: Decoder): u64 {
-  const core = u32(d.varU64());
+  const core = d.varU32();
   const authQueue = d.bytesVarLen();
-  const assigners = u32(d.varU64());
+  const assigners = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode assign params");
     return 0;
@@ -85,11 +85,11 @@ export function dispatchCheckpoint(): u64 {
 /** Ecalli 18: new_service(code_hash[32], code_len, gas, allowance, gratis_storage, requested_id). */
 export function dispatchNewService(d: Decoder): u64 {
   const codeHash = d.bytes32();
-  const codeLen = u32(d.varU64());
+  const codeLen = d.varU32();
   const minGas = d.varU64();
   const allowance = d.varU64();
-  const gratisStorage = u32(d.varU64());
-  const requestedId = u32(d.varU64());
+  const gratisStorage = d.varU32();
+  const requestedId = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode new_service params");
     return 0;
@@ -119,7 +119,7 @@ export function dispatchUpgrade(d: Decoder): u64 {
 
 /** Ecalli 20: transfer(dest, amount, gas_fee, memo[bytesVarLen]). */
 export function dispatchTransfer(d: Decoder): u64 {
-  const dest = u32(d.varU64());
+  const dest = d.varU32();
   const amount = d.varU64();
   const gasFee = d.varU64();
   const memo = d.bytesVarLen();
@@ -140,7 +140,7 @@ export function dispatchTransfer(d: Decoder): u64 {
 
 /** Ecalli 21: eject(service, prev_code_hash[32]). */
 export function dispatchEject(d: Decoder): u64 {
-  const service = u32(d.varU64());
+  const service = d.varU32();
   const prevCodeHash = d.bytes32();
   if (d.isError) {
     logger.warn("Failed to decode eject params");
@@ -156,7 +156,7 @@ export function dispatchEject(d: Decoder): u64 {
 /** Ecalli 22: query(hash[32], length). Returns result + r8. */
 export function dispatchQuery(d: Decoder): u64 {
   const hash = d.bytes32();
-  const length = u32(d.varU64());
+  const length = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode query params");
     return 0;
@@ -172,7 +172,7 @@ export function dispatchQuery(d: Decoder): u64 {
 /** Ecalli 23: solicit(hash[32], length). */
 export function dispatchSolicit(d: Decoder): u64 {
   const hash = d.bytes32();
-  const length = u32(d.varU64());
+  const length = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode solicit params");
     return 0;
@@ -187,7 +187,7 @@ export function dispatchSolicit(d: Decoder): u64 {
 /** Ecalli 24: forget(hash[32], length). */
 export function dispatchForget(d: Decoder): u64 {
   const hash = d.bytes32();
-  const length = u32(d.varU64());
+  const length = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode forget params");
     return 0;
@@ -215,7 +215,7 @@ export function dispatchYieldResult(d: Decoder): u64 {
 
 /** Ecalli 26: provide(service, preimage[bytesVarLen]). */
 export function dispatchProvide(d: Decoder): u64 {
-  const service = u32(d.varU64());
+  const service = d.varU32();
   const preimage = d.bytesVarLen();
   if (d.isError) {
     logger.warn("Failed to decode provide params");

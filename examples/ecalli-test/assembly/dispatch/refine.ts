@@ -14,10 +14,10 @@ import { logger, outputLen } from "./common";
 
 /** Ecalli 6: historical_lookup(service, hash[32], offset, maxLen). */
 export function dispatchHistoricalLookup(d: Decoder): u64 {
-  const service = u32(d.varU64());
+  const service = d.varU32();
   const hash = d.bytes32();
-  const offset = u32(d.varU64());
-  const maxLen = u32(d.varU64());
+  const offset = d.varU32();
+  const maxLen = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode historical_lookup params");
     return 0;
@@ -47,7 +47,7 @@ export function dispatchExport(d: Decoder): u64 {
 /** Ecalli 8: machine(code[bytesVarLen], entrypoint). */
 export function dispatchMachine(d: Decoder): u64 {
   const code = d.bytesVarLen();
-  const entrypoint = u32(d.varU64());
+  const entrypoint = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode machine params");
     return 0;
@@ -61,9 +61,9 @@ export function dispatchMachine(d: Decoder): u64 {
 
 /** Ecalli 9: peek(machine_id, source, length). */
 export function dispatchPeek(d: Decoder): u64 {
-  const machineId = u32(d.varU64());
-  const source = u32(d.varU64());
-  const length = u32(d.varU64());
+  const machineId = d.varU32();
+  const source = d.varU32();
+  const length = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode peek params");
     return 0;
@@ -81,9 +81,9 @@ export function dispatchPeek(d: Decoder): u64 {
 
 /** Ecalli 10: poke(machine_id, data[bytesVarLen], dest). */
 export function dispatchPoke(d: Decoder): u64 {
-  const machineId = u32(d.varU64());
+  const machineId = d.varU32();
   const data = d.bytesVarLen();
-  const dest = u32(d.varU64());
+  const dest = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode poke params");
     return 0;
@@ -97,10 +97,10 @@ export function dispatchPoke(d: Decoder): u64 {
 
 /** Ecalli 11: pages(machine_id, start_page, page_count, access_type). */
 export function dispatchPages(d: Decoder): u64 {
-  const machineId = u32(d.varU64());
-  const startPage = u32(d.varU64());
-  const pageCount = u32(d.varU64());
-  const accessType = u32(d.varU64());
+  const machineId = d.varU32();
+  const startPage = d.varU32();
+  const pageCount = d.varU32();
+  const accessType = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode pages params");
     return 0;
@@ -114,7 +114,7 @@ export function dispatchPages(d: Decoder): u64 {
 
 /** Ecalli 12: invoke(machine_id, io[bytesVarLen]). Returns exit reason + r8. */
 export function dispatchInvoke(d: Decoder): u64 {
-  const machineId = u32(d.varU64());
+  const machineId = d.varU32();
   const io = d.bytesVarLen();
   if (d.isError) {
     logger.warn("Failed to decode invoke params");
@@ -130,7 +130,7 @@ export function dispatchInvoke(d: Decoder): u64 {
 
 /** Ecalli 13: expunge(machine_id). */
 export function dispatchExpunge(d: Decoder): u64 {
-  const machineId = u32(d.varU64());
+  const machineId = d.varU32();
   if (d.isError) {
     logger.warn("Failed to decode expunge params");
     return 0;

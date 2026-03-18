@@ -47,7 +47,7 @@ export class WorkExecResult {
 
   /** Decode from a Decoder (varint tag + optional blob). */
   static decode(d: Decoder): WorkExecResult {
-    const kind = u32(d.varU64());
+    const kind = d.varU32();
     if (kind === WorkExecResultKind.Ok) {
       const blob = d.bytesVarLen();
       return new WorkExecResult(kind, blob);
