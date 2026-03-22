@@ -437,9 +437,13 @@ export class ImportRef {
 
   static decode(d: Decoder): ImportRef {
     const tag = d.u8();
+    if (tag > 1) {
+      d.setError();
+      return new ImportRef(Bytes32.wrapUnchecked(new Uint8Array(0)), false, 0);
+    }
     const hash = d.bytes32();
     const index = d.varU32();
-    return new ImportRef(hash, tag !== 0, index);
+    return new ImportRef(hash, tag === 1, index);
   }
 
   private constructor(

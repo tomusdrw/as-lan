@@ -56,6 +56,9 @@ export class WorkExecResult {
       const blob = d.bytesVarLen();
       return WorkExecResult.create(kind, blob);
     }
+    if (kind > u32(WorkExecResultKind.CodeOversize)) {
+      d.setError();
+    }
     return WorkExecResult.create(kind, BytesBlob.empty());
   }
 
