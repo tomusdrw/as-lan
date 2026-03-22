@@ -9,9 +9,15 @@ export * from "./core/result";
 export * from "./ecalli";
 
 // JAM types
-export * from "./jam/accumulate-item";
+export * from "./jam/accumulate";
+export * from "./jam/authorize";
+// Fetcher base + work package types
+export { FetchError, Fetcher } from "./jam/fetcher";
+export * from "./jam/refine";
 export * from "./jam/service";
 export * from "./jam/types";
+export * from "./jam/work-package";
+export { WorkPackageFetcher } from "./jam/work-package-fetcher";
 
 // Logger
 export * from "./log-msg";

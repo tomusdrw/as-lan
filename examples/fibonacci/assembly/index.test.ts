@@ -75,7 +75,7 @@ export const TESTS: Test[] = [
     pushBytes(out, zeros32); // workPackageHash (32 bytes)
 
     const result = callWithArgs(refine, toBytes(out));
-    const assert = new Assert();
+    const assert = Assert.create();
     assertBytes(assert, result, fromHex("0xdeadbeef"), "refine output");
     return assert;
   }),
@@ -87,7 +87,7 @@ export const TESTS: Test[] = [
     pushVarU64(out, 0); // argsLength=0 means default n=10
 
     const result = callWithArgs(accumulate, toBytes(out));
-    const assert = new Assert();
+    const assert = Assert.create();
     // Returns Some(CodeHash) = 1 byte tag + 32 bytes
     assert.isEqual(result.length, 33, "result length");
     assert.isEqual(result[0], 1, "some tag");
@@ -107,7 +107,7 @@ export const TESTS: Test[] = [
     pushVarU64(out, 20); // argsLength=20 means n=20
 
     const result = callWithArgs(accumulate, toBytes(out));
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.length, 33, "result length");
     assert.isEqual(result[0], 1, "some tag");
     // fib(20) = 6765 = 0x1A6D little-endian
@@ -129,7 +129,7 @@ export const TESTS: Test[] = [
     pushBytes(out, zeros32); // workPackageHash
 
     const result = callWithArgs(refine, toBytes(out));
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.length, 0, "empty refine output");
     return assert;
   }),
@@ -141,7 +141,7 @@ export const TESTS: Test[] = [
     pushVarU64(out, 1); // argsLength=1 means n=1
 
     const result = callWithArgs(accumulate, toBytes(out));
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.length, 33, "result length");
     assert.isEqual(result[0], 1, "some tag");
     assert.isEqual(result[1], 1, "fib(1) = 1");

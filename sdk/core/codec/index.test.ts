@@ -39,7 +39,7 @@ export const TESTS: Test[] = [
     e.u8(0xff);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.u8(), 0, "zero");
     assert.isEqual(d.u8(), 0x42, "0x42");
     assert.isEqual(d.u8(), 0xff, "max");
@@ -55,7 +55,7 @@ export const TESTS: Test[] = [
     e.u16(0xffff);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.u16(), 0, "zero");
     assert.isEqual(d.u16(), 1234, "1234");
     assert.isEqual(d.u16(), 0xffff, "max");
@@ -71,7 +71,7 @@ export const TESTS: Test[] = [
     e.u32(0xffffffff);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.u32(), 0, "zero");
     assert.isEqual(d.u32(), 0xdeadbeef, "deadbeef");
     assert.isEqual(d.u32(), 0xffffffff, "max");
@@ -88,7 +88,7 @@ export const TESTS: Test[] = [
     e.u64(u64.MAX_VALUE);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.u64(), 0, "zero");
     // biome-ignore lint/correctness/noPrecisionLoss: AS u64 literal
     assert.isEqual(d.u64(), 0x0102030405060708, "multi");
@@ -119,7 +119,7 @@ export const TESTS: Test[] = [
     }
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     for (let i = 0; i < values.length; i++) {
       assert.isEqual(d.varU64(), values[i], `value[${i}]`);
     }
@@ -141,7 +141,7 @@ export const TESTS: Test[] = [
     }
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     for (let i = 0; i < values.length; i++) {
       assert.isEqual(d.varU64(), values[i], `value[${i}]`);
     }
@@ -157,7 +157,7 @@ export const TESTS: Test[] = [
     e.bytesFixLen(raw.raw);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqualBytes(d.bytesFixLen(8), raw, "bytes");
     assert.isEqual(d.isFinished(), true, "finished");
     assert.isEqual(d.isError, false, "no error");
@@ -171,7 +171,7 @@ export const TESTS: Test[] = [
     e.bytesVarLen(blob);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqualBytes(d.bytesVarLen(), blob, "blob");
     assert.isEqual(d.isFinished(), true, "finished");
     assert.isEqual(d.isError, false, "no error");
@@ -186,7 +186,7 @@ export const TESTS: Test[] = [
     e.bytes32(b32);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     const decoded = d.bytes32();
     assert.isEqualBytes(BytesBlob.wrap(decoded.raw), raw, "bytes32");
     assert.isEqual(d.isFinished(), true, "finished");
@@ -202,7 +202,7 @@ export const TESTS: Test[] = [
     e.object(codec, point);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     const result = d.object<Point>(codec);
     assert.isEqual(result.isOkay, true, "decoded ok");
     assert.isEqual(result.okay!.x, 42, "x");
@@ -219,7 +219,7 @@ export const TESTS: Test[] = [
     e.optional<Point>(codec, new Point(10, 20));
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     const result = d.optional<Point>(codec);
     assert.isEqual(result.isOkay, true, "decoded ok");
     const val = result.okay!;
@@ -237,7 +237,7 @@ export const TESTS: Test[] = [
     e.optional<Point>(codec, null);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     const result = d.optional<Point>(codec);
     assert.isEqual(result.isOkay, true, "decoded ok");
     assert.isEqual(result.okay === null, true, "is none");
@@ -256,7 +256,7 @@ export const TESTS: Test[] = [
     e.u64(0xaabbccdd);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.u8(), 1, "u8");
     assert.isEqual(d.u16(), 1234, "u16");
     assert.isEqual(d.varU64(), 9999, "varU64");

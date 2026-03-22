@@ -2,7 +2,11 @@ import { BytesBlob } from "../core/bytes";
 import { readFromMemory } from "../core/mem";
 
 export class Test {
-  constructor(
+  static create(name: string, ptr: () => Assert): Test {
+    return new Test(name, ptr);
+  }
+
+  private constructor(
     public name: string,
     public ptr: () => Assert,
   ) {}
@@ -12,8 +16,12 @@ export class Assert {
   public isOkay: boolean = true;
   public errors: string[] = [];
 
+  static create(): Assert {
+    return new Assert();
+  }
+
   static todo(): Assert {
-    const r = new Assert();
+    const r = Assert.create();
     r.fail("Not implemented yet!");
     return r;
   }
@@ -38,7 +46,7 @@ export class Assert {
 }
 
 export function test(name: string, ptr: () => Assert): Test {
-  return new Test(name, ptr);
+  return Test.create(name, ptr);
 }
 
 /** Wrap a string as a BytesBlob (via UTF-8 encoding). */
@@ -58,7 +66,11 @@ export function unpackResult(result: u64): Uint8Array {
 }
 
 export class TestSuite {
-  constructor(
+  static create(tests: Test[], name: string): TestSuite {
+    return new TestSuite(tests, name);
+  }
+
+  private constructor(
     public tests: Test[],
     public name: string,
   ) {}

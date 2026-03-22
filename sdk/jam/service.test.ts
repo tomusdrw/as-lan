@@ -16,14 +16,14 @@ export const TESTS: Test[] = [
   test("RefineArgs roundtrip", () => {
     const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
     const hash = bytes32Fill(0xab);
-    const original = new RefineArgs(5, 10, 42, payload, hash);
+    const original = RefineArgs.create(5, 10, 42, payload, hash);
 
     const e = Encoder.create();
     original.encode(e);
     const blob = e.finish();
     const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.isOkay, true, "parse ok");
     const parsed = result.okay!;
     assert.isEqual(parsed.coreIndex, 5, "coreIndex");
@@ -36,14 +36,14 @@ export const TESTS: Test[] = [
 
   test("RefineArgs roundtrip with empty payload", () => {
     const hash = bytes32Fill(0x00);
-    const original = new RefineArgs(0, 0, 0, BytesBlob.empty(), hash);
+    const original = RefineArgs.create(0, 0, 0, BytesBlob.empty(), hash);
 
     const e = Encoder.create();
     original.encode(e);
     const blob = e.finish();
     const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.isOkay, true, "parse ok");
     const parsed = result.okay!;
     assert.isEqual(parsed.coreIndex, 0, "coreIndex");
@@ -57,14 +57,14 @@ export const TESTS: Test[] = [
   test("RefineArgs roundtrip with max values", () => {
     const payload = BytesBlob.parseBlob("0xff").okay!;
     const hash = bytes32Fill(0xff);
-    const original = new RefineArgs(0xffff, 0xffffffff, 0xffffffff, payload, hash);
+    const original = RefineArgs.create(0xffff, 0xffffffff, 0xffffffff, payload, hash);
 
     const e = Encoder.create();
     original.encode(e);
     const blob = e.finish();
     const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.isOkay, true, "parse ok");
     const parsed = result.okay!;
     assert.isEqual(parsed.coreIndex, 0xffff, "coreIndex max");
@@ -78,14 +78,14 @@ export const TESTS: Test[] = [
   // ─── AccumulateArgs ───
 
   test("AccumulateArgs roundtrip", () => {
-    const original = new AccumulateArgs(12345, 678, 3);
+    const original = AccumulateArgs.create(12345, 678, 3);
 
     const e = Encoder.create();
     original.encode(e);
     const blob = e.finish();
     const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.isOkay, true, "parse ok");
     const parsed = result.okay!;
     assert.isEqual(parsed.slot, 12345, "slot");
@@ -95,14 +95,14 @@ export const TESTS: Test[] = [
   }),
 
   test("AccumulateArgs roundtrip zero values", () => {
-    const original = new AccumulateArgs(0, 0, 0);
+    const original = AccumulateArgs.create(0, 0, 0);
 
     const e = Encoder.create();
     original.encode(e);
     const blob = e.finish();
     const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.isOkay, true, "parse ok");
     const parsed = result.okay!;
     assert.isEqual(parsed.slot, 0, "slot");
@@ -112,14 +112,14 @@ export const TESTS: Test[] = [
   }),
 
   test("AccumulateArgs roundtrip max values", () => {
-    const original = new AccumulateArgs(0xffffffff, 0xffffffff, 0xffffffff);
+    const original = AccumulateArgs.create(0xffffffff, 0xffffffff, 0xffffffff);
 
     const e = Encoder.create();
     original.encode(e);
     const blob = e.finish();
     const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(result.isOkay, true, "parse ok");
     const parsed = result.okay!;
     assert.isEqual(parsed.slot, 0xffffffff, "slot max");
@@ -132,13 +132,13 @@ export const TESTS: Test[] = [
 
   test("Response roundtrip with data", () => {
     const data = BytesBlob.parseBlob("0xaabbccdd").okay!;
-    const original = new Response(42, data);
+    const original = Response.create(42, data);
 
     const e = Encoder.create();
     original.encode(e);
     const decoded = Response.decode(e.finish());
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.result, 42, "result");
     assert.isEqualBytes(decoded.data, data, "data");
     return assert;
@@ -146,39 +146,39 @@ export const TESTS: Test[] = [
 
   test("Response roundtrip via decode(encode())", () => {
     const data = BytesBlob.parseBlob("0x1234567890").okay!;
-    const original = new Response(-1, data);
+    const original = Response.create(-1, data);
 
     const e = Encoder.create();
     original.encode(e);
     const decoded = Response.decode(e.finish());
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.result, -1, "result negative");
     assert.isEqualBytes(decoded.data, data, "data");
     return assert;
   }),
 
   test("Response roundtrip with empty data", () => {
-    const original = new Response(0, BytesBlob.empty());
+    const original = Response.create(0, BytesBlob.empty());
 
     const e = Encoder.create();
     original.encode(e);
     const decoded = Response.decode(e.finish());
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.result, 0, "result zero");
     assert.isEqualBytes(decoded.data, BytesBlob.empty(), "empty data");
     return assert;
   }),
 
   test("Response roundtrip with negative result", () => {
-    const original = new Response(-4, BytesBlob.parseBlob("0xff").okay!);
+    const original = Response.create(-4, BytesBlob.parseBlob("0xff").okay!);
 
     const e = Encoder.create();
     original.encode(e);
     const decoded = Response.decode(e.finish());
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.result, -4, "result WHO sentinel");
     assert.isEqualBytes(decoded.data, BytesBlob.parseBlob("0xff").okay!, "data");
     return assert;
@@ -189,7 +189,7 @@ export const TESTS: Test[] = [
     const raw = unpackResult(packed);
     const decoded = Response.decode(raw);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.result, 7, "result");
     assert.isEqualBytes(decoded.data, BytesBlob.empty(), "null data decodes as empty");
     return assert;

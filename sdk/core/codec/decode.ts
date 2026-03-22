@@ -44,6 +44,11 @@ export class Decoder {
     return this._isError;
   }
 
+  /** Manually signal a decode error (e.g. unknown discriminator tag). */
+  setError(): void {
+    this._isError = true;
+  }
+
   /**
    * Return a copy of this decoder.
    *

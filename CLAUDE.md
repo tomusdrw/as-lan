@@ -14,7 +14,16 @@ sdk/                        AssemblyScript SDK library
   jam/                      JAM protocol types
     types.ts                Core type aliases (ServiceId, Slot, CodeHash, etc.)
     service.ts              Service ABI: RefineArgs, AccumulateArgs, Response (encode/decode)
-    accumulate-item.ts      Accumulate items: Operand, PendingTransfer, WorkExecResult (encode/decode)
+    fetcher.ts              Base Fetcher class with buffer management (constants only)
+    work-package-fetcher.ts Intermediate fetcher adding typed kinds 7-13 (WorkPackage, AuthorizerInfo, etc.)
+    work-package.ts         WorkPackage, WorkItem, WorkItemInfo, AuthorizerInfo, RefinementContext, ImportRef, ExtrinsicRef
+    accumulate/             Accumulate-context types and fetcher
+      item.ts               Operand, PendingTransfer, WorkExecResult, AccumulateItem (encode/decode)
+      fetcher.ts            AccumulateFetcher (entropy, allTransfersAndOperands, oneTransferOrOperand)
+    refine/                 Refine-context fetcher
+      fetcher.ts            RefineFetcher (entropy, authorizerTrace, extrinsics, imports + inherits kinds 7-13)
+    authorize/              Authorize-context fetcher
+      fetcher.ts            AuthorizeFetcher (inherits constants + kinds 7-13 from WorkPackageFetcher)
   test/                     Test framework (Assert, TestSuite, strBlob, unpackResult)
     test-ecalli/            Test helpers for configuring mock stubs from AS
 sdk-ecalli-mocks/           JS-side mock stubs for ecalli host calls (used in tests)
@@ -59,6 +68,25 @@ docs/                       Documentation (mdbook)
 - **PendingTransfer**: Incoming balance transfer. Decoded from `fetch(kind=15)` with tag=1.
 - All types have both `encode(e)` and `static decode(d)` methods. Operand/PendingTransfer also have `encodeTagged(e)` which prepends the discriminator tag.
 
+### Fetcher Hierarchy (sdk/jam/)
+
+High-level wrappers around the raw `fetch` ecalli (Ω_Y, GP Appendix B.5).
+Each context fetcher exposes only the fetch kinds available in that invocation.
+All methods return `Result<T, FetchError>` with typed payloads.
+
+```text
+Fetcher (constants only — kind 0)
+  ├── WorkPackageFetcher (adds kinds 7-13: WorkPackage, AuthorizerInfo, RefinementContext, WorkItemInfo)
+  │     ├── AuthorizeFetcher (kinds 0, 7-13)
+  │     └── RefineFetcher (adds entropy, trace, extrinsics, imports — kinds 1-6)
+  └── AccumulateFetcher (adds entropy + accumulate items — kinds 1, 14-15)
+```
+
+GP fetch parameter mapping per context (eq B.1, B.6, B.11):
+- **Is-Authorized**: `Ω_Y(ρ, φ, μ, 𝐩, ∅, ∅, ∅, ∅, ∅, ∅, ∅)` → p set, rest ∅
+- **Refine**: `Ω_Y(ρ, φ, μ, p, H₀, r, i, ī, x̄, ∅, (m,e))` → all except 𝐢
+- **Accumulate**: `Ω_Y(ρ, φ, μ, ∅, η'₀, ∅, ∅, ∅, ∅, 𝐢, (x,y))` → n and 𝐢 only
+
 ### Accumulate Flow
 
 1. `accumulate(ptr, len)` receives `AccumulateArgs` (slot, serviceId, argsLength)
@@ -83,3 +111,4 @@ npm test         # Build mocks + run SDK tests + example tests
 - Dispatch functions return `Response.with(result, data?)` — never use raw `ptrAndLen` encoding.
 - Use `d.varU32()` (not `u32(d.varU64())`) when decoding a varint that must fit in u32 — it validates the range and sets `isError` on overflow.
 - Test helpers for configuring mock state from AS go in `sdk/test/test-ecalli/` using `@external("ecalli", ...)` bridging.
+- All classes must have private constructors and use static builder methods (e.g. `ClassName.create(...)`) — never expose `new ClassName(...)` to callers.

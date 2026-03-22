@@ -10,7 +10,7 @@ export const TESTS: Test[] = [
     e.varU64(0xffff_ffff);
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.varU32(), 42, "small");
     assert.isEqual(d.varU32(), 0xffff_ffff, "max u32");
     assert.isEqual(d.isFinished(), true, "finished");
@@ -23,7 +23,7 @@ export const TESTS: Test[] = [
     e.varU64(0x1_0000_0000); // one above u32 max
 
     const d = Decoder.fromBlob(e.finish());
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.varU32(), 0, "returns 0");
     assert.isEqual(d.isError, true, "error set");
     return assert;
@@ -31,7 +31,7 @@ export const TESTS: Test[] = [
 
   test("varU32 missing bytes sets error", () => {
     const d = Decoder.fromBlob(new Uint8Array(0));
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(d.varU32(), 0, "returns 0");
     assert.isEqual(d.isError, true, "error set");
     return assert;
@@ -44,7 +44,7 @@ export const TESTS: Test[] = [
     const decoder = Decoder.fromBlob(data.raw);
 
     // then
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoder.u8(), 1, "isWorkReportValid");
     assert.isEqual(decoder.u16(), 1234, "index");
     assert.isEqualBytes(
@@ -63,7 +63,7 @@ export const TESTS: Test[] = [
     const decoder = Decoder.fromBlob(data.raw);
 
     // then
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoder.isFinished(), false);
     assert.isEqualBytes(decoder.bytesVarLen(), BytesBlob.parseBlob("0x1234567890").okay!, "blob");
     assert.isEqual(decoder.isFinished(), true);

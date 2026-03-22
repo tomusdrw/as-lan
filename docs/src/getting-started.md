@@ -52,7 +52,7 @@ Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a pa
 import { Logger, Optional, RefineArgs, AccumulateArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
 import { CodeHash } from "@fluffylabs/as-lan";
 
-const logger = new Logger("my-service");
+const logger = Logger.create("my-service");
 
 export function accumulate(ptr: u32, len: u32): u64 {
   const result = AccumulateArgs.parse(ptr, len);

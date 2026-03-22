@@ -18,7 +18,17 @@ export enum ParseError {
 }
 
 export class RefineArgs {
-  constructor(
+  static create(
+    coreIndex: CoreIndex,
+    itemIndex: u32,
+    serviceId: ServiceId,
+    payload: BytesBlob,
+    workPackageHash: WorkPackageHash,
+  ): RefineArgs {
+    return new RefineArgs(coreIndex, itemIndex, serviceId, payload, workPackageHash);
+  }
+
+  private constructor(
     public coreIndex: CoreIndex,
     public itemIndex: u32,
     public serviceId: ServiceId,
@@ -51,7 +61,7 @@ export class RefineArgs {
       return Result.err<RefineArgs, ParseError>(ParseError.TrailingBytes);
     }
     return Result.ok<RefineArgs, ParseError>(
-      new RefineArgs(u16(coreIndex), u32(itemIndex), u32(serviceId), payload, workPackageHash),
+      RefineArgs.create(u16(coreIndex), u32(itemIndex), u32(serviceId), payload, workPackageHash),
     );
   }
 
@@ -66,7 +76,11 @@ export class RefineArgs {
 }
 
 export class AccumulateArgs {
-  constructor(
+  static create(slot: Slot, serviceId: ServiceId, argsLength: u32): AccumulateArgs {
+    return new AccumulateArgs(slot, serviceId, argsLength);
+  }
+
+  private constructor(
     public slot: Slot,
     public serviceId: ServiceId,
     public argsLength: u32,
@@ -94,7 +108,7 @@ export class AccumulateArgs {
     if (!decoder.isFinished()) {
       return Result.err<AccumulateArgs, ParseError>(ParseError.TrailingBytes);
     }
-    return Result.ok<AccumulateArgs, ParseError>(new AccumulateArgs(u32(slot), u32(serviceId), u32(argsLength)));
+    return Result.ok<AccumulateArgs, ParseError>(AccumulateArgs.create(u32(slot), u32(serviceId), u32(argsLength)));
   }
 
   /** Encode accumulate arguments into an Encoder. */
@@ -111,7 +125,11 @@ export class AccumulateArgs {
  * Encoding: result(u64 LE) + data(bytesVarLen)
  */
 export class Response {
-  constructor(
+  static create(result: i64, data: BytesBlob): Response {
+    return new Response(result, data);
+  }
+
+  private constructor(
     /** Ecalli result code. */
     public result: i64,
     /** Output data (may be empty). */
@@ -123,7 +141,7 @@ export class Response {
     const d = Decoder.fromBlob(raw);
     const result = i64(d.u64());
     const data = d.bytesVarLen();
-    return new Response(result, data);
+    return Response.create(result, data);
   }
 
   /**

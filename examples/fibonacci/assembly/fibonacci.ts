@@ -10,8 +10,8 @@ import {
 
 // LogMsg is a lightweight buffer-based logger that avoids pulling in
 // AssemblyScript's String machinery (~24% smaller WASM than Logger).
-// You can also use `new Logger("fib")` with template literals for convenience.
-const logger: LogMsg = new LogMsg("fib");
+// You can also use `Logger.create("fib")` with template literals for convenience.
+const logger: LogMsg = LogMsg.create("fib");
 
 export function accumulate(ptr: u32, len: u32): u64 {
   const result = AccumulateArgs.parse(ptr, len);

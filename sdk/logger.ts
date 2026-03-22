@@ -15,7 +15,11 @@ const DEBUG_LOGGING: bool = ASC_OPTIMIZE_LEVEL < 3;
 export class Logger {
   private readonly target: string;
 
-  constructor(target: string) {
+  static create(target: string): Logger {
+    return new Logger(target);
+  }
+
+  private constructor(target: string) {
     this.target = target;
   }
 

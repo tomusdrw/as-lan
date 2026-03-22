@@ -1,7 +1,7 @@
-import { Bytes32, BytesBlob } from "../core/bytes";
-import { Decoder } from "../core/codec/decode";
-import { Encoder } from "../core/codec/encode";
-import { Assert, Test, test } from "../test/utils";
+import { Bytes32, BytesBlob } from "../../core/bytes";
+import { Decoder } from "../../core/codec/decode";
+import { Encoder } from "../../core/codec/encode";
+import { Assert, Test, test } from "../../test/utils";
 import {
   AccumulateItemKind,
   Operand,
@@ -9,7 +9,7 @@ import {
   TRANSFER_MEMO_SIZE,
   WorkExecResult,
   WorkExecResultKind,
-} from "./accumulate-item";
+} from "./item";
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
 function bytes32Fill(v: u8): Bytes32 {
@@ -31,14 +31,14 @@ export const TESTS: Test[] = [
 
   test("WorkExecResult roundtrip Ok with blob", () => {
     const blob = BytesBlob.parseBlob("0xdeadbeefcafe").okay!;
-    const original = new WorkExecResult(WorkExecResultKind.Ok, blob);
+    const original = WorkExecResult.create(WorkExecResultKind.Ok, blob);
 
     const e = Encoder.create();
     original.encode(e);
     const d = Decoder.fromBlob(e.finish());
     const decoded = WorkExecResult.decode(d);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.kind, WorkExecResultKind.Ok, "kind");
     assert.isEqual(decoded.isOk, true, "isOk");
     assert.isEqualBytes(decoded.okBlob, blob, "okBlob");
@@ -48,18 +48,18 @@ export const TESTS: Test[] = [
   }),
 
   test("WorkExecResult roundtrip Ok with empty blob", () => {
-    const original = new WorkExecResult(WorkExecResultKind.Ok, BytesBlob.empty());
+    const original = WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.empty());
     const decoded = roundtripWorkExecResult(original);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.kind, WorkExecResultKind.Ok, "kind");
     assert.isEqualBytes(decoded.okBlob, BytesBlob.empty(), "empty okBlob");
     return assert;
   }),
 
   test("WorkExecResult roundtrip OutOfGas", () => {
-    const decoded = roundtripWorkExecResult(new WorkExecResult(WorkExecResultKind.OutOfGas, BytesBlob.empty()));
-    const assert = new Assert();
+    const decoded = roundtripWorkExecResult(WorkExecResult.create(WorkExecResultKind.OutOfGas, BytesBlob.empty()));
+    const assert = Assert.create();
     assert.isEqual(decoded.kind, WorkExecResultKind.OutOfGas, "kind");
     assert.isEqual(decoded.isOk, false, "isOk");
     assert.isEqualBytes(decoded.okBlob, BytesBlob.empty(), "okBlob empty");
@@ -75,9 +75,9 @@ export const TESTS: Test[] = [
       WorkExecResultKind.CodeOversize,
     ];
 
-    const assert = new Assert();
+    const assert = Assert.create();
     for (let i = 0; i < kinds.length; i++) {
-      const decoded = roundtripWorkExecResult(new WorkExecResult(kinds[i], BytesBlob.empty()));
+      const decoded = roundtripWorkExecResult(WorkExecResult.create(kinds[i], BytesBlob.empty()));
       assert.isEqual(decoded.kind, kinds[i], `kind[${i}]`);
       assert.isEqual(decoded.isOk, false, `isOk[${i}]`);
       assert.isEqualBytes(decoded.okBlob, BytesBlob.empty(), `okBlob[${i}]`);
@@ -90,13 +90,13 @@ export const TESTS: Test[] = [
   test("Operand roundtrip with Ok result", () => {
     const blob = BytesBlob.parseBlob("0xaabbccdd").okay!;
     const authOut = BytesBlob.parseBlob("0x1234").okay!;
-    const original = new Operand(
+    const original = Operand.create(
       bytes32Fill(0x01),
       bytes32Fill(0x02),
       bytes32Fill(0x03),
       bytes32Fill(0x04),
       1000,
-      new WorkExecResult(WorkExecResultKind.Ok, blob),
+      WorkExecResult.create(WorkExecResultKind.Ok, blob),
       authOut,
     );
 
@@ -105,7 +105,7 @@ export const TESTS: Test[] = [
     const d = Decoder.fromBlob(e.finish());
     const decoded = Operand.decode(d);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqualBytes(BytesBlob.wrap(decoded.hash.raw), BytesBlob.wrap(bytes32Fill(0x01).raw), "hash");
     assert.isEqualBytes(BytesBlob.wrap(decoded.exportsRoot.raw), BytesBlob.wrap(bytes32Fill(0x02).raw), "exportsRoot");
     assert.isEqualBytes(
@@ -124,13 +124,13 @@ export const TESTS: Test[] = [
   }),
 
   test("Operand roundtrip with empty authorizationOutput", () => {
-    const original = new Operand(
+    const original = Operand.create(
       bytes32Fill(0xaa),
       bytes32Fill(0xbb),
       bytes32Fill(0xcc),
       bytes32Fill(0xdd),
       42,
-      new WorkExecResult(WorkExecResultKind.Panic, BytesBlob.empty()),
+      WorkExecResult.create(WorkExecResultKind.Panic, BytesBlob.empty()),
       BytesBlob.empty(),
     );
 
@@ -139,7 +139,7 @@ export const TESTS: Test[] = [
     const d = Decoder.fromBlob(e.finish());
     const decoded = Operand.decode(d);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.gas, 42, "gas");
     assert.isEqual(decoded.result.kind, WorkExecResultKind.Panic, "result kind");
     assert.isEqualBytes(decoded.authorizationOutput, BytesBlob.empty(), "empty authOut");
@@ -148,13 +148,13 @@ export const TESTS: Test[] = [
   }),
 
   test("Operand encodeTagged roundtrip", () => {
-    const original = new Operand(
+    const original = Operand.create(
       bytes32Fill(0x11),
       bytes32Fill(0x22),
       bytes32Fill(0x33),
       bytes32Fill(0x44),
       500,
-      new WorkExecResult(WorkExecResultKind.Ok, BytesBlob.parseBlob("0xff").okay!),
+      WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.parseBlob("0xff").okay!),
       BytesBlob.parseBlob("0xab").okay!,
     );
 
@@ -162,7 +162,7 @@ export const TESTS: Test[] = [
     original.encodeTagged(e);
     const d = Decoder.fromBlob(e.finish());
 
-    const assert = new Assert();
+    const assert = Assert.create();
     const tag = u32(d.varU64());
     assert.isEqual(tag, AccumulateItemKind.Operand, "tag");
 
@@ -181,14 +181,14 @@ export const TESTS: Test[] = [
     for (let i: u32 = 0; i < TRANSFER_MEMO_SIZE; i++) {
       memo[i] = u8(i & 0xff);
     }
-    const original = new PendingTransfer(100, 200, 999999, BytesBlob.wrap(memo), 50000);
+    const original = PendingTransfer.create(100, 200, 999999, BytesBlob.wrap(memo), 50000);
 
     const e = Encoder.create();
     original.encode(e);
     const d = Decoder.fromBlob(e.finish());
     const decoded = PendingTransfer.decode(d);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.source, 100, "source");
     assert.isEqual(decoded.destination, 200, "destination");
     assert.isEqual(decoded.amount, 999999, "amount");
@@ -201,7 +201,7 @@ export const TESTS: Test[] = [
 
   test("PendingTransfer roundtrip with short memo (zero-padded)", () => {
     const shortMemo = BytesBlob.parseBlob("0xdeadbeef").okay!;
-    const original = new PendingTransfer(1, 2, 100, shortMemo, 500);
+    const original = PendingTransfer.create(1, 2, 100, shortMemo, 500);
 
     const e = Encoder.create();
     original.encode(e);
@@ -212,7 +212,7 @@ export const TESTS: Test[] = [
     const expectedMemo = new Uint8Array(TRANSFER_MEMO_SIZE);
     expectedMemo.set(shortMemo.raw);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.source, 1, "source");
     assert.isEqual(decoded.destination, 2, "destination");
     assert.isEqual(decoded.amount, 100, "amount");
@@ -223,14 +223,14 @@ export const TESTS: Test[] = [
   }),
 
   test("PendingTransfer roundtrip with empty memo", () => {
-    const original = new PendingTransfer(0, 0xffffffff, u64.MAX_VALUE, BytesBlob.empty(), 0);
+    const original = PendingTransfer.create(0, 0xffffffff, u64.MAX_VALUE, BytesBlob.empty(), 0);
 
     const e = Encoder.create();
     original.encode(e);
     const d = Decoder.fromBlob(e.finish());
     const decoded = PendingTransfer.decode(d);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.source, 0, "source zero");
     assert.isEqual(decoded.destination, 0xffffffff, "destination max");
     assert.isEqual(decoded.amount, u64.MAX_VALUE, "amount max");
@@ -241,13 +241,13 @@ export const TESTS: Test[] = [
   }),
 
   test("PendingTransfer encodeTagged roundtrip", () => {
-    const original = new PendingTransfer(10, 20, 300, BytesBlob.empty(), 400);
+    const original = PendingTransfer.create(10, 20, 300, BytesBlob.empty(), 400);
 
     const e = Encoder.create();
     original.encodeTagged(e);
     const d = Decoder.fromBlob(e.finish());
 
-    const assert = new Assert();
+    const assert = Assert.create();
     const tag = u32(d.varU64());
     assert.isEqual(tag, AccumulateItemKind.Transfer, "tag");
 

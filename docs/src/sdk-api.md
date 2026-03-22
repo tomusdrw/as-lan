@@ -32,7 +32,7 @@ export { refine, accumulate } from "./service";
 import { Logger, Optional, RefineArgs, AccumulateArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
 import { CodeHash } from "@fluffylabs/as-lan";
 
-const logger = new Logger("my-service");
+const logger = Logger.create("my-service");
 
 export function accumulate(ptr: u32, len: u32): u64 {
   const result = AccumulateArgs.parse(ptr, len);
@@ -135,7 +135,7 @@ JIP-1 structured logger. Methods: `fatal`, `warn`, `info`, `debug`, `trace`.
 ```typescript
 import { Logger } from "@fluffylabs/as-lan";
 
-const logger = new Logger("my-service");
+const logger = Logger.create("my-service");
 logger.info("processing work item");
 logger.debug(`payload length: ${payload.length}`);
 ```
@@ -158,7 +158,7 @@ trade-off between code size and readability & debuggability might not be worth i
 ```typescript
 import { LogMsg } from "@fluffylabs/as-lan";
 
-const logger = new LogMsg("my-service");
+const logger = LogMsg.create("my-service");
 logger.str("processing item ").u32(itemId).info();
 logger.str("result: ").u64(value).str(" bytes").debug();
 ```
@@ -254,7 +254,7 @@ import { test, Assert } from "@fluffylabs/as-lan/test";
 
 const allTests = [
   test("my test", (): Assert => {
-    const a = new Assert();
+    const a = Assert.create();
     a.isEqual(1 + 1, 2, "basic math");
     return a;
   }),

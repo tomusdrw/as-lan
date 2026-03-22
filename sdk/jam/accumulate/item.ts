@@ -7,9 +7,9 @@
  * @see https://graypaper.fluffylabs.dev
  */
 
-import { Bytes32, BytesBlob } from "../core/bytes";
-import { Decoder } from "../core/codec/decode";
-import { Encoder } from "../core/codec/encode";
+import { Bytes32, BytesBlob } from "../../core/bytes";
+import { Decoder } from "../../core/codec/decode";
+import { Encoder } from "../../core/codec/encode";
 
 /** Discriminator tag for accumulate items. */
 export enum AccumulateItemKind {
@@ -39,7 +39,11 @@ export enum WorkExecResultKind {
 
 /** Result of work-item execution during refine. */
 export class WorkExecResult {
-  constructor(
+  static create(kind: WorkExecResultKind, okBlob: BytesBlob): WorkExecResult {
+    return new WorkExecResult(kind, okBlob);
+  }
+
+  private constructor(
     public kind: WorkExecResultKind,
     /** Output blob — only present when kind == Ok. */
     public okBlob: BytesBlob,
@@ -50,9 +54,9 @@ export class WorkExecResult {
     const kind = d.varU32();
     if (kind === WorkExecResultKind.Ok) {
       const blob = d.bytesVarLen();
-      return new WorkExecResult(kind, blob);
+      return WorkExecResult.create(kind, blob);
     }
-    return new WorkExecResult(kind, BytesBlob.empty());
+    return WorkExecResult.create(kind, BytesBlob.empty());
   }
 
   /** Encode into an Encoder (varint tag + optional blob). */
@@ -76,7 +80,19 @@ export class WorkExecResult {
  *   + gas(varU64) + result(WorkExecResult) + authorizationOutput(blob)
  */
 export class Operand {
-  constructor(
+  static create(
+    hash: Bytes32,
+    exportsRoot: Bytes32,
+    authorizerHash: Bytes32,
+    payloadHash: Bytes32,
+    gas: u64,
+    result: WorkExecResult,
+    authorizationOutput: BytesBlob,
+  ): Operand {
+    return new Operand(hash, exportsRoot, authorizerHash, payloadHash, gas, result, authorizationOutput);
+  }
+
+  private constructor(
     /** Work package hash. */
     public hash: Bytes32,
     /** Exports root hash. */
@@ -101,7 +117,7 @@ export class Operand {
     const gas = d.varU64();
     const result = WorkExecResult.decode(d);
     const authorizationOutput = d.bytesVarLen();
-    return new Operand(hash, exportsRoot, authorizerHash, payloadHash, gas, result, authorizationOutput);
+    return Operand.create(hash, exportsRoot, authorizerHash, payloadHash, gas, result, authorizationOutput);
   }
 
   /** Encode operand fields into an Encoder. */
@@ -133,7 +149,11 @@ export const TRANSFER_MEMO_SIZE: u32 = 128;
  *   + memo(128 bytes) + gas(u64 LE)
  */
 export class PendingTransfer {
-  constructor(
+  static create(source: u32, destination: u32, amount: u64, memo: BytesBlob, gas: u64): PendingTransfer {
+    return new PendingTransfer(source, destination, amount, memo, gas);
+  }
+
+  private constructor(
     /** Sending service ID. */
     public source: u32,
     /** Receiving service ID. */
@@ -152,7 +172,7 @@ export class PendingTransfer {
     const amount = d.u64();
     const memo = d.bytesFixLen(TRANSFER_MEMO_SIZE);
     const gas = d.u64();
-    return new PendingTransfer(source, destination, amount, memo, gas);
+    return PendingTransfer.create(source, destination, amount, memo, gas);
   }
 
   /** Encode transfer fields into an Encoder. */
@@ -177,5 +197,71 @@ export class PendingTransfer {
   encodeTagged(e: Encoder): void {
     e.varU64(AccumulateItemKind.Transfer);
     this.encode(e);
+  }
+}
+
+/**
+ * Discriminated union of accumulate items (operand or transfer).
+ *
+ * Use `isOperand` / `isTransfer` to check the kind, then access the
+ * corresponding field via `.operand` or `.transfer`.
+ */
+export class AccumulateItem {
+  private constructor(
+    public readonly kind: AccumulateItemKind,
+    private readonly _operand: Operand | null,
+    private readonly _transfer: PendingTransfer | null,
+  ) {}
+
+  static fromOperand(op: Operand): AccumulateItem {
+    return new AccumulateItem(AccumulateItemKind.Operand, op, null);
+  }
+
+  static fromTransfer(tx: PendingTransfer): AccumulateItem {
+    return new AccumulateItem(AccumulateItemKind.Transfer, null, tx);
+  }
+
+  /** Decode a tagged accumulate item (varint tag + body). */
+  static decode(d: Decoder): AccumulateItem {
+    const tag = d.varU32();
+    if (d.isError) {
+      return new AccumulateItem(AccumulateItemKind.Operand, null, null);
+    }
+    if (tag === AccumulateItemKind.Operand) {
+      return AccumulateItem.fromOperand(Operand.decode(d));
+    }
+    if (tag === AccumulateItemKind.Transfer) {
+      return AccumulateItem.fromTransfer(PendingTransfer.decode(d));
+    }
+    // Unknown tag — signal via decoder error.
+    d.setError();
+    return new AccumulateItem(tag, null, null);
+  }
+
+  /** Encode as a tagged accumulate item. */
+  encode(e: Encoder): void {
+    if (this.isOperand) {
+      this._operand!.encodeTagged(e);
+    } else {
+      this._transfer!.encodeTagged(e);
+    }
+  }
+
+  get isOperand(): bool {
+    return this.kind === AccumulateItemKind.Operand;
+  }
+
+  get isTransfer(): bool {
+    return this.kind === AccumulateItemKind.Transfer;
+  }
+
+  get operand(): Operand {
+    assert(this._operand !== null, "AccumulateItem is not an operand");
+    return this._operand!;
+  }
+
+  get transfer(): PendingTransfer {
+    assert(this._transfer !== null, "AccumulateItem is not a transfer");
+    return this._transfer!;
   }
 }

@@ -22,7 +22,7 @@ export { strBlob, unpackResult } from "@fluffylabs/as-lan/test";
 
 /** Call refine with the given ecalli dispatch payload. */
 export function callRefine(payload: Uint8Array): Response {
-  const args = new RefineArgs(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
+  const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
   const enc = Encoder.create();
   args.encode(enc);
   const encoded = enc.finish();
@@ -38,7 +38,7 @@ const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
 
 /** Call accumulate with the given number of pre-set items. */
 export function callAccumulate(argsLength: u32): Uint8Array {
-  const args = new AccumulateArgs(7, 42, argsLength);
+  const args = AccumulateArgs.create(7, 42, argsLength);
   const enc = Encoder.create();
   args.encode(enc);
   const encoded = enc.finish();
@@ -49,7 +49,7 @@ export function callAccumulate(argsLength: u32): Uint8Array {
 
 /** Encode a tagged transfer item. */
 export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64): Uint8Array {
-  const tx = new PendingTransfer(source, dest, amount, BytesBlob.empty(), gas);
+  const tx = PendingTransfer.create(source, dest, amount, BytesBlob.empty(), gas);
   const enc = Encoder.create();
   tx.encodeTagged(enc);
   return enc.finish();
@@ -60,13 +60,13 @@ export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64)
  * Returns the decoded Response from the dispatch.
  */
 export function callAccumulateWithOperand(ecalliPayload: Uint8Array): Response {
-  const op = new Operand(
+  const op = Operand.create(
     ZERO_HASH,
     ZERO_HASH,
     ZERO_HASH,
     ZERO_HASH,
     100000,
-    new WorkExecResult(WorkExecResultKind.Ok, BytesBlob.wrap(ecalliPayload)),
+    WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.wrap(ecalliPayload)),
     BytesBlob.empty(),
   );
   const enc = Encoder.create();
