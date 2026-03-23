@@ -10,7 +10,7 @@
  */
 
 import { Bytes32, BytesBlob } from "../core/bytes";
-import { bytes32Codec } from "../core/codec/bytes32";
+import { Bytes32Codec } from "../core/codec/bytes32";
 import { DecodeError, Decoder, TryDecode } from "../core/codec/decode";
 import { Encoder, TryEncode } from "../core/codec/encode";
 import { Result } from "../core/result";
@@ -257,8 +257,6 @@ export class ProtocolConstantsCodec implements TryDecode<ProtocolConstants>, Try
   }
 }
 
-export const protocolConstantsCodec: ProtocolConstantsCodec = ProtocolConstantsCodec.create();
-
 // ─── AuthorizerInfo ───────────────────────────────────────────────────
 
 /**
@@ -300,8 +298,6 @@ export class AuthorizerInfoCodec implements TryDecode<AuthorizerInfo>, TryEncode
   }
 }
 
-export const authorizerInfoCodec: AuthorizerInfoCodec = AuthorizerInfoCodec.create();
-
 // ─── RefinementContext ────────────────────────────────────────────────
 
 /**
@@ -342,10 +338,10 @@ export class RefinementContext {
 }
 
 export class RefinementContextCodec implements TryDecode<RefinementContext>, TryEncode<RefinementContext> {
-  static create(): RefinementContextCodec {
-    return new RefinementContextCodec();
+  static create(bytes32: Bytes32Codec): RefinementContextCodec {
+    return new RefinementContextCodec(bytes32);
   }
-  private constructor() {}
+  private constructor(private readonly bytes32: Bytes32Codec) {}
 
   decode(d: Decoder): Result<RefinementContext, DecodeError> {
     const anchor = d.bytes32();
@@ -354,7 +350,7 @@ export class RefinementContextCodec implements TryDecode<RefinementContext>, Try
     const lookupAnchor = d.bytes32();
     const timeslot = d.u32();
     if (d.isError) return Result.err<RefinementContext, DecodeError>(DecodeError.MissingBytes);
-    const prereqs = d.sequenceVarLen<Bytes32>(bytes32Codec);
+    const prereqs = d.sequenceVarLen<Bytes32>(this.bytes32);
     if (prereqs.isError) return Result.err<RefinementContext, DecodeError>(prereqs.error);
     return Result.ok<RefinementContext, DecodeError>(
       RefinementContext.create(anchor, stateRoot, beefyRoot, lookupAnchor, timeslot, prereqs.okay!),
@@ -367,11 +363,9 @@ export class RefinementContextCodec implements TryDecode<RefinementContext>, Try
     e.bytesFixLen(v.beefyRoot.raw);
     e.bytesFixLen(v.lookupAnchor.raw);
     e.u32(v.timeslot);
-    e.sequenceVarLen<Bytes32>(bytes32Codec, v.prerequisites);
+    e.sequenceVarLen<Bytes32>(this.bytes32, v.prerequisites);
   }
 }
-
-export const refinementContextCodec: RefinementContextCodec = RefinementContextCodec.create();
 
 // ─── WorkItemInfo ─────────────────────────────────────────────────────
 
@@ -451,8 +445,6 @@ export class WorkItemInfoCodec implements TryDecode<WorkItemInfo>, TryEncode<Wor
   }
 }
 
-export const workItemInfoCodec: WorkItemInfoCodec = WorkItemInfoCodec.create();
-
 // ─── ImportRef ────────────────────────────────────────────────────────
 
 /**
@@ -500,8 +492,6 @@ export class ImportRefCodec implements TryDecode<ImportRef>, TryEncode<ImportRef
   }
 }
 
-export const importRefCodec: ImportRefCodec = ImportRefCodec.create();
-
 // ─── ExtrinsicRef ─────────────────────────────────────────────────────
 
 /**
@@ -541,8 +531,6 @@ export class ExtrinsicRefCodec implements TryDecode<ExtrinsicRef>, TryEncode<Ext
     e.varU64(u64(v.length));
   }
 }
-
-export const extrinsicRefCodec: ExtrinsicRefCodec = ExtrinsicRefCodec.create();
 
 // ─── WorkItem ─────────────────────────────────────────────────────────
 
@@ -592,10 +580,13 @@ export class WorkItem {
 }
 
 export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
-  static create(): WorkItemCodec {
-    return new WorkItemCodec();
+  static create(importRef: ImportRefCodec, extrinsicRef: ExtrinsicRefCodec): WorkItemCodec {
+    return new WorkItemCodec(importRef, extrinsicRef);
   }
-  private constructor() {}
+  private constructor(
+    private readonly importRef: ImportRefCodec,
+    private readonly extrinsicRef: ExtrinsicRefCodec,
+  ) {}
 
   decode(d: Decoder): Result<WorkItem, DecodeError> {
     const serviceId = d.u32();
@@ -605,9 +596,9 @@ export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
     const gasAccumulate = d.u64();
     const exportCount = d.varU32();
     if (d.isError) return Result.err<WorkItem, DecodeError>(DecodeError.MissingBytes);
-    const imports = d.sequenceVarLen<ImportRef>(importRefCodec);
+    const imports = d.sequenceVarLen<ImportRef>(this.importRef);
     if (imports.isError) return Result.err<WorkItem, DecodeError>(imports.error);
-    const extrinsics = d.sequenceVarLen<ExtrinsicRef>(extrinsicRefCodec);
+    const extrinsics = d.sequenceVarLen<ExtrinsicRef>(this.extrinsicRef);
     if (extrinsics.isError) return Result.err<WorkItem, DecodeError>(extrinsics.error);
     return Result.ok<WorkItem, DecodeError>(
       WorkItem.create(
@@ -630,12 +621,10 @@ export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
     e.u64(v.gasRefine);
     e.u64(v.gasAccumulate);
     e.varU64(u64(v.exportCount));
-    e.sequenceVarLen<ImportRef>(importRefCodec, v.imports);
-    e.sequenceVarLen<ExtrinsicRef>(extrinsicRefCodec, v.extrinsics);
+    e.sequenceVarLen<ImportRef>(this.importRef, v.imports);
+    e.sequenceVarLen<ExtrinsicRef>(this.extrinsicRef, v.extrinsics);
   }
 }
-
-export const workItemCodec: WorkItemCodec = WorkItemCodec.create();
 
 // ─── WorkPackage ──────────────────────────────────────────────────────
 
@@ -678,10 +667,13 @@ export class WorkPackage {
 }
 
 export class WorkPackageCodec implements TryDecode<WorkPackage>, TryEncode<WorkPackage> {
-  static create(): WorkPackageCodec {
-    return new WorkPackageCodec();
+  static create(refinementContext: RefinementContextCodec, workItem: WorkItemCodec): WorkPackageCodec {
+    return new WorkPackageCodec(refinementContext, workItem);
   }
-  private constructor() {}
+  private constructor(
+    private readonly refinementContext: RefinementContextCodec,
+    private readonly workItem: WorkItemCodec,
+  ) {}
 
   decode(d: Decoder): Result<WorkPackage, DecodeError> {
     const authToken = d.bytesVarLen();
@@ -689,9 +681,9 @@ export class WorkPackageCodec implements TryDecode<WorkPackage>, TryEncode<WorkP
     const authCodeHash = d.bytes32();
     const authConfig = d.bytesVarLen();
     if (d.isError) return Result.err<WorkPackage, DecodeError>(DecodeError.MissingBytes);
-    const ctx = d.object<RefinementContext>(refinementContextCodec);
+    const ctx = d.object<RefinementContext>(this.refinementContext);
     if (ctx.isError) return Result.err<WorkPackage, DecodeError>(ctx.error);
-    const items = d.sequenceVarLen<WorkItem>(workItemCodec);
+    const items = d.sequenceVarLen<WorkItem>(this.workItem);
     if (items.isError) return Result.err<WorkPackage, DecodeError>(items.error);
     return Result.ok<WorkPackage, DecodeError>(
       WorkPackage.create(authToken, authServiceId, authCodeHash, authConfig, ctx.okay!, items.okay!),
@@ -703,9 +695,7 @@ export class WorkPackageCodec implements TryDecode<WorkPackage>, TryEncode<WorkP
     e.u32(v.authServiceId);
     e.bytesFixLen(v.authCodeHash.raw);
     e.bytesVarLen(v.authConfig);
-    e.object<RefinementContext>(refinementContextCodec, v.context);
-    e.sequenceVarLen<WorkItem>(workItemCodec, v.workItems);
+    e.object<RefinementContext>(this.refinementContext, v.context);
+    e.sequenceVarLen<WorkItem>(this.workItem, v.workItems);
   }
 }
-
-export const workPackageCodec: WorkPackageCodec = WorkPackageCodec.create();

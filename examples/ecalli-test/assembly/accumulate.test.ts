@@ -1,4 +1,4 @@
-import { BytesBlob, Decoder, Encoder, responseCodec } from "@fluffylabs/as-lan";
+import { AccumulateContext, BytesBlob, Decoder, Encoder } from "@fluffylabs/as-lan";
 import { Assert, Test, TestAccumulate, test } from "@fluffylabs/as-lan/test";
 import { EcalliIndex } from "./ecalli-index";
 import { buildTransferItem, callAccumulate, callAccumulateWithOperand } from "./test-helpers";
@@ -10,7 +10,8 @@ export const TESTS: Test[] = [
     const item = buildTransferItem(99, 42, 500, 10000);
     TestAccumulate.setItem(0, item);
     const raw = callAccumulate(1);
-    const resp = responseCodec.decode(Decoder.fromBlob(raw)).okay!;
+    const accCtx = AccumulateContext.create();
+    const resp = accCtx.response.decode(Decoder.fromBlob(raw)).okay!;
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "transfer result OK");
     // Transfer data encoded as: source(u32) + dest(u32) + amount(u64) + gas(u64)

@@ -1,12 +1,10 @@
 import {
-  AccumulateArgs,
+  AccumulateContext,
   AccumulateItemKind,
   Decoder,
   Encoder,
   FetchKind,
   fetch,
-  operandCodec,
-  pendingTransferCodec,
   Response,
 } from "@fluffylabs/as-lan";
 import {
@@ -52,7 +50,8 @@ const FETCH_BUF_SIZE: u32 = 4096;
  *   data: bytesVarLen (last output data)
  */
 export function accumulate(ptr: u32, len: u32): u64 {
-  const result = AccumulateArgs.parse(ptr, len);
+  const ctx = AccumulateContext.create();
+  const result = ctx.parseArgs(ptr, len);
   if (result.isError) {
     logger.warn(`Failed to parse accumulate args: ${result.error}`);
     return 0;
@@ -84,9 +83,9 @@ export function accumulate(ptr: u32, len: u32): u64 {
     }
 
     if (tag === AccumulateItemKind.Operand) {
-      lastResponse = processOperand(d, i);
+      lastResponse = processOperand(ctx, d, i);
     } else if (tag === AccumulateItemKind.Transfer) {
-      lastResponse = processTransfer(d, i);
+      lastResponse = processTransfer(ctx, d, i);
     } else {
       logger.warn(`Unknown item kind ${tag} at index ${i}`);
     }
@@ -96,8 +95,8 @@ export function accumulate(ptr: u32, len: u32): u64 {
 }
 
 /** Process an operand: decode it, extract okBlob, and dispatch the ecalli from it. */
-function processOperand(d: Decoder, index: u32): u64 {
-  const r = operandCodec.decode(d);
+function processOperand(ctx: AccumulateContext, d: Decoder, index: u32): u64 {
+  const r = ctx.operand.decode(d);
   if (r.isError) {
     logger.warn(`Failed to decode operand at index ${index}`);
     return 0;
@@ -155,8 +154,8 @@ function processOperand(d: Decoder, index: u32): u64 {
 }
 
 /** Process a transfer: decode and log it. */
-function processTransfer(d: Decoder, index: u32): u64 {
-  const tr = pendingTransferCodec.decode(d);
+function processTransfer(ctx: AccumulateContext, d: Decoder, index: u32): u64 {
+  const tr = ctx.pendingTransfer.decode(d);
   if (tr.isError) {
     logger.warn(`Failed to decode transfer at index ${index}`);
     return 0;

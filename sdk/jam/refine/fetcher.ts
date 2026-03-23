@@ -6,30 +6,25 @@
  */
 
 import { BytesBlob } from "../../core/bytes";
-import { Decoder } from "../../core/codec/decode";
 import { Result } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { FetchError } from "../fetcher";
 import { EntropyHash } from "../types";
+import { WorkPackageContext } from "../work-package-context";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
 export class RefineFetcher extends WorkPackageFetcher {
-  static create(bufSize: u32 = 1024): RefineFetcher {
-    return new RefineFetcher(bufSize);
+  static create(ctx: WorkPackageContext, bufSize: u32 = 1024): RefineFetcher {
+    return new RefineFetcher(ctx, bufSize);
   }
 
-  private constructor(bufSize: u32 = 1024) {
-    super(bufSize);
+  private constructor(ctx: WorkPackageContext, bufSize: u32 = 1024) {
+    super(ctx, bufSize);
   }
 
   /** Entropy pool (kind 1). In refine context this is H₀ (anchor header hash, 32 bytes). */
   entropy(): Result<EntropyHash, FetchError> {
-    const raw = this.fetchRaw(FetchKind.Entropy);
-    if (raw.isError) return Result.err<EntropyHash, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const hash = d.bytes32();
-    if (d.isError) return Result.err<EntropyHash, FetchError>(FetchError.DecodeError);
-    return Result.ok<EntropyHash, FetchError>(hash);
+    return this.fetchAndDecode(this.wpCtx.bytes32, FetchKind.Entropy);
   }
 
   /** Authorizer trace data (kind 2). */

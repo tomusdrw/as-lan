@@ -4,16 +4,16 @@ import { Encoder } from "../../core/codec/encode";
 import { Assert, Test, test } from "../../test/utils";
 import {
   AccumulateItem,
+  AccumulateItemCodec,
   AccumulateItemKind,
-  accumulateItemCodec,
   Operand,
-  operandCodec,
+  OperandCodec,
   PendingTransfer,
-  pendingTransferCodec,
+  PendingTransferCodec,
   TRANSFER_MEMO_SIZE,
   WorkExecResult,
+  WorkExecResultCodec,
   WorkExecResultKind,
-  workExecResultCodec,
 } from "./item";
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
@@ -22,6 +22,12 @@ function bytes32Fill(v: u8): Bytes32 {
   raw.fill(v);
   return Bytes32.wrapUnchecked(raw);
 }
+
+// Create codec instances for tests (mirrors what a Context would do).
+const workExecResultCodec: WorkExecResultCodec = WorkExecResultCodec.create();
+const operandCodec: OperandCodec = OperandCodec.create(workExecResultCodec);
+const pendingTransferCodec: PendingTransferCodec = PendingTransferCodec.create();
+const accumulateItemCodec: AccumulateItemCodec = AccumulateItemCodec.create(operandCodec, pendingTransferCodec);
 
 /** Helper: encode to bytes, then decode back. */
 function roundtripWorkExecResult(original: WorkExecResult): WorkExecResult {
@@ -170,7 +176,7 @@ export const TESTS: Test[] = [
     const d = Decoder.fromBlob(e.finish());
 
     const assert = Assert.create();
-    const tag = u32(d.varU64());
+    const tag = d.varU32();
     assert.isEqual(tag, AccumulateItemKind.Operand, "tag");
 
     const decoded = operandCodec.decode(d).okay!;
@@ -215,7 +221,6 @@ export const TESTS: Test[] = [
     const d = Decoder.fromBlob(e.finish());
     const decoded = pendingTransferCodec.decode(d).okay!;
 
-    // After encode/decode, the memo should be 128 bytes (zero-padded).
     const expectedMemo = new Uint8Array(TRANSFER_MEMO_SIZE);
     expectedMemo.set(shortMemo.raw);
 
@@ -255,7 +260,7 @@ export const TESTS: Test[] = [
     const d = Decoder.fromBlob(e.finish());
 
     const assert = Assert.create();
-    const tag = u32(d.varU64());
+    const tag = d.varU32();
     assert.isEqual(tag, AccumulateItemKind.Transfer, "tag");
 
     const decoded = pendingTransferCodec.decode(d).okay!;
@@ -271,7 +276,7 @@ export const TESTS: Test[] = [
 
   test("WorkExecResult decode rejects invalid kind", () => {
     const e = Encoder.create();
-    e.varU64(99); // invalid kind > CodeOversize(6)
+    e.varU64(99);
     const d = Decoder.fromBlob(e.finish());
     const r = workExecResultCodec.decode(d);
 
@@ -282,7 +287,7 @@ export const TESTS: Test[] = [
 
   test("AccumulateItem decode rejects unknown tag", () => {
     const e = Encoder.create();
-    e.varU64(5); // invalid tag (only 0=Operand, 1=Transfer)
+    e.varU64(5);
     const d = Decoder.fromBlob(e.finish());
     const r = accumulateItemCodec.decode(d);
 

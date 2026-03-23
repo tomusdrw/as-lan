@@ -17,6 +17,7 @@ export * from "./jam/refine";
 export * from "./jam/service";
 export * from "./jam/types";
 export * from "./jam/work-package";
+export { WorkPackageContext } from "./jam/work-package-context";
 export { WorkPackageFetcher } from "./jam/work-package-fetcher";
 
 // Logger

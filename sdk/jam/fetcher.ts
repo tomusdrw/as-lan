@@ -5,7 +5,8 @@
  * allocation, auto-expansion when data exceeds the initial buffer, and
  * error detection.
  *
- * Subclasses expose context-specific typed methods (refine, accumulate, authorize).
+ * Subclasses receive codec instances from their invocation context and
+ * provide typed fetch methods (refine, accumulate, authorize).
  *
  * ## Future direction: offset-based partial fetching
  *
@@ -38,7 +39,6 @@ import { BytesBlob } from "../core/bytes";
 import { Decoder, TryDecode } from "../core/codec/decode";
 import { Result } from "../core/result";
 import { FetchKind, fetch } from "../ecalli/general/fetch";
-import { ProtocolConstants, protocolConstantsCodec } from "./work-package";
 
 /**
  * Error codes returned by fetcher methods.
@@ -99,7 +99,7 @@ export class Fetcher {
     return Result.ok<BytesBlob, FetchError>(BytesBlob.wrap(r.okay!));
   }
 
-  /** Fetch raw bytes and decode using the given codec. */
+  /** Fetch raw bytes, decode using the given codec, and verify no trailing bytes. */
   protected fetchAndDecode<T>(
     codec: TryDecode<T>,
     kind: FetchKind,
@@ -110,12 +110,7 @@ export class Fetcher {
     if (raw.isError) return Result.err<T, FetchError>(raw.error);
     const d = Decoder.fromBlob(raw.okay!);
     const r = codec.decode(d);
-    if (r.isError) return Result.err<T, FetchError>(FetchError.DecodeError);
+    if (r.isError || !d.isFinished()) return Result.err<T, FetchError>(FetchError.DecodeError);
     return Result.ok<T, FetchError>(r.okay!);
-  }
-
-  /** Protocol constants (kind 0, always available in all contexts). */
-  constants(): Result<ProtocolConstants, FetchError> {
-    return this.fetchAndDecode<ProtocolConstants>(protocolConstantsCodec, FetchKind.Constants);
   }
 }

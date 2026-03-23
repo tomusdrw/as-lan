@@ -1,8 +1,7 @@
 import { BytesBlob } from "../core/bytes";
-import { bytes32Codec } from "../core/codec/bytes32";
+import { Bytes32Codec } from "../core/codec/bytes32";
 import { DecodeError, Decoder, TryDecode } from "../core/codec/decode";
 import { Encoder, TryEncode } from "../core/codec/encode";
-import { readFromMemory } from "../core/mem";
 import { ptrAndLen } from "../core/pack";
 import { Result } from "../core/result";
 import { CodeHash, CoreIndex, ServiceId, Slot, WorkPackageHash } from "./types";
@@ -33,15 +32,6 @@ export class RefineArgs {
     public payload: BytesBlob,
     public workPackageHash: WorkPackageHash,
   ) {}
-
-  /** Parse raw refine arguments from (ptr, len). Returns a Result. */
-  static parse(ptr: u32, len: u32): Result<RefineArgs, ParseError> {
-    const decoder = Decoder.fromBlob(readFromMemory(ptr, len));
-    const r = refineArgsCodec.decode(decoder);
-    if (r.isError) return Result.err<RefineArgs, ParseError>(ParseError.DecodeError);
-    if (!decoder.isFinished()) return Result.err<RefineArgs, ParseError>(ParseError.TrailingBytes);
-    return Result.ok<RefineArgs, ParseError>(r.okay!);
-  }
 }
 
 export class RefineArgsCodec implements TryDecode<RefineArgs>, TryEncode<RefineArgs> {
@@ -72,8 +62,6 @@ export class RefineArgsCodec implements TryDecode<RefineArgs>, TryEncode<RefineA
   }
 }
 
-export const refineArgsCodec: RefineArgsCodec = RefineArgsCodec.create();
-
 // ─── AccumulateArgs ───────────────────────────────────────────────────
 
 export class AccumulateArgs {
@@ -86,15 +74,6 @@ export class AccumulateArgs {
     public serviceId: ServiceId,
     public argsLength: u32,
   ) {}
-
-  /** Parse raw accumulate arguments from (ptr, len). Returns a Result. */
-  static parse(ptr: u32, len: u32): Result<AccumulateArgs, ParseError> {
-    const decoder = Decoder.fromBlob(readFromMemory(ptr, len));
-    const r = accumulateArgsCodec.decode(decoder);
-    if (r.isError) return Result.err<AccumulateArgs, ParseError>(ParseError.DecodeError);
-    if (!decoder.isFinished()) return Result.err<AccumulateArgs, ParseError>(ParseError.TrailingBytes);
-    return Result.ok<AccumulateArgs, ParseError>(r.okay!);
-  }
 }
 
 export class AccumulateArgsCodec implements TryDecode<AccumulateArgs>, TryEncode<AccumulateArgs> {
@@ -117,8 +96,6 @@ export class AccumulateArgsCodec implements TryDecode<AccumulateArgs>, TryEncode
     e.varU64(u64(v.argsLength));
   }
 }
-
-export const accumulateArgsCodec: AccumulateArgsCodec = AccumulateArgsCodec.create();
 
 // ─── Response ─────────────────────────────────────────────────────────
 
@@ -145,7 +122,7 @@ export class Response {
    */
   static with(ecalliResult: i64, data: Uint8Array | null = null): u64 {
     const bytes = data === null ? BytesBlob.empty() : BytesBlob.wrap(data);
-    const enc = Encoder.create(1 + bytes.raw.length);
+    const enc = Encoder.create(8 + 1 + bytes.raw.length);
     enc.u64(u64(ecalliResult));
     enc.bytesVarLen(bytes);
     return ptrAndLen(enc.finish());
@@ -171,23 +148,19 @@ export class ResponseCodec implements TryDecode<Response>, TryEncode<Response> {
   }
 }
 
-export const responseCodec: ResponseCodec = ResponseCodec.create();
-
 // ─── OptionalCodeHash ─────────────────────────────────────────────────
 
 export class OptionalCodeHashCodec implements TryDecode<CodeHash | null>, TryEncode<CodeHash | null> {
-  static create(): OptionalCodeHashCodec {
-    return new OptionalCodeHashCodec();
+  static create(bytes32: Bytes32Codec): OptionalCodeHashCodec {
+    return new OptionalCodeHashCodec(bytes32);
   }
-  private constructor() {}
+  private constructor(private readonly bytes32: Bytes32Codec) {}
 
   decode(d: Decoder): Result<CodeHash | null, DecodeError> {
-    return d.optional<CodeHash>(bytes32Codec);
+    return d.optional<CodeHash>(this.bytes32);
   }
 
   encode(v: CodeHash | null, e: Encoder): void {
-    e.optional<CodeHash>(bytes32Codec, v);
+    e.optional<CodeHash>(this.bytes32, v);
   }
 }
-
-export const optionalCodeHashCodec: OptionalCodeHashCodec = OptionalCodeHashCodec.create();

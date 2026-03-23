@@ -5,14 +5,15 @@
  * Entropy (kind 1) is NOT available in this context.
  */
 
+import { WorkPackageContext } from "../work-package-context";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
 export class AuthorizeFetcher extends WorkPackageFetcher {
-  static create(bufSize: u32 = 1024): AuthorizeFetcher {
-    return new AuthorizeFetcher(bufSize);
+  static create(ctx: WorkPackageContext, bufSize: u32 = 1024): AuthorizeFetcher {
+    return new AuthorizeFetcher(ctx, bufSize);
   }
 
-  private constructor(bufSize: u32 = 1024) {
-    super(bufSize);
+  private constructor(ctx: WorkPackageContext, bufSize: u32 = 1024) {
+    super(ctx, bufSize);
   }
 }

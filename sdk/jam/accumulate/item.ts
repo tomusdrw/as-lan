@@ -85,8 +85,6 @@ export class WorkExecResultCodec implements TryDecode<WorkExecResult>, TryEncode
   }
 }
 
-export const workExecResultCodec: WorkExecResultCodec = WorkExecResultCodec.create();
-
 // ─── Operand ──────────────────────────────────────────────────────────
 
 /**
@@ -128,10 +126,10 @@ export class Operand {
 }
 
 export class OperandCodec implements TryDecode<Operand>, TryEncode<Operand> {
-  static create(): OperandCodec {
-    return new OperandCodec();
+  static create(workExecResult: WorkExecResultCodec): OperandCodec {
+    return new OperandCodec(workExecResult);
   }
-  private constructor() {}
+  private constructor(private readonly workExecResult: WorkExecResultCodec) {}
 
   decode(d: Decoder): Result<Operand, DecodeError> {
     const hash = d.bytes32();
@@ -140,7 +138,7 @@ export class OperandCodec implements TryDecode<Operand>, TryEncode<Operand> {
     const payloadHash = d.bytes32();
     const gas = d.varU64();
     if (d.isError) return Result.err<Operand, DecodeError>(DecodeError.MissingBytes);
-    const r = d.object<WorkExecResult>(workExecResultCodec);
+    const r = d.object<WorkExecResult>(this.workExecResult);
     if (r.isError) return Result.err<Operand, DecodeError>(r.error);
     const authorizationOutput = d.bytesVarLen();
     if (d.isError) return Result.err<Operand, DecodeError>(DecodeError.MissingBytes);
@@ -155,12 +153,10 @@ export class OperandCodec implements TryDecode<Operand>, TryEncode<Operand> {
     e.bytesFixLen(v.authorizerHash.raw);
     e.bytesFixLen(v.payloadHash.raw);
     e.varU64(v.gas);
-    e.object<WorkExecResult>(workExecResultCodec, v.result);
+    e.object<WorkExecResult>(this.workExecResult, v.result);
     e.bytesVarLen(v.authorizationOutput);
   }
 }
-
-export const operandCodec: OperandCodec = OperandCodec.create();
 
 // ─── PendingTransfer ──────────────────────────────────────────────────
 
@@ -227,8 +223,6 @@ export class PendingTransferCodec implements TryDecode<PendingTransfer>, TryEnco
   }
 }
 
-export const pendingTransferCodec: PendingTransferCodec = PendingTransferCodec.create();
-
 // ─── AccumulateItem ───────────────────────────────────────────────────
 
 /**
@@ -272,21 +266,24 @@ export class AccumulateItem {
 }
 
 export class AccumulateItemCodec implements TryDecode<AccumulateItem>, TryEncode<AccumulateItem> {
-  static create(): AccumulateItemCodec {
-    return new AccumulateItemCodec();
+  static create(operand: OperandCodec, pendingTransfer: PendingTransferCodec): AccumulateItemCodec {
+    return new AccumulateItemCodec(operand, pendingTransfer);
   }
-  private constructor() {}
+  private constructor(
+    private readonly operand: OperandCodec,
+    private readonly pendingTransfer: PendingTransferCodec,
+  ) {}
 
   decode(d: Decoder): Result<AccumulateItem, DecodeError> {
     const tag = d.varU32();
     if (d.isError) return Result.err<AccumulateItem, DecodeError>(DecodeError.MissingBytes);
     if (tag === AccumulateItemKind.Operand) {
-      const r = d.object<Operand>(operandCodec);
+      const r = d.object<Operand>(this.operand);
       if (r.isError) return Result.err<AccumulateItem, DecodeError>(r.error);
       return Result.ok<AccumulateItem, DecodeError>(AccumulateItem.fromOperand(r.okay!));
     }
     if (tag === AccumulateItemKind.Transfer) {
-      const r = d.object<PendingTransfer>(pendingTransferCodec);
+      const r = d.object<PendingTransfer>(this.pendingTransfer);
       if (r.isError) return Result.err<AccumulateItem, DecodeError>(r.error);
       return Result.ok<AccumulateItem, DecodeError>(AccumulateItem.fromTransfer(r.okay!));
     }
@@ -296,12 +293,10 @@ export class AccumulateItemCodec implements TryDecode<AccumulateItem>, TryEncode
   encode(v: AccumulateItem, e: Encoder): void {
     if (v.isOperand) {
       e.varU64(AccumulateItemKind.Operand);
-      e.object<Operand>(operandCodec, v.operand);
+      e.object<Operand>(this.operand, v.operand);
     } else {
       e.varU64(AccumulateItemKind.Transfer);
-      e.object<PendingTransfer>(pendingTransferCodec, v.transfer);
+      e.object<PendingTransfer>(this.pendingTransfer, v.transfer);
     }
   }
 }
-
-export const accumulateItemCodec: AccumulateItemCodec = AccumulateItemCodec.create();

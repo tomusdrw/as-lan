@@ -47,19 +47,14 @@ function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, m
   }
 }
 
-/** Write bytes into WASM memory and return (ptr, len). */
-function writeToMemory(data: Uint8Array): u64 {
-  // Allocate by creating a copy in managed memory
+function callWithArgs(fn: (ptr: u32, len: u32) => u64, data: Uint8Array): Uint8Array {
+  // Copy data into a managed buffer and keep it referenced across the
+  // fn() call so the compiler doesn't optimize it away.
   const buf = new Uint8Array(data.length);
   buf.set(data);
-  return (u64(buf.dataStart) << 32) | u64(buf.byteLength);
-}
-
-function callWithArgs(fn: (ptr: u32, len: u32) => u64, data: Uint8Array): Uint8Array {
-  const packed = writeToMemory(data);
-  const ptr = u32(packed >> 32);
-  const len = u32(packed & 0xffffffff);
-  const result = fn(ptr, len);
+  const result = fn(u32(buf.dataStart), buf.byteLength);
+  // Reference buf after fn() to ensure it stays live.
+  assert(buf.length >= 0);
   return unpackResult(result);
 }
 

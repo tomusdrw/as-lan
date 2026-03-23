@@ -62,7 +62,7 @@ docs/                       Documentation (mdbook)
 
 ### Codec Pattern (sdk/core/codec/ + sdk/jam/)
 
-Domain types are **pure data classes** (no encode/decode methods). Serialization is handled by separate **codec classes** implementing `TryDecode<T>` and `TryEncode<T>`:
+Domain types are **pure data classes** (no encode/decode methods). Serialization is handled by separate **codec classes** implementing `TryDecode<T>` and `TryEncode<T>`. Codecs with dependencies take them as constructor params. There are **no global codec singletons** — all codec instances live on Context objects.
 
 ```ts
 // Data class — pure data, private constructor + static create()
@@ -71,17 +71,14 @@ export class ImportRef {
   private constructor(public hash: Bytes32, ...) {}
 }
 
-// Codec class — stateless, private constructor + static create(), singleton instance
+// Codec class — in same file, after data class. Dependencies via constructor.
 export class ImportRefCodec implements TryDecode<ImportRef>, TryEncode<ImportRef> {
   static create(): ImportRefCodec { return new ImportRefCodec(); }
   private constructor() {}
   decode(d: Decoder): Result<ImportRef, DecodeError> { ... }
   encode(value: ImportRef, e: Encoder): void { ... }
 }
-export const importRefCodec = ImportRefCodec.create();
 ```
-
-Codec classes are defined **in the same file** as their data class, immediately after it.
 
 **Composing codecs** — use Decoder/Encoder helpers instead of manual loops:
 - `d.sequenceVarLen<T>(codec)` — decode a length-prefixed sequence
@@ -89,25 +86,45 @@ Codec classes are defined **in the same file** as their data class, immediately 
 - `e.sequenceVarLen<T>(codec, values)` — encode a length-prefixed sequence
 - `e.object<T>(codec, value)` — encode a nested composite type
 
-**Fetcher helper** — `fetchAndDecode<T>(codec, kind, ...)` on the base `Fetcher` class handles the fetch → decode → error-mapping pipeline.
+### Invocation Contexts (sdk/jam/\*/context.ts)
+
+Contexts group all codec instances + convenience methods for a specific invocation type. They must be created **inside the entry point function** (not at module scope) and named `ctx`:
+
+```ts
+export function accumulate(ptr: u32, len: u32): u64 {
+  const ctx = AccumulateContext.create();
+  const fetcher = AccumulateFetcher.create(ctx);
+  const args = ctx.parseArgs(ptr, len);
+  // ... use fetcher and ctx ...
+  return ctx.respond(result, data);
+}
+```
+
+Contexts:
+- **AccumulateContext** — `parseArgs()`, `respond()`, `yieldHash()`, accumulate codecs
+- **RefineContext** (extends WorkPackageContext) — `parseArgs()`, `respond()`, refine + work-package codecs
+- **AuthorizeContext** (extends WorkPackageContext) — work-package codecs
+- **WorkPackageContext** — base with bytes32, protocolConstants, workPackage, etc.
+
+Fetchers receive their context via constructor: `AccumulateFetcher.create(ctx)`, `RefineFetcher.create(ctx)`.
 
 ### Service ABI Types (sdk/jam/service.ts)
 
-- **RefineArgs / AccumulateArgs**: Parse incoming arguments with `.parse(ptr, len)` (from raw WASM memory). Codec encode/decode via `refineArgsCodec` / `accumulateArgsCodec`.
-- **Response**: Use `Response.with(result, data?)` to encode + pack as `u64`. Decode via `responseCodec`.
+- **RefineArgs / AccumulateArgs**: Pure data classes. Parse via `ctx.parseArgs(ptr, len)`.
+- **Response**: Use `Response.with(result, data?)` for quick ptrAndLen encoding. Decode via `ctx.response`.
 
 ### Fetcher Hierarchy (sdk/jam/)
 
 High-level wrappers around the raw `fetch` ecalli (Ω_Y, GP Appendix B.5).
-Each context fetcher exposes only the fetch kinds available in that invocation.
+Each fetcher receives its context via constructor and exposes typed fetch methods.
 All methods return `Result<T, FetchError>` with typed payloads.
 
 ```text
-Fetcher (constants only — kind 0)
-  ├── WorkPackageFetcher (adds kinds 7-13: WorkPackage, AuthorizerInfo, RefinementContext, WorkItemInfo)
-  │     ├── AuthorizeFetcher (kinds 0, 7-13)
-  │     └── RefineFetcher (adds entropy, trace, extrinsics, imports — kinds 1-6)
-  └── AccumulateFetcher (adds entropy + accumulate items — kinds 1, 14-15)
+Fetcher (base: fetchRaw, fetchBlob, fetchAndDecode)
+  ├── WorkPackageFetcher(ctx) (kinds 0, 7-13: constants, WorkPackage, AuthorizerInfo, etc.)
+  │     ├── AuthorizeFetcher(ctx) (kinds 0, 7-13)
+  │     └── RefineFetcher(ctx) (adds entropy, trace, extrinsics, imports — kinds 0-13)
+  └── AccumulateFetcher(ctx) (kinds 0-1, 14-15: constants, entropy, accumulate items)
 ```
 
 GP fetch parameter mapping per context (eq B.1, B.6, B.11):

@@ -1,12 +1,4 @@
-import {
-  AccumulateArgs,
-  Bytes32,
-  Encoder,
-  LogMsg,
-  optionalCodeHashCodec,
-  ptrAndLen,
-  RefineArgs,
-} from "@fluffylabs/as-lan";
+import { AccumulateContext, Bytes32, LogMsg, RefineContext } from "@fluffylabs/as-lan";
 
 // LogMsg is a lightweight buffer-based logger that avoids pulling in
 // AssemblyScript's String machinery (~24% smaller WASM than Logger).
@@ -14,7 +6,8 @@ import {
 const logger: LogMsg = LogMsg.create("fib");
 
 export function accumulate(ptr: u32, len: u32): u64 {
-  const result = AccumulateArgs.parse(ptr, len);
+  const ctx = AccumulateContext.create();
+  const result = ctx.parseArgs(ptr, len);
   if (result.isError) {
     logger.str("Failed to parse accumulate args: ").i32(result.error).warn();
     return 0;
@@ -32,14 +25,12 @@ export function accumulate(ptr: u32, len: u32): u64 {
   for (let i = 0; i < 8; i++) {
     raw[i] = u8((fibResult >> (i * 8)) & 0xff);
   }
-  const hash = Bytes32.wrapUnchecked(raw);
-  const enc = Encoder.create();
-  optionalCodeHashCodec.encode(hash, enc);
-  return ptrAndLen(enc.finish());
+  return ctx.yieldHash(Bytes32.wrapUnchecked(raw));
 }
 
 export function refine(ptr: u32, len: u32): u64 {
-  const result = RefineArgs.parse(ptr, len);
+  const ctx = RefineContext.create();
+  const result = ctx.parseArgs(ptr, len);
   if (result.isError) {
     logger.str("Failed to parse refine args: ").i32(result.error).warn();
     return 0;
