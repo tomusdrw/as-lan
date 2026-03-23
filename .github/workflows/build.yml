@@ -27,10 +27,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/wasm-pvm
-        key: wasm-pvm-cli-0.6.0
+        key: wasm-pvm-cli-0.7.0
     - name: Install wasm-pvm-cli
       if: steps.cache-wasm-pvm.outputs.cache-hit != 'true'
-      run: cargo install wasm-pvm-cli@0.6.0 --locked
+      run: cargo install wasm-pvm-cli@0.7.0 --locked
     - run: npm ci
     - run: npm run qa
     - run: npm run build
