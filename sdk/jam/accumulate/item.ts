@@ -172,6 +172,7 @@ export const TRANSFER_MEMO_SIZE: u32 = 128;
  */
 export class PendingTransfer {
   static create(source: u32, destination: u32, amount: u64, memo: BytesBlob, gas: u64): PendingTransfer {
+    assert(<u32>memo.raw.length <= TRANSFER_MEMO_SIZE, `memo too large: ${memo.raw.length} > ${TRANSFER_MEMO_SIZE}`);
     return new PendingTransfer(source, destination, amount, memo, gas);
   }
 
@@ -209,9 +210,8 @@ export class PendingTransferCodec implements TryDecode<PendingTransfer>, TryEnco
     e.u32(v.source);
     e.u32(v.destination);
     e.u64(v.amount);
-    // Memo must be at most TRANSFER_MEMO_SIZE bytes; pad if shorter.
+    // Memo is guaranteed <= TRANSFER_MEMO_SIZE by PendingTransfer.create; pad if shorter.
     const raw = v.memo.raw;
-    assert(<u32>raw.length <= TRANSFER_MEMO_SIZE, `memo too large: ${raw.length} > ${TRANSFER_MEMO_SIZE}`);
     if (<u32>raw.length === TRANSFER_MEMO_SIZE) {
       e.bytesFixLen(raw);
     } else {
