@@ -22,4 +22,4 @@ export class Bytes32Codec implements TryDecode<Bytes32>, TryEncode<Bytes32> {
   }
 }
 
-export const bytes32Codec = Bytes32Codec.create();
+export const bytes32Codec: Bytes32Codec = Bytes32Codec.create();

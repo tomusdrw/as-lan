@@ -13,12 +13,12 @@ sdk/                        AssemblyScript SDK library
     accumulate/             Ecalli 14-26 (bless, assign, designate, checkpoint, new_service, upgrade, transfer, eject, query, solicit, forget, yield_result, provide)
   jam/                      JAM protocol types
     types.ts                Core type aliases (ServiceId, Slot, CodeHash, etc.)
-    service.ts              Service ABI: RefineArgs, AccumulateArgs, Response (encode/decode)
+    service.ts              Service ABI: RefineArgs, AccumulateArgs, Response + codec classes
     fetcher.ts              Base Fetcher class with buffer management (constants only)
     work-package-fetcher.ts Intermediate fetcher adding typed kinds 7-13 (WorkPackage, AuthorizerInfo, etc.)
-    work-package.ts         WorkPackage, WorkItem, WorkItemInfo, AuthorizerInfo, RefinementContext, ImportRef, ExtrinsicRef
+    work-package.ts         WorkPackage, WorkItem, WorkItemInfo, AuthorizerInfo, RefinementContext, ImportRef, ExtrinsicRef + codec classes
     accumulate/             Accumulate-context types and fetcher
-      item.ts               Operand, PendingTransfer, WorkExecResult, AccumulateItem (encode/decode)
+      item.ts               Operand, PendingTransfer, WorkExecResult, AccumulateItem + codec classes
       fetcher.ts            AccumulateFetcher (entropy, allTransfersAndOperands, oneTransferOrOperand)
     refine/                 Refine-context fetcher
       fetcher.ts            RefineFetcher (entropy, authorizerTrace, extrinsics, imports + inherits kinds 7-13)
@@ -60,13 +60,41 @@ docs/                       Documentation (mdbook)
 - **sdk-ecalli-mocks**: JS stubs wired as WASM imports during test. Export names must match `@external` names exactly.
 - **EcalliResult**: Sentinel constants (NONE=-1, WHO=-4, FULL=-5, etc.) shared across all host calls.
 
-### Service ABI Types (sdk/jam/)
+### Codec Pattern (sdk/core/codec/ + sdk/jam/)
 
-- **RefineArgs / AccumulateArgs**: Parse incoming arguments with `.parse(ptr, len)`, encode with `.encode(e)`.
-- **Response**: Ecalli dispatch return type. Use `Response.with(result, data?)` to encode + pack as `u64`. Use `Response.decode(raw)` to read back.
-- **Operand**: Work result from refine. Decoded from `fetch(kind=15)` with tag=0. Contains `WorkExecResult` with the refine output blob.
-- **PendingTransfer**: Incoming balance transfer. Decoded from `fetch(kind=15)` with tag=1.
-- All types have both `encode(e)` and `static decode(d)` methods. Operand/PendingTransfer also have `encodeTagged(e)` which prepends the discriminator tag.
+Domain types are **pure data classes** (no encode/decode methods). Serialization is handled by separate **codec classes** implementing `TryDecode<T>` and `TryEncode<T>`:
+
+```ts
+// Data class — pure data, private constructor + static create()
+export class ImportRef {
+  static create(hash: Bytes32, isWorkPackageHash: bool, index: u32): ImportRef { ... }
+  private constructor(public hash: Bytes32, ...) {}
+}
+
+// Codec class — stateless, private constructor + static create(), singleton instance
+export class ImportRefCodec implements TryDecode<ImportRef>, TryEncode<ImportRef> {
+  static create(): ImportRefCodec { return new ImportRefCodec(); }
+  private constructor() {}
+  decode(d: Decoder): Result<ImportRef, DecodeError> { ... }
+  encode(value: ImportRef, e: Encoder): void { ... }
+}
+export const importRefCodec = ImportRefCodec.create();
+```
+
+Codec classes are defined **in the same file** as their data class, immediately after it.
+
+**Composing codecs** — use Decoder/Encoder helpers instead of manual loops:
+- `d.sequenceVarLen<T>(codec)` — decode a length-prefixed sequence
+- `d.object<T>(codec)` — decode a nested composite type
+- `e.sequenceVarLen<T>(codec, values)` — encode a length-prefixed sequence
+- `e.object<T>(codec, value)` — encode a nested composite type
+
+**Fetcher helper** — `fetchAndDecode<T>(codec, kind, ...)` on the base `Fetcher` class handles the fetch → decode → error-mapping pipeline.
+
+### Service ABI Types (sdk/jam/service.ts)
+
+- **RefineArgs / AccumulateArgs**: Parse incoming arguments with `.parse(ptr, len)` (from raw WASM memory). Codec encode/decode via `refineArgsCodec` / `accumulateArgsCodec`.
+- **Response**: Use `Response.with(result, data?)` to encode + pack as `u64`. Decode via `responseCodec`.
 
 ### Fetcher Hierarchy (sdk/jam/)
 

@@ -68,18 +68,39 @@ export class ProtocolConstants {
     contestLength: u32,
   ): ProtocolConstants {
     return new ProtocolConstants(
-      electiveItemBalance, electiveByteBalance, baseServiceBalance,
-      coreCount, preimageExpungePeriod, epochLength,
-      gasAccumulateReport, gasIsAuthorized, gasMaxRefine, gasMaxBlock,
-      recentHistoryLength, maxWorkItems, maxReportDeps, maxTicketsPerExtrinsic,
+      electiveItemBalance,
+      electiveByteBalance,
+      baseServiceBalance,
+      coreCount,
+      preimageExpungePeriod,
+      epochLength,
+      gasAccumulateReport,
+      gasIsAuthorized,
+      gasMaxRefine,
+      gasMaxBlock,
+      recentHistoryLength,
+      maxWorkItems,
+      maxReportDeps,
+      maxTicketsPerExtrinsic,
       maxLookupAnchorAge,
-      ticketsPerValidator, maxAuthorizersPerCore, slotDuration,
-      authorizersQueueSize, rotationPeriod, maxExtrinsicsPerWorkItem,
-      reportTimeoutGracePeriod, validatorsCount,
-      maxAllocatedWorkPackageSize, maxEncodedWorkPackageSize,
-      maxAuthorizerCodeSize, erasureCodedPieceSize, maxImportSegments,
-      ecPiecesPerSegment, maxWorkReportSize, transferMemoSize,
-      maxExportSegments, contestLength,
+      ticketsPerValidator,
+      maxAuthorizersPerCore,
+      slotDuration,
+      authorizersQueueSize,
+      rotationPeriod,
+      maxExtrinsicsPerWorkItem,
+      reportTimeoutGracePeriod,
+      validatorsCount,
+      maxAllocatedWorkPackageSize,
+      maxEncodedWorkPackageSize,
+      maxAuthorizerCodeSize,
+      erasureCodedPieceSize,
+      maxImportSegments,
+      ecPiecesPerSegment,
+      maxWorkReportSize,
+      transferMemoSize,
+      maxExportSegments,
+      contestLength,
     );
   }
 
@@ -153,44 +174,90 @@ export class ProtocolConstants {
   ) {}
 }
 
-
 export class ProtocolConstantsCodec implements TryDecode<ProtocolConstants>, TryEncode<ProtocolConstants> {
-  static create(): ProtocolConstantsCodec { return new ProtocolConstantsCodec(); }
+  static create(): ProtocolConstantsCodec {
+    return new ProtocolConstantsCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<ProtocolConstants, DecodeError> {
     const c = ProtocolConstants.create(
-      d.u64(), d.u64(), d.u64(), // B_I, B_L, B_S
-      d.u16(), d.u32(), d.u32(), // C, D, E
-      d.u64(), d.u64(), d.u64(), d.u64(), // G_A, G_I, G_R, G_T
-      d.u16(), d.u16(), d.u16(), d.u16(), // H, I, J, K
+      d.u64(),
+      d.u64(),
+      d.u64(), // B_I, B_L, B_S
+      d.u16(),
+      d.u32(),
+      d.u32(), // C, D, E
+      d.u64(),
+      d.u64(),
+      d.u64(),
+      d.u64(), // G_A, G_I, G_R, G_T
+      d.u16(),
+      d.u16(),
+      d.u16(),
+      d.u16(), // H, I, J, K
       d.u32(), // L
-      d.u16(), d.u16(), d.u16(), d.u16(), d.u16(), d.u16(), d.u16(), // N, O, P, Q, R, T, U
+      d.u16(),
+      d.u16(),
+      d.u16(),
+      d.u16(),
+      d.u16(),
+      d.u16(),
+      d.u16(), // N, O, P, Q, R, T, U
       d.u16(), // V
-      d.u32(), d.u32(), d.u32(), d.u32(), d.u32(), // W_A, W_B, W_C, W_E, W_M
-      d.u32(), d.u32(), d.u32(), d.u32(), d.u32(), // W_P, W_R, W_T, W_X, Y
+      d.u32(),
+      d.u32(),
+      d.u32(),
+      d.u32(),
+      d.u32(), // W_A, W_B, W_C, W_E, W_M
+      d.u32(),
+      d.u32(),
+      d.u32(),
+      d.u32(),
+      d.u32(), // W_P, W_R, W_T, W_X, Y
     );
     if (d.isError) return Result.err<ProtocolConstants, DecodeError>(DecodeError.MissingBytes);
     return Result.ok<ProtocolConstants, DecodeError>(c);
   }
 
   encode(v: ProtocolConstants, e: Encoder): void {
-    e.u64(v.electiveItemBalance); e.u64(v.electiveByteBalance); e.u64(v.baseServiceBalance);
-    e.u16(v.coreCount); e.u32(v.preimageExpungePeriod); e.u32(v.epochLength);
-    e.u64(v.gasAccumulateReport); e.u64(v.gasIsAuthorized); e.u64(v.gasMaxRefine); e.u64(v.gasMaxBlock);
-    e.u16(v.recentHistoryLength); e.u16(v.maxWorkItems); e.u16(v.maxReportDeps); e.u16(v.maxTicketsPerExtrinsic);
+    e.u64(v.electiveItemBalance);
+    e.u64(v.electiveByteBalance);
+    e.u64(v.baseServiceBalance);
+    e.u16(v.coreCount);
+    e.u32(v.preimageExpungePeriod);
+    e.u32(v.epochLength);
+    e.u64(v.gasAccumulateReport);
+    e.u64(v.gasIsAuthorized);
+    e.u64(v.gasMaxRefine);
+    e.u64(v.gasMaxBlock);
+    e.u16(v.recentHistoryLength);
+    e.u16(v.maxWorkItems);
+    e.u16(v.maxReportDeps);
+    e.u16(v.maxTicketsPerExtrinsic);
     e.u32(v.maxLookupAnchorAge);
-    e.u16(v.ticketsPerValidator); e.u16(v.maxAuthorizersPerCore); e.u16(v.slotDuration);
-    e.u16(v.authorizersQueueSize); e.u16(v.rotationPeriod); e.u16(v.maxExtrinsicsPerWorkItem);
-    e.u16(v.reportTimeoutGracePeriod); e.u16(v.validatorsCount);
-    e.u32(v.maxAllocatedWorkPackageSize); e.u32(v.maxEncodedWorkPackageSize);
-    e.u32(v.maxAuthorizerCodeSize); e.u32(v.erasureCodedPieceSize); e.u32(v.maxImportSegments);
-    e.u32(v.ecPiecesPerSegment); e.u32(v.maxWorkReportSize); e.u32(v.transferMemoSize);
-    e.u32(v.maxExportSegments); e.u32(v.contestLength);
+    e.u16(v.ticketsPerValidator);
+    e.u16(v.maxAuthorizersPerCore);
+    e.u16(v.slotDuration);
+    e.u16(v.authorizersQueueSize);
+    e.u16(v.rotationPeriod);
+    e.u16(v.maxExtrinsicsPerWorkItem);
+    e.u16(v.reportTimeoutGracePeriod);
+    e.u16(v.validatorsCount);
+    e.u32(v.maxAllocatedWorkPackageSize);
+    e.u32(v.maxEncodedWorkPackageSize);
+    e.u32(v.maxAuthorizerCodeSize);
+    e.u32(v.erasureCodedPieceSize);
+    e.u32(v.maxImportSegments);
+    e.u32(v.ecPiecesPerSegment);
+    e.u32(v.maxWorkReportSize);
+    e.u32(v.transferMemoSize);
+    e.u32(v.maxExportSegments);
+    e.u32(v.contestLength);
   }
 }
 
-export const protocolConstantsCodec = ProtocolConstantsCodec.create();
+export const protocolConstantsCodec: ProtocolConstantsCodec = ProtocolConstantsCodec.create();
 
 // ─── AuthorizerInfo ───────────────────────────────────────────────────
 
@@ -212,9 +279,10 @@ export class AuthorizerInfo {
   ) {}
 }
 
-
 export class AuthorizerInfoCodec implements TryDecode<AuthorizerInfo>, TryEncode<AuthorizerInfo> {
-  static create(): AuthorizerInfoCodec { return new AuthorizerInfoCodec(); }
+  static create(): AuthorizerInfoCodec {
+    return new AuthorizerInfoCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<AuthorizerInfo, DecodeError> {
@@ -232,7 +300,7 @@ export class AuthorizerInfoCodec implements TryDecode<AuthorizerInfo>, TryEncode
   }
 }
 
-export const authorizerInfoCodec = AuthorizerInfoCodec.create();
+export const authorizerInfoCodec: AuthorizerInfoCodec = AuthorizerInfoCodec.create();
 
 // ─── RefinementContext ────────────────────────────────────────────────
 
@@ -273,9 +341,10 @@ export class RefinementContext {
   ) {}
 }
 
-
 export class RefinementContextCodec implements TryDecode<RefinementContext>, TryEncode<RefinementContext> {
-  static create(): RefinementContextCodec { return new RefinementContextCodec(); }
+  static create(): RefinementContextCodec {
+    return new RefinementContextCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<RefinementContext, DecodeError> {
@@ -302,7 +371,7 @@ export class RefinementContextCodec implements TryDecode<RefinementContext>, Try
   }
 }
 
-export const refinementContextCodec = RefinementContextCodec.create();
+export const refinementContextCodec: RefinementContextCodec = RefinementContextCodec.create();
 
 // ─── WorkItemInfo ─────────────────────────────────────────────────────
 
@@ -326,7 +395,16 @@ export class WorkItemInfo {
     extrinsicCount: u16,
     payloadLength: u32,
   ): WorkItemInfo {
-    return new WorkItemInfo(serviceId, codeHash, gasRefine, gasAccumulate, exportCount, importCount, extrinsicCount, payloadLength);
+    return new WorkItemInfo(
+      serviceId,
+      codeHash,
+      gasRefine,
+      gasAccumulate,
+      exportCount,
+      importCount,
+      extrinsicCount,
+      payloadLength,
+    );
   }
 
   private constructor(
@@ -349,9 +427,10 @@ export class WorkItemInfo {
   ) {}
 }
 
-
 export class WorkItemInfoCodec implements TryDecode<WorkItemInfo>, TryEncode<WorkItemInfo> {
-  static create(): WorkItemInfoCodec { return new WorkItemInfoCodec(); }
+  static create(): WorkItemInfoCodec {
+    return new WorkItemInfoCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<WorkItemInfo, DecodeError> {
@@ -372,7 +451,7 @@ export class WorkItemInfoCodec implements TryDecode<WorkItemInfo>, TryEncode<Wor
   }
 }
 
-export const workItemInfoCodec = WorkItemInfoCodec.create();
+export const workItemInfoCodec: WorkItemInfoCodec = WorkItemInfoCodec.create();
 
 // ─── ImportRef ────────────────────────────────────────────────────────
 
@@ -399,9 +478,10 @@ export class ImportRef {
   ) {}
 }
 
-
 export class ImportRefCodec implements TryDecode<ImportRef>, TryEncode<ImportRef> {
-  static create(): ImportRefCodec { return new ImportRefCodec(); }
+  static create(): ImportRefCodec {
+    return new ImportRefCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<ImportRef, DecodeError> {
@@ -420,7 +500,7 @@ export class ImportRefCodec implements TryDecode<ImportRef>, TryEncode<ImportRef
   }
 }
 
-export const importRefCodec = ImportRefCodec.create();
+export const importRefCodec: ImportRefCodec = ImportRefCodec.create();
 
 // ─── ExtrinsicRef ─────────────────────────────────────────────────────
 
@@ -444,9 +524,10 @@ export class ExtrinsicRef {
   ) {}
 }
 
-
 export class ExtrinsicRefCodec implements TryDecode<ExtrinsicRef>, TryEncode<ExtrinsicRef> {
-  static create(): ExtrinsicRefCodec { return new ExtrinsicRefCodec(); }
+  static create(): ExtrinsicRefCodec {
+    return new ExtrinsicRefCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<ExtrinsicRef, DecodeError> {
@@ -461,7 +542,7 @@ export class ExtrinsicRefCodec implements TryDecode<ExtrinsicRef>, TryEncode<Ext
   }
 }
 
-export const extrinsicRefCodec = ExtrinsicRefCodec.create();
+export const extrinsicRefCodec: ExtrinsicRefCodec = ExtrinsicRefCodec.create();
 
 // ─── WorkItem ─────────────────────────────────────────────────────────
 
@@ -510,9 +591,10 @@ export class WorkItem {
   ) {}
 }
 
-
 export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
-  static create(): WorkItemCodec { return new WorkItemCodec(); }
+  static create(): WorkItemCodec {
+    return new WorkItemCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<WorkItem, DecodeError> {
@@ -528,7 +610,16 @@ export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
     const extrinsics = d.sequenceVarLen<ExtrinsicRef>(extrinsicRefCodec);
     if (extrinsics.isError) return Result.err<WorkItem, DecodeError>(extrinsics.error);
     return Result.ok<WorkItem, DecodeError>(
-      WorkItem.create(serviceId, codeHash, payload, gasRefine, gasAccumulate, exportCount, imports.okay!, extrinsics.okay!),
+      WorkItem.create(
+        serviceId,
+        codeHash,
+        payload,
+        gasRefine,
+        gasAccumulate,
+        exportCount,
+        imports.okay!,
+        extrinsics.okay!,
+      ),
     );
   }
 
@@ -544,7 +635,7 @@ export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
   }
 }
 
-export const workItemCodec = WorkItemCodec.create();
+export const workItemCodec: WorkItemCodec = WorkItemCodec.create();
 
 // ─── WorkPackage ──────────────────────────────────────────────────────
 
@@ -586,9 +677,10 @@ export class WorkPackage {
   ) {}
 }
 
-
 export class WorkPackageCodec implements TryDecode<WorkPackage>, TryEncode<WorkPackage> {
-  static create(): WorkPackageCodec { return new WorkPackageCodec(); }
+  static create(): WorkPackageCodec {
+    return new WorkPackageCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<WorkPackage, DecodeError> {
@@ -616,4 +708,4 @@ export class WorkPackageCodec implements TryDecode<WorkPackage>, TryEncode<WorkP
   }
 }
 
-export const workPackageCodec = WorkPackageCodec.create();
+export const workPackageCodec: WorkPackageCodec = WorkPackageCodec.create();

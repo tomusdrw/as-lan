@@ -5,12 +5,15 @@ import { Assert, Test, test } from "../../test/utils";
 import {
   AccumulateItem,
   AccumulateItemKind,
-  Operand, operandCodec,
-  PendingTransfer, pendingTransferCodec,
   accumulateItemCodec,
+  Operand,
+  operandCodec,
+  PendingTransfer,
+  pendingTransferCodec,
   TRANSFER_MEMO_SIZE,
-  WorkExecResult, workExecResultCodec,
+  WorkExecResult,
   WorkExecResultKind,
+  workExecResultCodec,
 } from "./item";
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
@@ -261,6 +264,39 @@ export const TESTS: Test[] = [
     assert.isEqual(decoded.amount, 300, "amount");
     assert.isEqual(decoded.gas, 400, "gas");
     assert.isEqual(d.isFinished(), true, "finished");
+    return assert;
+  }),
+
+  // ─── Negative decode tests ───
+
+  test("WorkExecResult decode rejects invalid kind", () => {
+    const e = Encoder.create();
+    e.varU64(99); // invalid kind > CodeOversize(6)
+    const d = Decoder.fromBlob(e.finish());
+    const r = workExecResultCodec.decode(d);
+
+    const assert = Assert.create();
+    assert.isEqual(r.isError, true, "should fail");
+    return assert;
+  }),
+
+  test("AccumulateItem decode rejects unknown tag", () => {
+    const e = Encoder.create();
+    e.varU64(5); // invalid tag (only 0=Operand, 1=Transfer)
+    const d = Decoder.fromBlob(e.finish());
+    const r = accumulateItemCodec.decode(d);
+
+    const assert = Assert.create();
+    assert.isEqual(r.isError, true, "should fail");
+    return assert;
+  }),
+
+  test("AccumulateItem decode rejects empty input", () => {
+    const d = Decoder.fromBlob(new Uint8Array(0));
+    const r = accumulateItemCodec.decode(d);
+
+    const assert = Assert.create();
+    assert.isEqual(r.isError, true, "should fail on empty");
     return assert;
   }),
 ];

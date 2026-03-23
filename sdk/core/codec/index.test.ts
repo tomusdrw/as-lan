@@ -12,7 +12,9 @@ class Point {
 }
 
 class PointCodec implements TryDecode<Point>, TryEncode<Point> {
-  static create(): PointCodec { return new PointCodec(); }
+  static create(): PointCodec {
+    return new PointCodec();
+  }
   private constructor() {}
 
   encode(value: Point, e: Encoder): void {

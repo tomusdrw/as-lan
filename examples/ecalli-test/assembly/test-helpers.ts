@@ -1,14 +1,18 @@
 import {
   AccumulateArgs,
   AccumulateItem,
+  accumulateArgsCodec,
   accumulateItemCodec,
   Bytes32,
   BytesBlob,
+  Decoder,
   Encoder,
   Operand,
   PendingTransfer,
   RefineArgs,
   Response,
+  refineArgsCodec,
+  responseCodec,
   WorkExecResult,
   WorkExecResultKind,
 } from "@fluffylabs/as-lan";
@@ -26,12 +30,12 @@ export { strBlob, unpackResult } from "@fluffylabs/as-lan/test";
 export function callRefine(payload: Uint8Array): Response {
   const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
   const enc = Encoder.create();
-  args.encode(enc);
+  refineArgsCodec.encode(args, enc);
   const encoded = enc.finish();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
   const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
-  return Response.decode(raw);
+  return responseCodec.decode(Decoder.fromBlob(raw)).okay!;
 }
 
 // --- Accumulate helpers ---
@@ -42,7 +46,7 @@ const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
 export function callAccumulate(argsLength: u32): Uint8Array {
   const args = AccumulateArgs.create(7, 42, argsLength);
   const enc = Encoder.create();
-  args.encode(enc);
+  accumulateArgsCodec.encode(args, enc);
   const encoded = enc.finish();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
@@ -76,5 +80,5 @@ export function callAccumulateWithOperand(ecalliPayload: Uint8Array): Response {
   const item = enc.finish();
   TestAccumulate.setItem(0, item);
   const raw = callAccumulate(1);
-  return Response.decode(raw);
+  return responseCodec.decode(Decoder.fromBlob(raw)).okay!;
 }

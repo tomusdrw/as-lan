@@ -1,10 +1,10 @@
 import {
   AccumulateArgs,
   Bytes32,
-  CodeHash,
-  encodeOptionalCodeHash,
+  Encoder,
   LogMsg,
-  Optional,
+  optionalCodeHashCodec,
+  ptrAndLen,
   RefineArgs,
 } from "@fluffylabs/as-lan";
 
@@ -32,8 +32,10 @@ export function accumulate(ptr: u32, len: u32): u64 {
   for (let i = 0; i < 8; i++) {
     raw[i] = u8((fibResult >> (i * 8)) & 0xff);
   }
-  const hash = Optional.some<CodeHash>(Bytes32.wrapUnchecked(raw));
-  return encodeOptionalCodeHash(hash).toPtrAndLen();
+  const hash = Bytes32.wrapUnchecked(raw);
+  const enc = Encoder.create();
+  optionalCodeHashCodec.encode(hash, enc);
+  return ptrAndLen(enc.finish());
 }
 
 export function refine(ptr: u32, len: u32): u64 {

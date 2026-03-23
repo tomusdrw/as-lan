@@ -58,7 +58,9 @@ export class WorkExecResult {
 }
 
 export class WorkExecResultCodec implements TryDecode<WorkExecResult>, TryEncode<WorkExecResult> {
-  static create(): WorkExecResultCodec { return new WorkExecResultCodec(); }
+  static create(): WorkExecResultCodec {
+    return new WorkExecResultCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<WorkExecResult, DecodeError> {
@@ -83,7 +85,7 @@ export class WorkExecResultCodec implements TryDecode<WorkExecResult>, TryEncode
   }
 }
 
-export const workExecResultCodec = WorkExecResultCodec.create();
+export const workExecResultCodec: WorkExecResultCodec = WorkExecResultCodec.create();
 
 // ─── Operand ──────────────────────────────────────────────────────────
 
@@ -96,8 +98,13 @@ export const workExecResultCodec = WorkExecResultCodec.create();
  */
 export class Operand {
   static create(
-    hash: Bytes32, exportsRoot: Bytes32, authorizerHash: Bytes32, payloadHash: Bytes32,
-    gas: u64, result: WorkExecResult, authorizationOutput: BytesBlob,
+    hash: Bytes32,
+    exportsRoot: Bytes32,
+    authorizerHash: Bytes32,
+    payloadHash: Bytes32,
+    gas: u64,
+    result: WorkExecResult,
+    authorizationOutput: BytesBlob,
   ): Operand {
     return new Operand(hash, exportsRoot, authorizerHash, payloadHash, gas, result, authorizationOutput);
   }
@@ -121,7 +128,9 @@ export class Operand {
 }
 
 export class OperandCodec implements TryDecode<Operand>, TryEncode<Operand> {
-  static create(): OperandCodec { return new OperandCodec(); }
+  static create(): OperandCodec {
+    return new OperandCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<Operand, DecodeError> {
@@ -151,7 +160,7 @@ export class OperandCodec implements TryDecode<Operand>, TryEncode<Operand> {
   }
 }
 
-export const operandCodec = OperandCodec.create();
+export const operandCodec: OperandCodec = OperandCodec.create();
 
 // ─── PendingTransfer ──────────────────────────────────────────────────
 
@@ -185,7 +194,9 @@ export class PendingTransfer {
 }
 
 export class PendingTransferCodec implements TryDecode<PendingTransfer>, TryEncode<PendingTransfer> {
-  static create(): PendingTransferCodec { return new PendingTransferCodec(); }
+  static create(): PendingTransferCodec {
+    return new PendingTransferCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<PendingTransfer, DecodeError> {
@@ -216,7 +227,7 @@ export class PendingTransferCodec implements TryDecode<PendingTransfer>, TryEnco
   }
 }
 
-export const pendingTransferCodec = PendingTransferCodec.create();
+export const pendingTransferCodec: PendingTransferCodec = PendingTransferCodec.create();
 
 // ─── AccumulateItem ───────────────────────────────────────────────────
 
@@ -261,7 +272,9 @@ export class AccumulateItem {
 }
 
 export class AccumulateItemCodec implements TryDecode<AccumulateItem>, TryEncode<AccumulateItem> {
-  static create(): AccumulateItemCodec { return new AccumulateItemCodec(); }
+  static create(): AccumulateItemCodec {
+    return new AccumulateItemCodec();
+  }
   private constructor() {}
 
   decode(d: Decoder): Result<AccumulateItem, DecodeError> {
@@ -291,4 +304,4 @@ export class AccumulateItemCodec implements TryDecode<AccumulateItem>, TryEncode
   }
 }
 
-export const accumulateItemCodec = AccumulateItemCodec.create();
+export const accumulateItemCodec: AccumulateItemCodec = AccumulateItemCodec.create();

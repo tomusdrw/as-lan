@@ -9,7 +9,7 @@ import { Decoder } from "../../core/codec/decode";
 import { Result } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { FetchError, Fetcher } from "../fetcher";
-import {EntropyHash} from "../types";
+import { EntropyHash } from "../types";
 import { AccumulateItem, accumulateItemCodec } from "./item";
 
 export class AccumulateFetcher extends Fetcher {
@@ -49,11 +49,6 @@ export class AccumulateFetcher extends Fetcher {
 
   /** Fetch a single accumulate item by index, decoded as a typed union (kind 15). */
   oneTransferOrOperand(index: u32): Result<AccumulateItem, FetchError> {
-    const raw = this.fetchRaw(FetchKind.OneTransferOrOperand, index);
-    if (raw.isError) return Result.err<AccumulateItem, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const r = accumulateItemCodec.decode(d);
-    if (r.isError) return Result.err<AccumulateItem, FetchError>(FetchError.DecodeError);
-    return Result.ok<AccumulateItem, FetchError>(r.okay!);
+    return this.fetchAndDecode<AccumulateItem>(accumulateItemCodec, FetchKind.OneTransferOrOperand, index);
   }
 }

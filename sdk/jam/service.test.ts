@@ -1,7 +1,8 @@
 import { Bytes32, BytesBlob } from "../core/bytes";
+import { Decoder } from "../core/codec/decode";
 import { Encoder } from "../core/codec/encode";
 import { Assert, Test, test, unpackResult } from "../test/utils";
-import { AccumulateArgs, RefineArgs, Response } from "./service";
+import { AccumulateArgs, accumulateArgsCodec, RefineArgs, Response, refineArgsCodec, responseCodec } from "./service";
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
 function bytes32Fill(v: u8): Bytes32 {
@@ -19,7 +20,7 @@ export const TESTS: Test[] = [
     const original = RefineArgs.create(5, 10, 42, payload, hash);
 
     const e = Encoder.create();
-    original.encode(e);
+    refineArgsCodec.encode(original, e);
     const blob = e.finish();
     const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
@@ -39,7 +40,7 @@ export const TESTS: Test[] = [
     const original = RefineArgs.create(0, 0, 0, BytesBlob.empty(), hash);
 
     const e = Encoder.create();
-    original.encode(e);
+    refineArgsCodec.encode(original, e);
     const blob = e.finish();
     const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
@@ -60,7 +61,7 @@ export const TESTS: Test[] = [
     const original = RefineArgs.create(0xffff, 0xffffffff, 0xffffffff, payload, hash);
 
     const e = Encoder.create();
-    original.encode(e);
+    refineArgsCodec.encode(original, e);
     const blob = e.finish();
     const result = RefineArgs.parse(u32(blob.dataStart), blob.length);
 
@@ -81,7 +82,7 @@ export const TESTS: Test[] = [
     const original = AccumulateArgs.create(12345, 678, 3);
 
     const e = Encoder.create();
-    original.encode(e);
+    accumulateArgsCodec.encode(original, e);
     const blob = e.finish();
     const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
@@ -98,7 +99,7 @@ export const TESTS: Test[] = [
     const original = AccumulateArgs.create(0, 0, 0);
 
     const e = Encoder.create();
-    original.encode(e);
+    accumulateArgsCodec.encode(original, e);
     const blob = e.finish();
     const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
@@ -115,7 +116,7 @@ export const TESTS: Test[] = [
     const original = AccumulateArgs.create(0xffffffff, 0xffffffff, 0xffffffff);
 
     const e = Encoder.create();
-    original.encode(e);
+    accumulateArgsCodec.encode(original, e);
     const blob = e.finish();
     const result = AccumulateArgs.parse(u32(blob.dataStart), blob.length);
 
@@ -135,8 +136,8 @@ export const TESTS: Test[] = [
     const original = Response.create(42, data);
 
     const e = Encoder.create();
-    original.encode(e);
-    const decoded = Response.decode(e.finish());
+    responseCodec.encode(original, e);
+    const decoded = responseCodec.decode(Decoder.fromBlob(e.finish())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, 42, "result");
@@ -149,8 +150,8 @@ export const TESTS: Test[] = [
     const original = Response.create(-1, data);
 
     const e = Encoder.create();
-    original.encode(e);
-    const decoded = Response.decode(e.finish());
+    responseCodec.encode(original, e);
+    const decoded = responseCodec.decode(Decoder.fromBlob(e.finish())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, -1, "result negative");
@@ -162,8 +163,8 @@ export const TESTS: Test[] = [
     const original = Response.create(0, BytesBlob.empty());
 
     const e = Encoder.create();
-    original.encode(e);
-    const decoded = Response.decode(e.finish());
+    responseCodec.encode(original, e);
+    const decoded = responseCodec.decode(Decoder.fromBlob(e.finish())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, 0, "result zero");
@@ -175,8 +176,8 @@ export const TESTS: Test[] = [
     const original = Response.create(-4, BytesBlob.parseBlob("0xff").okay!);
 
     const e = Encoder.create();
-    original.encode(e);
-    const decoded = Response.decode(e.finish());
+    responseCodec.encode(original, e);
+    const decoded = responseCodec.decode(Decoder.fromBlob(e.finish())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, -4, "result WHO sentinel");
@@ -187,7 +188,7 @@ export const TESTS: Test[] = [
   test("Response.with null data roundtrip", () => {
     const packed = Response.with(7, null);
     const raw = unpackResult(packed);
-    const decoded = Response.decode(raw);
+    const decoded = responseCodec.decode(Decoder.fromBlob(raw)).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, 7, "result");

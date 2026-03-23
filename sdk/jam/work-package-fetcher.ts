@@ -11,31 +11,25 @@ import { Result } from "../core/result";
 import { FetchKind } from "../ecalli/general/fetch";
 import { FetchError, Fetcher } from "./fetcher";
 import {
-  AuthorizerInfo, authorizerInfoCodec,
-  RefinementContext, refinementContextCodec,
-  WorkItemInfo, workItemInfoCodec,
-  WorkPackage, workPackageCodec,
+  AuthorizerInfo,
+  authorizerInfoCodec,
+  RefinementContext,
+  refinementContextCodec,
+  WorkItemInfo,
+  WorkPackage,
+  workItemInfoCodec,
+  workPackageCodec,
 } from "./work-package";
 
 export class WorkPackageFetcher extends Fetcher {
   /** Full work package (kind 7). GP type P ≡ { j, h, u, p, x, w }. */
   workPackage(): Result<WorkPackage, FetchError> {
-    const raw = this.fetchRaw(FetchKind.WorkPackage);
-    if (raw.isError) return Result.err<WorkPackage, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const r = workPackageCodec.decode(d);
-    if (r.isError) return Result.err<WorkPackage, FetchError>(FetchError.DecodeError);
-    return Result.ok<WorkPackage, FetchError>(r.okay!);
+    return this.fetchAndDecode<WorkPackage>(workPackageCodec, FetchKind.WorkPackage);
   }
 
   /** Authorizer code hash and config (kind 8). */
   authorizer(): Result<AuthorizerInfo, FetchError> {
-    const raw = this.fetchRaw(FetchKind.Authorizer);
-    if (raw.isError) return Result.err<AuthorizerInfo, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const r = authorizerInfoCodec.decode(d);
-    if (r.isError) return Result.err<AuthorizerInfo, FetchError>(FetchError.DecodeError);
-    return Result.ok<AuthorizerInfo, FetchError>(r.okay!);
+    return this.fetchAndDecode<AuthorizerInfo>(authorizerInfoCodec, FetchKind.Authorizer);
   }
 
   /** Authorization token blob (kind 9). */
@@ -45,12 +39,7 @@ export class WorkPackageFetcher extends Fetcher {
 
   /** Refinement context (kind 10). */
   refineContext(): Result<RefinementContext, FetchError> {
-    const raw = this.fetchRaw(FetchKind.RefineContext);
-    if (raw.isError) return Result.err<RefinementContext, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const r = refinementContextCodec.decode(d);
-    if (r.isError) return Result.err<RefinementContext, FetchError>(FetchError.DecodeError);
-    return Result.ok<RefinementContext, FetchError>(r.okay!);
+    return this.fetchAndDecode<RefinementContext>(refinementContextCodec, FetchKind.RefineContext);
   }
 
   /** All work-item summaries as a decoded array (kind 11). */
@@ -65,12 +54,7 @@ export class WorkPackageFetcher extends Fetcher {
 
   /** Single work-item summary (kind 12). */
   oneWorkItem(workItem: u32): Result<WorkItemInfo, FetchError> {
-    const raw = this.fetchRaw(FetchKind.OneWorkItem, workItem);
-    if (raw.isError) return Result.err<WorkItemInfo, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const r = workItemInfoCodec.decode(d);
-    if (r.isError) return Result.err<WorkItemInfo, FetchError>(FetchError.DecodeError);
-    return Result.ok<WorkItemInfo, FetchError>(r.okay!);
+    return this.fetchAndDecode<WorkItemInfo>(workItemInfoCodec, FetchKind.OneWorkItem, workItem);
   }
 
   /** Work-item payload blob (kind 13). */

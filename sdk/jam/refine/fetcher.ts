@@ -10,7 +10,7 @@ import { Decoder } from "../../core/codec/decode";
 import { Result } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { FetchError } from "../fetcher";
-import {EntropyHash} from "../types";
+import { EntropyHash } from "../types";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
 export class RefineFetcher extends WorkPackageFetcher {

@@ -35,7 +35,7 @@
  */
 
 import { BytesBlob } from "../core/bytes";
-import { Decoder } from "../core/codec/decode";
+import { Decoder, TryDecode } from "../core/codec/decode";
 import { Result } from "../core/result";
 import { FetchKind, fetch } from "../ecalli/general/fetch";
 import { ProtocolConstants, protocolConstantsCodec } from "./work-package";
@@ -99,13 +99,23 @@ export class Fetcher {
     return Result.ok<BytesBlob, FetchError>(BytesBlob.wrap(r.okay!));
   }
 
+  /** Fetch raw bytes and decode using the given codec. */
+  protected fetchAndDecode<T>(
+    codec: TryDecode<T>,
+    kind: FetchKind,
+    param1: u32 = 0,
+    param2: u32 = 0,
+  ): Result<T, FetchError> {
+    const raw = this.fetchRaw(kind, param1, param2);
+    if (raw.isError) return Result.err<T, FetchError>(raw.error);
+    const d = Decoder.fromBlob(raw.okay!);
+    const r = codec.decode(d);
+    if (r.isError) return Result.err<T, FetchError>(FetchError.DecodeError);
+    return Result.ok<T, FetchError>(r.okay!);
+  }
+
   /** Protocol constants (kind 0, always available in all contexts). */
   constants(): Result<ProtocolConstants, FetchError> {
-    const raw = this.fetchRaw(FetchKind.Constants);
-    if (raw.isError) return Result.err<ProtocolConstants, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const r = protocolConstantsCodec.decode(d);
-    if (r.isError) return Result.err<ProtocolConstants, FetchError>(FetchError.DecodeError);
-    return Result.ok<ProtocolConstants, FetchError>(r.okay!);
+    return this.fetchAndDecode<ProtocolConstants>(protocolConstantsCodec, FetchKind.Constants);
   }
 }

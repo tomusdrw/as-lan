@@ -46,10 +46,6 @@ export class Decoder {
     return this._isError;
   }
 
-  private setError(): void {
-    this._isError = true;
-  }
-
   /**
    * Return a copy of this decoder.
    *
