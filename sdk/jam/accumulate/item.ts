@@ -8,8 +8,9 @@
  */
 
 import { Bytes32, BytesBlob } from "../../core/bytes";
-import { Decoder } from "../../core/codec/decode";
-import { Encoder } from "../../core/codec/encode";
+import { DecodeError, Decoder, TryDecode } from "../../core/codec/decode";
+import { Encoder, TryEncode } from "../../core/codec/encode";
+import { Result } from "../../core/result";
 
 /** Discriminator tag for accumulate items. */
 export enum AccumulateItemKind {
@@ -37,6 +38,8 @@ export enum WorkExecResultKind {
   CodeOversize = 6,
 }
 
+// ─── WorkExecResult ───────────────────────────────────────────────────
+
 /** Result of work-item execution during refine. */
 export class WorkExecResult {
   static create(kind: WorkExecResultKind, okBlob: BytesBlob): WorkExecResult {
@@ -49,31 +52,40 @@ export class WorkExecResult {
     public okBlob: BytesBlob,
   ) {}
 
-  /** Decode from a Decoder (varint tag + optional blob). */
-  static decode(d: Decoder): WorkExecResult {
-    const kind = d.varU32();
-    if (kind === WorkExecResultKind.Ok) {
-      const blob = d.bytesVarLen();
-      return WorkExecResult.create(kind, blob);
-    }
-    if (kind > u32(WorkExecResultKind.CodeOversize)) {
-      d.setError();
-    }
-    return WorkExecResult.create(kind, BytesBlob.empty());
-  }
-
-  /** Encode into an Encoder (varint tag + optional blob). */
-  encode(e: Encoder): void {
-    e.varU64(u64(this.kind));
-    if (this.kind === WorkExecResultKind.Ok) {
-      e.bytesVarLen(this.okBlob);
-    }
-  }
-
   get isOk(): bool {
     return this.kind === WorkExecResultKind.Ok;
   }
 }
+
+export class WorkExecResultCodec implements TryDecode<WorkExecResult>, TryEncode<WorkExecResult> {
+  static create(): WorkExecResultCodec { return new WorkExecResultCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<WorkExecResult, DecodeError> {
+    const kind = d.varU32();
+    if (d.isError) return Result.err<WorkExecResult, DecodeError>(DecodeError.MissingBytes);
+    if (kind > u32(WorkExecResultKind.CodeOversize)) {
+      return Result.err<WorkExecResult, DecodeError>(DecodeError.InvalidData);
+    }
+    if (kind === WorkExecResultKind.Ok) {
+      const blob = d.bytesVarLen();
+      if (d.isError) return Result.err<WorkExecResult, DecodeError>(DecodeError.MissingBytes);
+      return Result.ok<WorkExecResult, DecodeError>(WorkExecResult.create(kind, blob));
+    }
+    return Result.ok<WorkExecResult, DecodeError>(WorkExecResult.create(kind, BytesBlob.empty()));
+  }
+
+  encode(v: WorkExecResult, e: Encoder): void {
+    e.varU64(u64(v.kind));
+    if (v.kind === WorkExecResultKind.Ok) {
+      e.bytesVarLen(v.okBlob);
+    }
+  }
+}
+
+export const workExecResultCodec = WorkExecResultCodec.create();
+
+// ─── Operand ──────────────────────────────────────────────────────────
 
 /**
  * Operand: a work result from the refine phase.
@@ -84,13 +96,8 @@ export class WorkExecResult {
  */
 export class Operand {
   static create(
-    hash: Bytes32,
-    exportsRoot: Bytes32,
-    authorizerHash: Bytes32,
-    payloadHash: Bytes32,
-    gas: u64,
-    result: WorkExecResult,
-    authorizationOutput: BytesBlob,
+    hash: Bytes32, exportsRoot: Bytes32, authorizerHash: Bytes32, payloadHash: Bytes32,
+    gas: u64, result: WorkExecResult, authorizationOutput: BytesBlob,
   ): Operand {
     return new Operand(hash, exportsRoot, authorizerHash, payloadHash, gas, result, authorizationOutput);
   }
@@ -111,35 +118,42 @@ export class Operand {
     /** Authorization output data. */
     public authorizationOutput: BytesBlob,
   ) {}
+}
 
-  static decode(d: Decoder): Operand {
+export class OperandCodec implements TryDecode<Operand>, TryEncode<Operand> {
+  static create(): OperandCodec { return new OperandCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<Operand, DecodeError> {
     const hash = d.bytes32();
     const exportsRoot = d.bytes32();
     const authorizerHash = d.bytes32();
     const payloadHash = d.bytes32();
     const gas = d.varU64();
-    const result = WorkExecResult.decode(d);
+    if (d.isError) return Result.err<Operand, DecodeError>(DecodeError.MissingBytes);
+    const r = d.object<WorkExecResult>(workExecResultCodec);
+    if (r.isError) return Result.err<Operand, DecodeError>(r.error);
     const authorizationOutput = d.bytesVarLen();
-    return Operand.create(hash, exportsRoot, authorizerHash, payloadHash, gas, result, authorizationOutput);
+    if (d.isError) return Result.err<Operand, DecodeError>(DecodeError.MissingBytes);
+    return Result.ok<Operand, DecodeError>(
+      Operand.create(hash, exportsRoot, authorizerHash, payloadHash, gas, r.okay!, authorizationOutput),
+    );
   }
 
-  /** Encode operand fields into an Encoder. */
-  encode(e: Encoder): void {
-    e.bytesFixLen(this.hash.raw);
-    e.bytesFixLen(this.exportsRoot.raw);
-    e.bytesFixLen(this.authorizerHash.raw);
-    e.bytesFixLen(this.payloadHash.raw);
-    e.varU64(this.gas);
-    this.result.encode(e);
-    e.bytesVarLen(this.authorizationOutput);
-  }
-
-  /** Encode as a tagged accumulate item (tag + operand fields). */
-  encodeTagged(e: Encoder): void {
-    e.varU64(AccumulateItemKind.Operand);
-    this.encode(e);
+  encode(v: Operand, e: Encoder): void {
+    e.bytesFixLen(v.hash.raw);
+    e.bytesFixLen(v.exportsRoot.raw);
+    e.bytesFixLen(v.authorizerHash.raw);
+    e.bytesFixLen(v.payloadHash.raw);
+    e.varU64(v.gas);
+    e.object<WorkExecResult>(workExecResultCodec, v.result);
+    e.bytesVarLen(v.authorizationOutput);
   }
 }
+
+export const operandCodec = OperandCodec.create();
+
+// ─── PendingTransfer ──────────────────────────────────────────────────
 
 /** Size of the transfer memo field in bytes (W_T in the Gray Paper). */
 export const TRANSFER_MEMO_SIZE: u32 = 128;
@@ -168,23 +182,28 @@ export class PendingTransfer {
     /** Gas allowance for the transfer. */
     public gas: u64,
   ) {}
+}
 
-  static decode(d: Decoder): PendingTransfer {
+export class PendingTransferCodec implements TryDecode<PendingTransfer>, TryEncode<PendingTransfer> {
+  static create(): PendingTransferCodec { return new PendingTransferCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<PendingTransfer, DecodeError> {
     const source = d.u32();
     const destination = d.u32();
     const amount = d.u64();
     const memo = d.bytesFixLen(TRANSFER_MEMO_SIZE);
     const gas = d.u64();
-    return PendingTransfer.create(source, destination, amount, memo, gas);
+    if (d.isError) return Result.err<PendingTransfer, DecodeError>(DecodeError.MissingBytes);
+    return Result.ok<PendingTransfer, DecodeError>(PendingTransfer.create(source, destination, amount, memo, gas));
   }
 
-  /** Encode transfer fields into an Encoder. */
-  encode(e: Encoder): void {
-    e.u32(this.source);
-    e.u32(this.destination);
-    e.u64(this.amount);
+  encode(v: PendingTransfer, e: Encoder): void {
+    e.u32(v.source);
+    e.u32(v.destination);
+    e.u64(v.amount);
     // Memo must be at most TRANSFER_MEMO_SIZE bytes; pad if shorter.
-    const raw = this.memo.raw;
+    const raw = v.memo.raw;
     assert(<u32>raw.length <= TRANSFER_MEMO_SIZE, `memo too large: ${raw.length} > ${TRANSFER_MEMO_SIZE}`);
     if (<u32>raw.length === TRANSFER_MEMO_SIZE) {
       e.bytesFixLen(raw);
@@ -193,15 +212,13 @@ export class PendingTransfer {
       padded.set(raw);
       e.bytesFixLen(padded);
     }
-    e.u64(this.gas);
-  }
-
-  /** Encode as a tagged accumulate item (tag + transfer fields). */
-  encodeTagged(e: Encoder): void {
-    e.varU64(AccumulateItemKind.Transfer);
-    this.encode(e);
+    e.u64(v.gas);
   }
 }
+
+export const pendingTransferCodec = PendingTransferCodec.create();
+
+// ─── AccumulateItem ───────────────────────────────────────────────────
 
 /**
  * Discriminated union of accumulate items (operand or transfer).
@@ -224,32 +241,6 @@ export class AccumulateItem {
     return new AccumulateItem(AccumulateItemKind.Transfer, null, tx);
   }
 
-  /** Decode a tagged accumulate item (varint tag + body). */
-  static decode(d: Decoder): AccumulateItem {
-    const tag = d.varU32();
-    if (d.isError) {
-      return new AccumulateItem(AccumulateItemKind.Operand, null, null);
-    }
-    if (tag === AccumulateItemKind.Operand) {
-      return AccumulateItem.fromOperand(Operand.decode(d));
-    }
-    if (tag === AccumulateItemKind.Transfer) {
-      return AccumulateItem.fromTransfer(PendingTransfer.decode(d));
-    }
-    // Unknown tag — signal via decoder error.
-    d.setError();
-    return new AccumulateItem(tag, null, null);
-  }
-
-  /** Encode as a tagged accumulate item. */
-  encode(e: Encoder): void {
-    if (this.isOperand) {
-      this._operand!.encodeTagged(e);
-    } else {
-      this._transfer!.encodeTagged(e);
-    }
-  }
-
   get isOperand(): bool {
     return this.kind === AccumulateItemKind.Operand;
   }
@@ -268,3 +259,36 @@ export class AccumulateItem {
     return this._transfer!;
   }
 }
+
+export class AccumulateItemCodec implements TryDecode<AccumulateItem>, TryEncode<AccumulateItem> {
+  static create(): AccumulateItemCodec { return new AccumulateItemCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<AccumulateItem, DecodeError> {
+    const tag = d.varU32();
+    if (d.isError) return Result.err<AccumulateItem, DecodeError>(DecodeError.MissingBytes);
+    if (tag === AccumulateItemKind.Operand) {
+      const r = d.object<Operand>(operandCodec);
+      if (r.isError) return Result.err<AccumulateItem, DecodeError>(r.error);
+      return Result.ok<AccumulateItem, DecodeError>(AccumulateItem.fromOperand(r.okay!));
+    }
+    if (tag === AccumulateItemKind.Transfer) {
+      const r = d.object<PendingTransfer>(pendingTransferCodec);
+      if (r.isError) return Result.err<AccumulateItem, DecodeError>(r.error);
+      return Result.ok<AccumulateItem, DecodeError>(AccumulateItem.fromTransfer(r.okay!));
+    }
+    return Result.err<AccumulateItem, DecodeError>(DecodeError.InvalidData);
+  }
+
+  encode(v: AccumulateItem, e: Encoder): void {
+    if (v.isOperand) {
+      e.varU64(AccumulateItemKind.Operand);
+      e.object<Operand>(operandCodec, v.operand);
+    } else {
+      e.varU64(AccumulateItemKind.Transfer);
+      e.object<PendingTransfer>(pendingTransferCodec, v.transfer);
+    }
+  }
+}
+
+export const accumulateItemCodec = AccumulateItemCodec.create();

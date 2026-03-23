@@ -3,11 +3,13 @@ import { Decoder } from "../../core/codec/decode";
 import { Encoder } from "../../core/codec/encode";
 import { Assert, Test, test } from "../../test/utils";
 import {
+  AccumulateItem,
   AccumulateItemKind,
-  Operand,
-  PendingTransfer,
+  Operand, operandCodec,
+  PendingTransfer, pendingTransferCodec,
+  accumulateItemCodec,
   TRANSFER_MEMO_SIZE,
-  WorkExecResult,
+  WorkExecResult, workExecResultCodec,
   WorkExecResultKind,
 } from "./item";
 
@@ -21,9 +23,9 @@ function bytes32Fill(v: u8): Bytes32 {
 /** Helper: encode to bytes, then decode back. */
 function roundtripWorkExecResult(original: WorkExecResult): WorkExecResult {
   const e = Encoder.create();
-  original.encode(e);
+  workExecResultCodec.encode(original, e);
   const d = Decoder.fromBlob(e.finish());
-  return WorkExecResult.decode(d);
+  return workExecResultCodec.decode(d).okay!;
 }
 
 export const TESTS: Test[] = [
@@ -34,11 +36,13 @@ export const TESTS: Test[] = [
     const original = WorkExecResult.create(WorkExecResultKind.Ok, blob);
 
     const e = Encoder.create();
-    original.encode(e);
+    workExecResultCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = WorkExecResult.decode(d);
+    const r = workExecResultCodec.decode(d);
 
     const assert = Assert.create();
+    assert.isEqual(r.isOkay, true, "decode succeeded");
+    const decoded = r.okay!;
     assert.isEqual(decoded.kind, WorkExecResultKind.Ok, "kind");
     assert.isEqual(decoded.isOk, true, "isOk");
     assert.isEqualBytes(decoded.okBlob, blob, "okBlob");
@@ -101,11 +105,13 @@ export const TESTS: Test[] = [
     );
 
     const e = Encoder.create();
-    original.encode(e);
+    operandCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = Operand.decode(d);
+    const r = operandCodec.decode(d);
 
     const assert = Assert.create();
+    assert.isEqual(r.isOkay, true, "decode succeeded");
+    const decoded = r.okay!;
     assert.isEqualBytes(BytesBlob.wrap(decoded.hash.raw), BytesBlob.wrap(bytes32Fill(0x01).raw), "hash");
     assert.isEqualBytes(BytesBlob.wrap(decoded.exportsRoot.raw), BytesBlob.wrap(bytes32Fill(0x02).raw), "exportsRoot");
     assert.isEqualBytes(
@@ -135,15 +141,13 @@ export const TESTS: Test[] = [
     );
 
     const e = Encoder.create();
-    original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
-    const decoded = Operand.decode(d);
+    operandCodec.encode(original, e);
+    const decoded = operandCodec.decode(Decoder.fromBlob(e.finish())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.gas, 42, "gas");
     assert.isEqual(decoded.result.kind, WorkExecResultKind.Panic, "result kind");
     assert.isEqualBytes(decoded.authorizationOutput, BytesBlob.empty(), "empty authOut");
-    assert.isEqual(d.isFinished(), true, "finished");
     return assert;
   }),
 
@@ -159,14 +163,14 @@ export const TESTS: Test[] = [
     );
 
     const e = Encoder.create();
-    original.encodeTagged(e);
+    accumulateItemCodec.encode(AccumulateItem.fromOperand(original), e);
     const d = Decoder.fromBlob(e.finish());
 
     const assert = Assert.create();
     const tag = u32(d.varU64());
     assert.isEqual(tag, AccumulateItemKind.Operand, "tag");
 
-    const decoded = Operand.decode(d);
+    const decoded = operandCodec.decode(d).okay!;
     assert.isEqualBytes(BytesBlob.wrap(decoded.hash.raw), BytesBlob.wrap(bytes32Fill(0x11).raw), "hash");
     assert.isEqual(decoded.gas, 500, "gas");
     assert.isEqual(decoded.result.kind, WorkExecResultKind.Ok, "result kind");
@@ -184,9 +188,9 @@ export const TESTS: Test[] = [
     const original = PendingTransfer.create(100, 200, 999999, BytesBlob.wrap(memo), 50000);
 
     const e = Encoder.create();
-    original.encode(e);
+    pendingTransferCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.source, 100, "source");
@@ -204,9 +208,9 @@ export const TESTS: Test[] = [
     const original = PendingTransfer.create(1, 2, 100, shortMemo, 500);
 
     const e = Encoder.create();
-    original.encode(e);
+    pendingTransferCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
 
     // After encode/decode, the memo should be 128 bytes (zero-padded).
     const expectedMemo = new Uint8Array(TRANSFER_MEMO_SIZE);
@@ -226,9 +230,9 @@ export const TESTS: Test[] = [
     const original = PendingTransfer.create(0, 0xffffffff, u64.MAX_VALUE, BytesBlob.empty(), 0);
 
     const e = Encoder.create();
-    original.encode(e);
+    pendingTransferCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.source, 0, "source zero");
@@ -244,14 +248,14 @@ export const TESTS: Test[] = [
     const original = PendingTransfer.create(10, 20, 300, BytesBlob.empty(), 400);
 
     const e = Encoder.create();
-    original.encodeTagged(e);
+    accumulateItemCodec.encode(AccumulateItem.fromTransfer(original), e);
     const d = Decoder.fromBlob(e.finish());
 
     const assert = Assert.create();
     const tag = u32(d.varU64());
     assert.isEqual(tag, AccumulateItemKind.Transfer, "tag");
 
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
     assert.isEqual(decoded.source, 10, "source");
     assert.isEqual(decoded.destination, 20, "destination");
     assert.isEqual(decoded.amount, 300, "amount");

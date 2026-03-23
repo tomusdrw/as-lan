@@ -5,11 +5,12 @@
  * 3-6 (extrinsics and imports), 7-13 (work package data).
  */
 
-import { Bytes32, BytesBlob } from "../../core/bytes";
+import { BytesBlob } from "../../core/bytes";
 import { Decoder } from "../../core/codec/decode";
 import { Result } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { FetchError } from "../fetcher";
+import {EntropyHash} from "../types";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
 export class RefineFetcher extends WorkPackageFetcher {
@@ -22,13 +23,13 @@ export class RefineFetcher extends WorkPackageFetcher {
   }
 
   /** Entropy pool (kind 1). In refine context this is H₀ (anchor header hash, 32 bytes). */
-  entropy(): Result<Bytes32, FetchError> {
+  entropy(): Result<EntropyHash, FetchError> {
     const raw = this.fetchRaw(FetchKind.Entropy);
-    if (raw.isError) return Result.err<Bytes32, FetchError>(raw.error);
+    if (raw.isError) return Result.err<EntropyHash, FetchError>(raw.error);
     const d = Decoder.fromBlob(raw.okay!);
     const hash = d.bytes32();
-    if (d.isError) return Result.err<Bytes32, FetchError>(FetchError.DecodeError);
-    return Result.ok<Bytes32, FetchError>(hash);
+    if (d.isError) return Result.err<EntropyHash, FetchError>(FetchError.DecodeError);
+    return Result.ok<EntropyHash, FetchError>(hash);
   }
 
   /** Authorizer trace data (kind 2). */

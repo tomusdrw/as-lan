@@ -1,5 +1,7 @@
 import {
   AccumulateArgs,
+  AccumulateItem,
+  accumulateItemCodec,
   Bytes32,
   BytesBlob,
   Encoder,
@@ -49,9 +51,9 @@ export function callAccumulate(argsLength: u32): Uint8Array {
 
 /** Encode a tagged transfer item. */
 export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64): Uint8Array {
-  const tx = PendingTransfer.create(source, dest, amount, BytesBlob.empty(), gas);
+  const item = AccumulateItem.fromTransfer(PendingTransfer.create(source, dest, amount, BytesBlob.empty(), gas));
   const enc = Encoder.create();
-  tx.encodeTagged(enc);
+  accumulateItemCodec.encode(item, enc);
   return enc.finish();
 }
 
@@ -70,7 +72,7 @@ export function callAccumulateWithOperand(ecalliPayload: Uint8Array): Response {
     BytesBlob.empty(),
   );
   const enc = Encoder.create();
-  op.encodeTagged(enc);
+  accumulateItemCodec.encode(AccumulateItem.fromOperand(op), enc);
   const item = enc.finish();
   TestAccumulate.setItem(0, item);
   const raw = callAccumulate(1);

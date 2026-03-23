@@ -6,6 +6,8 @@ export enum DecodeError {
   MissingBytes = 0,
   /** Collection would be too large to decode. */
   TooLarge,
+  /** Invalid discriminator tag or value out of expected range. */
+  InvalidData,
 }
 
 /**
@@ -14,8 +16,8 @@ export enum DecodeError {
  * Prefer implementing this on a dedicated codec class rather than
  * on the data type directly. See [`TryEncode`] for an example.
  */
-export interface TryDecode<T, E = DecodeError> {
-  decode(d: Decoder): Result<T, E>;
+export interface TryDecode<T> {
+  decode(d: Decoder): Result<T, DecodeError>;
 }
 
 export class Decoder {
@@ -44,8 +46,7 @@ export class Decoder {
     return this._isError;
   }
 
-  /** Manually signal a decode error (e.g. unknown discriminator tag). */
-  setError(): void {
+  private setError(): void {
     this._isError = true;
   }
 

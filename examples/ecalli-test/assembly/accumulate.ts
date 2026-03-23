@@ -5,8 +5,8 @@ import {
   Encoder,
   FetchKind,
   fetch,
-  Operand,
-  PendingTransfer,
+  operandCodec,
+  pendingTransferCodec,
   Response,
 } from "@fluffylabs/as-lan";
 import {
@@ -97,11 +97,12 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
 /** Process an operand: decode it, extract okBlob, and dispatch the ecalli from it. */
 function processOperand(d: Decoder, index: u32): u64 {
-  const op = Operand.decode(d);
-  if (d.isError) {
+  const r = operandCodec.decode(d);
+  if (r.isError) {
     logger.warn(`Failed to decode operand at index ${index}`);
     return 0;
   }
+  const op = r.okay!;
 
   logger.info(`operand[${index}]: hash=${op.hash} gas=${op.gas} resultKind=${op.result.kind}`);
 
@@ -155,11 +156,12 @@ function processOperand(d: Decoder, index: u32): u64 {
 
 /** Process a transfer: decode and log it. */
 function processTransfer(d: Decoder, index: u32): u64 {
-  const tx = PendingTransfer.decode(d);
-  if (d.isError) {
+  const tr = pendingTransferCodec.decode(d);
+  if (tr.isError) {
     logger.warn(`Failed to decode transfer at index ${index}`);
     return 0;
   }
+  const tx = tr.okay!;
 
   logger.info(`transfer[${index}]: source=${tx.source} dest=${tx.destination} amount=${tx.amount} gas=${tx.gas}`);
 

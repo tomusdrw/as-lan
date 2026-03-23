@@ -12,13 +12,12 @@ class Point {
 }
 
 class PointCodec implements TryDecode<Point>, TryEncode<Point> {
+  static create(): PointCodec { return new PointCodec(); }
+  private constructor() {}
+
   encode(value: Point, e: Encoder): void {
     e.u32(value.x);
     e.u32(value.y);
-  }
-
-  requiredSize(_value: Point): u32 {
-    return 8; // 2 × u32
   }
 
   decode(d: Decoder): Result<Point, DecodeError> {
@@ -195,7 +194,7 @@ export const TESTS: Test[] = [
   }),
 
   test("roundtrip object", () => {
-    const codec = new PointCodec();
+    const codec = PointCodec.create();
     const point = new Point(42, 99);
 
     const e = Encoder.create();
@@ -213,7 +212,7 @@ export const TESTS: Test[] = [
   }),
 
   test("roundtrip optional present", () => {
-    const codec = new PointCodec();
+    const codec = PointCodec.create();
 
     const e = Encoder.create();
     e.optional<Point>(codec, new Point(10, 20));
@@ -231,7 +230,7 @@ export const TESTS: Test[] = [
   }),
 
   test("roundtrip optional absent", () => {
-    const codec = new PointCodec();
+    const codec = PointCodec.create();
 
     const e = Encoder.create();
     e.optional<Point>(codec, null);

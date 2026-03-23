@@ -38,7 +38,7 @@ import { BytesBlob } from "../core/bytes";
 import { Decoder } from "../core/codec/decode";
 import { Result } from "../core/result";
 import { FetchKind, fetch } from "../ecalli/general/fetch";
-import { ProtocolConstants } from "./work-package";
+import { ProtocolConstants, protocolConstantsCodec } from "./work-package";
 
 /**
  * Error codes returned by fetcher methods.
@@ -104,8 +104,8 @@ export class Fetcher {
     const raw = this.fetchRaw(FetchKind.Constants);
     if (raw.isError) return Result.err<ProtocolConstants, FetchError>(raw.error);
     const d = Decoder.fromBlob(raw.okay!);
-    const c = ProtocolConstants.decode(d);
-    if (d.isError) return Result.err<ProtocolConstants, FetchError>(FetchError.DecodeError);
-    return Result.ok<ProtocolConstants, FetchError>(c);
+    const r = protocolConstantsCodec.decode(d);
+    if (r.isError) return Result.err<ProtocolConstants, FetchError>(FetchError.DecodeError);
+    return Result.ok<ProtocolConstants, FetchError>(r.okay!);
   }
 }

@@ -10,9 +10,13 @@
  */
 
 import { Bytes32, BytesBlob } from "../core/bytes";
-import { Decoder } from "../core/codec/decode";
-import { Encoder } from "../core/codec/encode";
+import { bytes32Codec } from "../core/codec/bytes32";
+import { DecodeError, Decoder, TryDecode } from "../core/codec/decode";
+import { Encoder, TryEncode } from "../core/codec/encode";
+import { Result } from "../core/result";
 import { CodeHash, ServiceId } from "./types";
+
+// ─── ProtocolConstants ────────────────────────────────────────────────
 
 /**
  * Protocol constants (fetch kind 0).
@@ -25,7 +29,7 @@ import { CodeHash, ServiceId } from "./types";
  *        E₂(V), E₄(W_A), E₄(W_B), E₄(W_C), E₄(W_E), E₄(W_M),
  *        E₄(W_P), E₄(W_R), E₄(W_T), E₄(W_X), E₄(Y))
  *
- * Total size: 3×8 + 2×4 + 4×8 + 9×2 + 1×4 + 6×2 + 10×4 = 24+8+32+18+4+12+40 = 138 bytes
+ * Total size: 7×8 + 13×4 + 13×2 = 56+52+26 = 134 bytes
  */
 export class ProtocolConstants {
   static create(
@@ -64,77 +68,18 @@ export class ProtocolConstants {
     contestLength: u32,
   ): ProtocolConstants {
     return new ProtocolConstants(
-      electiveItemBalance,
-      electiveByteBalance,
-      baseServiceBalance,
-      coreCount,
-      preimageExpungePeriod,
-      epochLength,
-      gasAccumulateReport,
-      gasIsAuthorized,
-      gasMaxRefine,
-      gasMaxBlock,
-      recentHistoryLength,
-      maxWorkItems,
-      maxReportDeps,
-      maxTicketsPerExtrinsic,
+      electiveItemBalance, electiveByteBalance, baseServiceBalance,
+      coreCount, preimageExpungePeriod, epochLength,
+      gasAccumulateReport, gasIsAuthorized, gasMaxRefine, gasMaxBlock,
+      recentHistoryLength, maxWorkItems, maxReportDeps, maxTicketsPerExtrinsic,
       maxLookupAnchorAge,
-      ticketsPerValidator,
-      maxAuthorizersPerCore,
-      slotDuration,
-      authorizersQueueSize,
-      rotationPeriod,
-      maxExtrinsicsPerWorkItem,
-      reportTimeoutGracePeriod,
-      validatorsCount,
-      maxAllocatedWorkPackageSize,
-      maxEncodedWorkPackageSize,
-      maxAuthorizerCodeSize,
-      erasureCodedPieceSize,
-      maxImportSegments,
-      ecPiecesPerSegment,
-      maxWorkReportSize,
-      transferMemoSize,
-      maxExportSegments,
-      contestLength,
-    );
-  }
-
-  static decode(d: Decoder): ProtocolConstants {
-    return new ProtocolConstants(
-      d.u64(),
-      d.u64(),
-      d.u64(), // B_I, B_L, B_S
-      d.u16(),
-      d.u32(),
-      d.u32(), // C, D, E
-      d.u64(),
-      d.u64(),
-      d.u64(),
-      d.u64(), // G_A, G_I, G_R, G_T
-      d.u16(),
-      d.u16(),
-      d.u16(),
-      d.u16(), // H, I, J, K
-      d.u32(), // L
-      d.u16(),
-      d.u16(),
-      d.u16(),
-      d.u16(),
-      d.u16(),
-      d.u16(),
-      d.u16(), // N, O, P, Q, R, T, U
-      d.u16(), // V
-      d.u32(),
-      d.u32(),
-      d.u32(),
-      d.u32(),
-      d.u32(), // W_A, W_B, W_C, W_E, W_M
-      d.u32(),
-      d.u32(),
-      d.u32(),
-      d.u32(),
-      d.u32(), // W_P, W_R, W_T, W_X, Y
+      ticketsPerValidator, maxAuthorizersPerCore, slotDuration,
+      authorizersQueueSize, rotationPeriod, maxExtrinsicsPerWorkItem,
+      reportTimeoutGracePeriod, validatorsCount,
+      maxAllocatedWorkPackageSize, maxEncodedWorkPackageSize,
+      maxAuthorizerCodeSize, erasureCodedPieceSize, maxImportSegments,
+      ecPiecesPerSegment, maxWorkReportSize, transferMemoSize,
+      maxExportSegments, contestLength,
     );
   }
 
@@ -206,43 +151,48 @@ export class ProtocolConstants {
     /** Y: Contest length (timeslots). */
     public contestLength: u32,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.u64(this.electiveItemBalance);
-    e.u64(this.electiveByteBalance);
-    e.u64(this.baseServiceBalance);
-    e.u16(this.coreCount);
-    e.u32(this.preimageExpungePeriod);
-    e.u32(this.epochLength);
-    e.u64(this.gasAccumulateReport);
-    e.u64(this.gasIsAuthorized);
-    e.u64(this.gasMaxRefine);
-    e.u64(this.gasMaxBlock);
-    e.u16(this.recentHistoryLength);
-    e.u16(this.maxWorkItems);
-    e.u16(this.maxReportDeps);
-    e.u16(this.maxTicketsPerExtrinsic);
-    e.u32(this.maxLookupAnchorAge);
-    e.u16(this.ticketsPerValidator);
-    e.u16(this.maxAuthorizersPerCore);
-    e.u16(this.slotDuration);
-    e.u16(this.authorizersQueueSize);
-    e.u16(this.rotationPeriod);
-    e.u16(this.maxExtrinsicsPerWorkItem);
-    e.u16(this.reportTimeoutGracePeriod);
-    e.u16(this.validatorsCount);
-    e.u32(this.maxAllocatedWorkPackageSize);
-    e.u32(this.maxEncodedWorkPackageSize);
-    e.u32(this.maxAuthorizerCodeSize);
-    e.u32(this.erasureCodedPieceSize);
-    e.u32(this.maxImportSegments);
-    e.u32(this.ecPiecesPerSegment);
-    e.u32(this.maxWorkReportSize);
-    e.u32(this.transferMemoSize);
-    e.u32(this.maxExportSegments);
-    e.u32(this.contestLength);
+
+export class ProtocolConstantsCodec implements TryDecode<ProtocolConstants>, TryEncode<ProtocolConstants> {
+  static create(): ProtocolConstantsCodec { return new ProtocolConstantsCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<ProtocolConstants, DecodeError> {
+    const c = ProtocolConstants.create(
+      d.u64(), d.u64(), d.u64(), // B_I, B_L, B_S
+      d.u16(), d.u32(), d.u32(), // C, D, E
+      d.u64(), d.u64(), d.u64(), d.u64(), // G_A, G_I, G_R, G_T
+      d.u16(), d.u16(), d.u16(), d.u16(), // H, I, J, K
+      d.u32(), // L
+      d.u16(), d.u16(), d.u16(), d.u16(), d.u16(), d.u16(), d.u16(), // N, O, P, Q, R, T, U
+      d.u16(), // V
+      d.u32(), d.u32(), d.u32(), d.u32(), d.u32(), // W_A, W_B, W_C, W_E, W_M
+      d.u32(), d.u32(), d.u32(), d.u32(), d.u32(), // W_P, W_R, W_T, W_X, Y
+    );
+    if (d.isError) return Result.err<ProtocolConstants, DecodeError>(DecodeError.MissingBytes);
+    return Result.ok<ProtocolConstants, DecodeError>(c);
+  }
+
+  encode(v: ProtocolConstants, e: Encoder): void {
+    e.u64(v.electiveItemBalance); e.u64(v.electiveByteBalance); e.u64(v.baseServiceBalance);
+    e.u16(v.coreCount); e.u32(v.preimageExpungePeriod); e.u32(v.epochLength);
+    e.u64(v.gasAccumulateReport); e.u64(v.gasIsAuthorized); e.u64(v.gasMaxRefine); e.u64(v.gasMaxBlock);
+    e.u16(v.recentHistoryLength); e.u16(v.maxWorkItems); e.u16(v.maxReportDeps); e.u16(v.maxTicketsPerExtrinsic);
+    e.u32(v.maxLookupAnchorAge);
+    e.u16(v.ticketsPerValidator); e.u16(v.maxAuthorizersPerCore); e.u16(v.slotDuration);
+    e.u16(v.authorizersQueueSize); e.u16(v.rotationPeriod); e.u16(v.maxExtrinsicsPerWorkItem);
+    e.u16(v.reportTimeoutGracePeriod); e.u16(v.validatorsCount);
+    e.u32(v.maxAllocatedWorkPackageSize); e.u32(v.maxEncodedWorkPackageSize);
+    e.u32(v.maxAuthorizerCodeSize); e.u32(v.erasureCodedPieceSize); e.u32(v.maxImportSegments);
+    e.u32(v.ecPiecesPerSegment); e.u32(v.maxWorkReportSize); e.u32(v.transferMemoSize);
+    e.u32(v.maxExportSegments); e.u32(v.contestLength);
   }
 }
+
+export const protocolConstantsCodec = ProtocolConstantsCodec.create();
+
+// ─── AuthorizerInfo ───────────────────────────────────────────────────
 
 /**
  * Authorizer info (fetch kind 8).
@@ -254,26 +204,37 @@ export class AuthorizerInfo {
     return new AuthorizerInfo(codeHash, config);
   }
 
-  static decode(d: Decoder): AuthorizerInfo {
-    const codeHash = d.bytes32();
-    // Config extends to end of data — read remaining bytes.
-    const remaining = d.source.length - d.bytesRead();
-    const config = d.bytesFixLen(remaining);
-    return new AuthorizerInfo(codeHash, config);
-  }
-
   private constructor(
     /** Authorization code hash. */
     public codeHash: CodeHash,
     /** Configuration/parametrization blob. */
     public config: BytesBlob,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.bytesFixLen(this.codeHash.raw);
-    e.bytesFixLen(this.config.raw);
+
+export class AuthorizerInfoCodec implements TryDecode<AuthorizerInfo>, TryEncode<AuthorizerInfo> {
+  static create(): AuthorizerInfoCodec { return new AuthorizerInfoCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<AuthorizerInfo, DecodeError> {
+    const codeHash = d.bytes32();
+    // Config extends to end of data — read remaining bytes.
+    const remaining = d.source.length - d.bytesRead();
+    const config = d.bytesFixLen(remaining);
+    if (d.isError) return Result.err<AuthorizerInfo, DecodeError>(DecodeError.MissingBytes);
+    return Result.ok<AuthorizerInfo, DecodeError>(AuthorizerInfo.create(codeHash, config));
+  }
+
+  encode(v: AuthorizerInfo, e: Encoder): void {
+    e.bytesFixLen(v.codeHash.raw);
+    e.bytesFixLen(v.config.raw);
   }
 }
+
+export const authorizerInfoCodec = AuthorizerInfoCodec.create();
+
+// ─── RefinementContext ────────────────────────────────────────────────
 
 /**
  * Refinement context (fetch kind 10).
@@ -296,20 +257,6 @@ export class RefinementContext {
     return new RefinementContext(anchor, stateRoot, beefyRoot, lookupAnchor, timeslot, prerequisites);
   }
 
-  static decode(d: Decoder): RefinementContext {
-    const anchor = d.bytes32();
-    const stateRoot = d.bytes32();
-    const beefyRoot = d.bytes32();
-    const lookupAnchor = d.bytes32();
-    const timeslot = d.u32();
-    const count = d.varU32();
-    const prerequisites = new StaticArray<Bytes32>(count);
-    for (let i: u32 = 0; i < count; i++) {
-      prerequisites[i] = d.bytes32();
-    }
-    return new RefinementContext(anchor, stateRoot, beefyRoot, lookupAnchor, timeslot, prerequisites);
-  }
-
   private constructor(
     /** Anchor block header hash. */
     public anchor: Bytes32,
@@ -324,19 +271,40 @@ export class RefinementContext {
     /** Prerequisite work-package hashes. */
     public prerequisites: StaticArray<Bytes32>,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.bytesFixLen(this.anchor.raw);
-    e.bytesFixLen(this.stateRoot.raw);
-    e.bytesFixLen(this.beefyRoot.raw);
-    e.bytesFixLen(this.lookupAnchor.raw);
-    e.u32(this.timeslot);
-    e.varU64(u64(this.prerequisites.length));
-    for (let i = 0; i < this.prerequisites.length; i++) {
-      e.bytesFixLen(this.prerequisites[i].raw);
-    }
+
+export class RefinementContextCodec implements TryDecode<RefinementContext>, TryEncode<RefinementContext> {
+  static create(): RefinementContextCodec { return new RefinementContextCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<RefinementContext, DecodeError> {
+    const anchor = d.bytes32();
+    const stateRoot = d.bytes32();
+    const beefyRoot = d.bytes32();
+    const lookupAnchor = d.bytes32();
+    const timeslot = d.u32();
+    if (d.isError) return Result.err<RefinementContext, DecodeError>(DecodeError.MissingBytes);
+    const prereqs = d.sequenceVarLen<Bytes32>(bytes32Codec);
+    if (prereqs.isError) return Result.err<RefinementContext, DecodeError>(prereqs.error);
+    return Result.ok<RefinementContext, DecodeError>(
+      RefinementContext.create(anchor, stateRoot, beefyRoot, lookupAnchor, timeslot, prereqs.okay!),
+    );
+  }
+
+  encode(v: RefinementContext, e: Encoder): void {
+    e.bytesFixLen(v.anchor.raw);
+    e.bytesFixLen(v.stateRoot.raw);
+    e.bytesFixLen(v.beefyRoot.raw);
+    e.bytesFixLen(v.lookupAnchor.raw);
+    e.u32(v.timeslot);
+    e.sequenceVarLen<Bytes32>(bytes32Codec, v.prerequisites);
   }
 }
+
+export const refinementContextCodec = RefinementContextCodec.create();
+
+// ─── WorkItemInfo ─────────────────────────────────────────────────────
 
 /**
  * Work-item summary (fetch kinds 11-12).
@@ -358,37 +326,7 @@ export class WorkItemInfo {
     extrinsicCount: u16,
     payloadLength: u32,
   ): WorkItemInfo {
-    return new WorkItemInfo(
-      serviceId,
-      codeHash,
-      gasRefine,
-      gasAccumulate,
-      exportCount,
-      importCount,
-      extrinsicCount,
-      payloadLength,
-    );
-  }
-
-  static decode(d: Decoder): WorkItemInfo {
-    const serviceId = d.u32();
-    const codeHash = d.bytes32();
-    const gasRefine = d.u64();
-    const gasAccumulate = d.u64();
-    const exportCount = d.u16();
-    const importCount = d.u16();
-    const extrinsicCount = d.u16();
-    const payloadLength = d.u32();
-    return new WorkItemInfo(
-      serviceId,
-      codeHash,
-      gasRefine,
-      gasAccumulate,
-      exportCount,
-      importCount,
-      extrinsicCount,
-      payloadLength,
-    );
+    return new WorkItemInfo(serviceId, codeHash, gasRefine, gasAccumulate, exportCount, importCount, extrinsicCount, payloadLength);
   }
 
   private constructor(
@@ -409,18 +347,34 @@ export class WorkItemInfo {
     /** Length of the work-item payload in bytes. */
     public payloadLength: u32,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.u32(this.serviceId);
-    e.bytesFixLen(this.codeHash.raw);
-    e.u64(this.gasRefine);
-    e.u64(this.gasAccumulate);
-    e.u16(this.exportCount);
-    e.u16(this.importCount);
-    e.u16(this.extrinsicCount);
-    e.u32(this.payloadLength);
+
+export class WorkItemInfoCodec implements TryDecode<WorkItemInfo>, TryEncode<WorkItemInfo> {
+  static create(): WorkItemInfoCodec { return new WorkItemInfoCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<WorkItemInfo, DecodeError> {
+    const v = WorkItemInfo.create(d.u32(), d.bytes32(), d.u64(), d.u64(), d.u16(), d.u16(), d.u16(), d.u32());
+    if (d.isError) return Result.err<WorkItemInfo, DecodeError>(DecodeError.MissingBytes);
+    return Result.ok<WorkItemInfo, DecodeError>(v);
+  }
+
+  encode(v: WorkItemInfo, e: Encoder): void {
+    e.u32(v.serviceId);
+    e.bytesFixLen(v.codeHash.raw);
+    e.u64(v.gasRefine);
+    e.u64(v.gasAccumulate);
+    e.u16(v.exportCount);
+    e.u16(v.importCount);
+    e.u16(v.extrinsicCount);
+    e.u32(v.payloadLength);
   }
 }
+
+export const workItemInfoCodec = WorkItemInfoCodec.create();
+
+// ─── ImportRef ────────────────────────────────────────────────────────
 
 /**
  * Reference to an imported data segment within a work item.
@@ -435,17 +389,6 @@ export class ImportRef {
     return new ImportRef(hash, isWorkPackageHash, index);
   }
 
-  static decode(d: Decoder): ImportRef {
-    const tag = d.u8();
-    if (tag > 1) {
-      d.setError();
-      return new ImportRef(Bytes32.wrapUnchecked(new Uint8Array(0)), false, 0);
-    }
-    const hash = d.bytes32();
-    const index = d.varU32();
-    return new ImportRef(hash, tag === 1, index);
-  }
-
   private constructor(
     /** Segment-root hash or work-package hash. */
     public hash: Bytes32,
@@ -454,13 +397,32 @@ export class ImportRef {
     /** Segment index within the identified package/root. */
     public index: u32,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.u8(this.isWorkPackageHash ? 1 : 0);
-    e.bytesFixLen(this.hash.raw);
-    e.varU64(u64(this.index));
+
+export class ImportRefCodec implements TryDecode<ImportRef>, TryEncode<ImportRef> {
+  static create(): ImportRefCodec { return new ImportRefCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<ImportRef, DecodeError> {
+    const tag = d.u8();
+    if (tag > 1) return Result.err<ImportRef, DecodeError>(DecodeError.InvalidData);
+    const hash = d.bytes32();
+    const index = d.varU32();
+    if (d.isError) return Result.err<ImportRef, DecodeError>(DecodeError.MissingBytes);
+    return Result.ok<ImportRef, DecodeError>(ImportRef.create(hash, tag === 1, index));
+  }
+
+  encode(v: ImportRef, e: Encoder): void {
+    e.u8(v.isWorkPackageHash ? 1 : 0);
+    e.bytesFixLen(v.hash.raw);
+    e.varU64(u64(v.index));
   }
 }
+
+export const importRefCodec = ImportRefCodec.create();
+
+// ─── ExtrinsicRef ─────────────────────────────────────────────────────
 
 /**
  * Extrinsic data reference within a work item.
@@ -474,24 +436,34 @@ export class ExtrinsicRef {
     return new ExtrinsicRef(hash, length);
   }
 
-  static decode(d: Decoder): ExtrinsicRef {
-    const hash = d.bytes32();
-    const length = d.varU32();
-    return new ExtrinsicRef(hash, length);
-  }
-
   private constructor(
     /** Hash of the extrinsic data. */
     public hash: Bytes32,
     /** Length of the extrinsic data in bytes. */
     public length: u32,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.bytesFixLen(this.hash.raw);
-    e.varU64(u64(this.length));
+
+export class ExtrinsicRefCodec implements TryDecode<ExtrinsicRef>, TryEncode<ExtrinsicRef> {
+  static create(): ExtrinsicRefCodec { return new ExtrinsicRefCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<ExtrinsicRef, DecodeError> {
+    const v = ExtrinsicRef.create(d.bytes32(), d.varU32());
+    if (d.isError) return Result.err<ExtrinsicRef, DecodeError>(DecodeError.MissingBytes);
+    return Result.ok<ExtrinsicRef, DecodeError>(v);
+  }
+
+  encode(v: ExtrinsicRef, e: Encoder): void {
+    e.bytesFixLen(v.hash.raw);
+    e.varU64(u64(v.length));
   }
 }
+
+export const extrinsicRefCodec = ExtrinsicRefCodec.create();
+
+// ─── WorkItem ─────────────────────────────────────────────────────────
 
 /**
  * Full work item (GP type I).
@@ -518,26 +490,6 @@ export class WorkItem {
     return new WorkItem(serviceId, codeHash, payload, gasRefine, gasAccumulate, exportCount, imports, extrinsics);
   }
 
-  static decode(d: Decoder): WorkItem {
-    const serviceId = d.u32();
-    const codeHash = d.bytes32();
-    const payload = d.bytesVarLen();
-    const gasRefine = d.u64();
-    const gasAccumulate = d.u64();
-    const exportCount = d.varU32();
-    const importCount = d.varU32();
-    const imports = new StaticArray<ImportRef>(importCount);
-    for (let i: u32 = 0; i < importCount; i++) {
-      imports[i] = ImportRef.decode(d);
-    }
-    const extrinsicCount = d.varU32();
-    const extrinsics = new StaticArray<ExtrinsicRef>(extrinsicCount);
-    for (let i: u32 = 0; i < extrinsicCount; i++) {
-      extrinsics[i] = ExtrinsicRef.decode(d);
-    }
-    return new WorkItem(serviceId, codeHash, payload, gasRefine, gasAccumulate, exportCount, imports, extrinsics);
-  }
-
   private constructor(
     /** Service index this work item relates to. */
     public serviceId: ServiceId,
@@ -556,24 +508,45 @@ export class WorkItem {
     /** Extrinsic data references (hash + length). */
     public extrinsics: StaticArray<ExtrinsicRef>,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.u32(this.serviceId);
-    e.bytesFixLen(this.codeHash.raw);
-    e.bytesVarLen(this.payload);
-    e.u64(this.gasRefine);
-    e.u64(this.gasAccumulate);
-    e.varU64(u64(this.exportCount));
-    e.varU64(u64(this.imports.length));
-    for (let i = 0; i < this.imports.length; i++) {
-      this.imports[i].encode(e);
-    }
-    e.varU64(u64(this.extrinsics.length));
-    for (let i = 0; i < this.extrinsics.length; i++) {
-      this.extrinsics[i].encode(e);
-    }
+
+export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
+  static create(): WorkItemCodec { return new WorkItemCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<WorkItem, DecodeError> {
+    const serviceId = d.u32();
+    const codeHash = d.bytes32();
+    const payload = d.bytesVarLen();
+    const gasRefine = d.u64();
+    const gasAccumulate = d.u64();
+    const exportCount = d.varU32();
+    if (d.isError) return Result.err<WorkItem, DecodeError>(DecodeError.MissingBytes);
+    const imports = d.sequenceVarLen<ImportRef>(importRefCodec);
+    if (imports.isError) return Result.err<WorkItem, DecodeError>(imports.error);
+    const extrinsics = d.sequenceVarLen<ExtrinsicRef>(extrinsicRefCodec);
+    if (extrinsics.isError) return Result.err<WorkItem, DecodeError>(extrinsics.error);
+    return Result.ok<WorkItem, DecodeError>(
+      WorkItem.create(serviceId, codeHash, payload, gasRefine, gasAccumulate, exportCount, imports.okay!, extrinsics.okay!),
+    );
+  }
+
+  encode(v: WorkItem, e: Encoder): void {
+    e.u32(v.serviceId);
+    e.bytesFixLen(v.codeHash.raw);
+    e.bytesVarLen(v.payload);
+    e.u64(v.gasRefine);
+    e.u64(v.gasAccumulate);
+    e.varU64(u64(v.exportCount));
+    e.sequenceVarLen<ImportRef>(importRefCodec, v.imports);
+    e.sequenceVarLen<ExtrinsicRef>(extrinsicRefCodec, v.extrinsics);
   }
 }
+
+export const workItemCodec = WorkItemCodec.create();
+
+// ─── WorkPackage ──────────────────────────────────────────────────────
 
 /**
  * Full work package (GP type P, fetch kind 7).
@@ -597,20 +570,6 @@ export class WorkPackage {
     return new WorkPackage(authToken, authServiceId, authCodeHash, authConfig, context, workItems);
   }
 
-  static decode(d: Decoder): WorkPackage {
-    const authToken = d.bytesVarLen();
-    const authServiceId = d.u32();
-    const authCodeHash = d.bytes32();
-    const authConfig = d.bytesVarLen();
-    const context = RefinementContext.decode(d);
-    const itemCount = d.varU32();
-    const workItems = new StaticArray<WorkItem>(itemCount);
-    for (let i: u32 = 0; i < itemCount; i++) {
-      workItems[i] = WorkItem.decode(d);
-    }
-    return new WorkPackage(authToken, authServiceId, authCodeHash, authConfig, context, workItems);
-  }
-
   private constructor(
     /** Authorization token (j). */
     public authToken: BytesBlob,
@@ -625,16 +584,36 @@ export class WorkPackage {
     /** Work items (w). */
     public workItems: StaticArray<WorkItem>,
   ) {}
+}
 
-  encode(e: Encoder): void {
-    e.bytesVarLen(this.authToken);
-    e.u32(this.authServiceId);
-    e.bytesFixLen(this.authCodeHash.raw);
-    e.bytesVarLen(this.authConfig);
-    this.context.encode(e);
-    e.varU64(u64(this.workItems.length));
-    for (let i = 0; i < this.workItems.length; i++) {
-      this.workItems[i].encode(e);
-    }
+
+export class WorkPackageCodec implements TryDecode<WorkPackage>, TryEncode<WorkPackage> {
+  static create(): WorkPackageCodec { return new WorkPackageCodec(); }
+  private constructor() {}
+
+  decode(d: Decoder): Result<WorkPackage, DecodeError> {
+    const authToken = d.bytesVarLen();
+    const authServiceId = d.u32();
+    const authCodeHash = d.bytes32();
+    const authConfig = d.bytesVarLen();
+    if (d.isError) return Result.err<WorkPackage, DecodeError>(DecodeError.MissingBytes);
+    const ctx = d.object<RefinementContext>(refinementContextCodec);
+    if (ctx.isError) return Result.err<WorkPackage, DecodeError>(ctx.error);
+    const items = d.sequenceVarLen<WorkItem>(workItemCodec);
+    if (items.isError) return Result.err<WorkPackage, DecodeError>(items.error);
+    return Result.ok<WorkPackage, DecodeError>(
+      WorkPackage.create(authToken, authServiceId, authCodeHash, authConfig, ctx.okay!, items.okay!),
+    );
+  }
+
+  encode(v: WorkPackage, e: Encoder): void {
+    e.bytesVarLen(v.authToken);
+    e.u32(v.authServiceId);
+    e.bytesFixLen(v.authCodeHash.raw);
+    e.bytesVarLen(v.authConfig);
+    e.object<RefinementContext>(refinementContextCodec, v.context);
+    e.sequenceVarLen<WorkItem>(workItemCodec, v.workItems);
   }
 }
+
+export const workPackageCodec = WorkPackageCodec.create();

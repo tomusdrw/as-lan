@@ -1,16 +1,16 @@
 import { Bytes32, BytesBlob } from "../core/bytes";
-import { Decoder } from "../core/codec/decode";
-import { Encoder } from "../core/codec/encode";
+import { Decoder, TryDecode } from "../core/codec/decode";
+import { Encoder, TryEncode } from "../core/codec/encode";
 import { Assert, Test, test } from "../test/utils";
 import {
-  AuthorizerInfo,
-  ExtrinsicRef,
-  ImportRef,
-  ProtocolConstants,
-  RefinementContext,
-  WorkItem,
-  WorkItemInfo,
-  WorkPackage,
+  AuthorizerInfo, authorizerInfoCodec,
+  ExtrinsicRef, extrinsicRefCodec,
+  ImportRef, importRefCodec,
+  ProtocolConstants, protocolConstantsCodec,
+  RefinementContext, refinementContextCodec,
+  WorkItem, workItemCodec,
+  WorkItemInfo, workItemInfoCodec,
+  WorkPackage, workPackageCodec,
 } from "./work-package";
 
 function bytes32Fill(v: u8): Bytes32 {
@@ -19,11 +19,13 @@ function bytes32Fill(v: u8): Bytes32 {
   return Bytes32.wrapUnchecked(raw);
 }
 
-function roundtrip<T>(original: T, encode: (e: Encoder, v: T) => void, decode: (d: Decoder) => T): T {
+function roundtrip<T>(original: T, enc: TryEncode<T>, dec: TryDecode<T>): T {
   const e = Encoder.create();
-  encode(e, original);
+  enc.encode(original, e);
   const d = Decoder.fromBlob(e.finish());
-  return decode(d);
+  const r = dec.decode(d);
+  assert(r.isOkay, "roundtrip decode failed");
+  return r.okay!;
 }
 
 export const TESTS: Test[] = [
@@ -65,10 +67,9 @@ export const TESTS: Test[] = [
       3072,
       15, // W_M, W_P, W_R, W_T, W_X, Y
     );
-    const decoded = roundtrip(
+    const decoded = roundtrip<ProtocolConstants>(
       original,
-      (e, v) => v.encode(e),
-      (d) => ProtocolConstants.decode(d),
+      protocolConstantsCodec, protocolConstantsCodec,
     );
 
     const assert = Assert.create();
@@ -112,10 +113,9 @@ export const TESTS: Test[] = [
 
   test("AuthorizerInfo roundtrip", () => {
     const original = AuthorizerInfo.create(bytes32Fill(0xaa), BytesBlob.parseBlob("0xdeadbeef").okay!);
-    const decoded = roundtrip(
+    const decoded = roundtrip<AuthorizerInfo>(
       original,
-      (e, v) => v.encode(e),
-      (d) => AuthorizerInfo.decode(d),
+      authorizerInfoCodec, authorizerInfoCodec,
     );
 
     const assert = Assert.create();
@@ -126,10 +126,9 @@ export const TESTS: Test[] = [
 
   test("AuthorizerInfo roundtrip empty config", () => {
     const original = AuthorizerInfo.create(bytes32Fill(0x00), BytesBlob.empty());
-    const decoded = roundtrip(
+    const decoded = roundtrip<AuthorizerInfo>(
       original,
-      (e, v) => v.encode(e),
-      (d) => AuthorizerInfo.decode(d),
+      authorizerInfoCodec, authorizerInfoCodec,
     );
 
     const assert = Assert.create();
@@ -152,10 +151,9 @@ export const TESTS: Test[] = [
       12345,
       prereqs,
     );
-    const decoded = roundtrip(
+    const decoded = roundtrip<RefinementContext>(
       original,
-      (e, v) => v.encode(e),
-      (d) => RefinementContext.decode(d),
+      refinementContextCodec, refinementContextCodec,
     );
 
     const assert = Assert.create();
@@ -191,10 +189,9 @@ export const TESTS: Test[] = [
       0,
       new StaticArray<Bytes32>(0),
     );
-    const decoded = roundtrip(
+    const decoded = roundtrip<RefinementContext>(
       original,
-      (e, v) => v.encode(e),
-      (d) => RefinementContext.decode(d),
+      refinementContextCodec, refinementContextCodec,
     );
 
     const assert = Assert.create();
@@ -207,10 +204,9 @@ export const TESTS: Test[] = [
 
   test("WorkItemInfo roundtrip", () => {
     const original = WorkItemInfo.create(42, bytes32Fill(0xab), 100000, 50000, 3, 5, 2, 1024);
-    const decoded = roundtrip(
+    const decoded = roundtrip<WorkItemInfo>(
       original,
-      (e, v) => v.encode(e),
-      (d) => WorkItemInfo.decode(d),
+      workItemInfoCodec, workItemInfoCodec,
     );
 
     const assert = Assert.create();
@@ -229,10 +225,9 @@ export const TESTS: Test[] = [
 
   test("ImportRef roundtrip segment-root hash", () => {
     const original = ImportRef.create(bytes32Fill(0xcc), false, 7);
-    const decoded = roundtrip(
+    const decoded = roundtrip<ImportRef>(
       original,
-      (e, v) => v.encode(e),
-      (d) => ImportRef.decode(d),
+      importRefCodec, importRefCodec,
     );
 
     const assert = Assert.create();
@@ -244,10 +239,9 @@ export const TESTS: Test[] = [
 
   test("ImportRef roundtrip work-package hash", () => {
     const original = ImportRef.create(bytes32Fill(0xdd), true, 0);
-    const decoded = roundtrip(
+    const decoded = roundtrip<ImportRef>(
       original,
-      (e, v) => v.encode(e),
-      (d) => ImportRef.decode(d),
+      importRefCodec, importRefCodec,
     );
 
     const assert = Assert.create();
@@ -260,10 +254,9 @@ export const TESTS: Test[] = [
 
   test("ExtrinsicRef roundtrip", () => {
     const original = ExtrinsicRef.create(bytes32Fill(0xee), 4096);
-    const decoded = roundtrip(
+    const decoded = roundtrip<ExtrinsicRef>(
       original,
-      (e, v) => v.encode(e),
-      (d) => ExtrinsicRef.decode(d),
+      extrinsicRefCodec, extrinsicRefCodec,
     );
 
     const assert = Assert.create();
@@ -282,10 +275,9 @@ export const TESTS: Test[] = [
     const payload = BytesBlob.parseBlob("0xcafe").okay!;
 
     const original = WorkItem.create(99, bytes32Fill(0xab), payload, 500000, 100000, 2, imports, extrinsics);
-    const decoded = roundtrip(
+    const decoded = roundtrip<WorkItem>(
       original,
-      (e, v) => v.encode(e),
-      (d) => WorkItem.decode(d),
+      workItemCodec, workItemCodec,
     );
 
     const assert = Assert.create();
@@ -314,10 +306,9 @@ export const TESTS: Test[] = [
       new StaticArray<ImportRef>(0),
       new StaticArray<ExtrinsicRef>(0),
     );
-    const decoded = roundtrip(
+    const decoded = roundtrip<WorkItem>(
       original,
-      (e, v) => v.encode(e),
-      (d) => WorkItem.decode(d),
+      workItemCodec, workItemCodec,
     );
 
     const assert = Assert.create();
@@ -354,10 +345,9 @@ export const TESTS: Test[] = [
     const authToken = BytesBlob.parseBlob("0xaabbccdd").okay!;
     const authConfig = BytesBlob.parseBlob("0x1234").okay!;
     const original = WorkPackage.create(authToken, 10, bytes32Fill(0xcc), authConfig, ctx, items);
-    const decoded = roundtrip(
+    const decoded = roundtrip<WorkPackage>(
       original,
-      (e, v) => v.encode(e),
-      (d) => WorkPackage.decode(d),
+      workPackageCodec, workPackageCodec,
     );
 
     const assert = Assert.create();

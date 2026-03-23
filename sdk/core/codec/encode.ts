@@ -15,7 +15,6 @@ const DEFAULT_CAPACITY = 32;
  *
  * class PointCodec implements TryEncode<Point>, TryDecode<Point> {
  *   encode(value: Point, e: Encoder): void { e.u32(value.x); e.u32(value.y); }
- *   requiredSize(value: Point): u32 { return 8; }
  *   decode(d: Decoder): Result<Point, DecodeError> { ... }
  * }
  * ```
@@ -23,8 +22,6 @@ const DEFAULT_CAPACITY = 32;
 export interface TryEncode<T> {
   /** Encode the given value into the encoder. */
   encode(value: T, e: Encoder): void;
-  /** Number of bytes needed to encode the given value. */
-  requiredSize(value: T): u32;
 }
 
 export class Encoder {

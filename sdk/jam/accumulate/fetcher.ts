@@ -9,7 +9,8 @@ import { Decoder } from "../../core/codec/decode";
 import { Result } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { FetchError, Fetcher } from "../fetcher";
-import { AccumulateItem } from "./item";
+import {EntropyHash} from "../types";
+import { AccumulateItem, accumulateItemCodec } from "./item";
 
 export class AccumulateFetcher extends Fetcher {
   static create(bufSize: u32 = 1024): AccumulateFetcher {
@@ -21,12 +22,12 @@ export class AccumulateFetcher extends Fetcher {
   }
 
   /** Entropy pool (kind 1). In accumulate context this is η'₀ (posterior entropy, 32 bytes). */
-  entropy(): Result<Bytes32, FetchError> {
+  entropy(): Result<EntropyHash, FetchError> {
     const raw = this.fetchRaw(FetchKind.Entropy);
-    if (raw.isError) return Result.err<Bytes32, FetchError>(raw.error);
+    if (raw.isError) return Result.err<EntropyHash, FetchError>(raw.error);
     const d = Decoder.fromBlob(raw.okay!);
     const hash = d.bytes32();
-    if (d.isError) return Result.err<Bytes32, FetchError>(FetchError.DecodeError);
+    if (d.isError) return Result.err<EntropyHash, FetchError>(FetchError.DecodeError);
     return Result.ok<Bytes32, FetchError>(hash);
   }
 
@@ -40,27 +41,19 @@ export class AccumulateFetcher extends Fetcher {
   allTransfersAndOperands(): Result<StaticArray<AccumulateItem>, FetchError> {
     const raw = this.fetchRaw(FetchKind.AllTransfersAndOperands);
     if (raw.isError) return Result.err<StaticArray<AccumulateItem>, FetchError>(raw.error);
-
     const d = Decoder.fromBlob(raw.okay!);
-    const count = d.varU32();
-    if (d.isError) return Result.err<StaticArray<AccumulateItem>, FetchError>(FetchError.DecodeError);
-
-    const items = new StaticArray<AccumulateItem>(count);
-    for (let i: u32 = 0; i < count; i++) {
-      items[i] = AccumulateItem.decode(d);
-      if (d.isError) return Result.err<StaticArray<AccumulateItem>, FetchError>(FetchError.DecodeError);
-    }
-    return Result.ok<StaticArray<AccumulateItem>, FetchError>(items);
+    const r = d.sequenceVarLen<AccumulateItem>(accumulateItemCodec);
+    if (r.isError) return Result.err<StaticArray<AccumulateItem>, FetchError>(FetchError.DecodeError);
+    return Result.ok<StaticArray<AccumulateItem>, FetchError>(r.okay!);
   }
 
   /** Fetch a single accumulate item by index, decoded as a typed union (kind 15). */
   oneTransferOrOperand(index: u32): Result<AccumulateItem, FetchError> {
     const raw = this.fetchRaw(FetchKind.OneTransferOrOperand, index);
     if (raw.isError) return Result.err<AccumulateItem, FetchError>(raw.error);
-
     const d = Decoder.fromBlob(raw.okay!);
-    const item = AccumulateItem.decode(d);
-    if (d.isError) return Result.err<AccumulateItem, FetchError>(FetchError.DecodeError);
-    return Result.ok<AccumulateItem, FetchError>(item);
+    const r = accumulateItemCodec.decode(d);
+    if (r.isError) return Result.err<AccumulateItem, FetchError>(FetchError.DecodeError);
+    return Result.ok<AccumulateItem, FetchError>(r.okay!);
   }
 }
