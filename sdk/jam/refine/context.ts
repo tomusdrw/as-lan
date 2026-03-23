@@ -1,8 +1,7 @@
 /**
  * Refine invocation context.
  *
- * Holds all codec instances and provides convenience methods for
- * parsing arguments, encoding responses, and creating the fetcher.
+ * Provides convenience methods for parsing arguments and encoding responses.
  */
 
 import { BytesBlob } from "../../core/bytes";
@@ -12,19 +11,16 @@ import { readFromMemory } from "../../core/mem";
 import { ptrAndLen } from "../../core/pack";
 import { Result } from "../../core/result";
 import { ParseError, RefineArgs, RefineArgsCodec, Response, ResponseCodec } from "../service";
-import { WorkPackageContext } from "../work-package-context";
 
-export class RefineContext extends WorkPackageContext {
+export class RefineContext {
   static create(): RefineContext {
     return new RefineContext();
   }
 
-  // ABI codecs
   readonly refineArgs: RefineArgsCodec;
   readonly response: ResponseCodec;
 
   private constructor() {
-    super();
     this.refineArgs = RefineArgsCodec.create();
     this.response = ResponseCodec.create();
   }

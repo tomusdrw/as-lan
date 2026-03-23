@@ -1,38 +1,20 @@
 /**
- * Base Fetcher class with internal buffer management.
+ * Low-level fetch primitives wrapping the raw `fetch` ecalli (Ω_Y, GP Appendix B.5).
  *
- * Wraps the raw `fetch` ecalli (Ω_Y, GP Appendix B.5), handling buffer
- * allocation, auto-expansion when data exceeds the initial buffer, and
- * error detection.
- *
- * Subclasses receive codec instances from their invocation context and
- * provide typed fetch methods (refine, accumulate, authorize).
+ * These standalone functions handle buffer management, auto-expansion, and
+ * error detection. Context-specific fetcher classes (RefineFetcher,
+ * AccumulateFetcher, etc.) build on these primitives.
  *
  * ## Future direction: offset-based partial fetching
  *
  * The raw `fetch(dest, offset, length, kind, ...)` ecalli supports an
  * `offset` parameter (r8) that reads a slice of the data starting at
- * the given byte position. Currently all fetcher methods pass `offset=0`
+ * the given byte position. Currently all fetch methods pass `offset=0`
  * and retrieve the full blob, which is then decoded in WASM memory.
  *
- * For gas-sensitive code this is wasteful — e.g. reading only the
- * `serviceId` (first 4 bytes) of a WorkItem via `oneWorkItem()` still
- * fetches the entire encoded item including the payload blob.
- *
- * A future optimization could:
- * 1. Expose `offset`/`length` in `fetchRaw` so callers can request
- *    only the bytes they need.
- * 2. Add "lazy" typed wrappers that fetch fields on demand. For example
- *    a `LazyWorkItem` that only calls `fetch(kind=12, offset=0, len=4)`
- *    to read `serviceId`, and defers fetching the payload until
- *    `.payload()` is explicitly called.
- * 3. For fixed-layout types like `WorkItemInfo` (62 bytes) or
- *    `RefinementContext` (132+ bytes), a single partial fetch of exactly
- *    the struct size avoids pulling trailing data.
- *
- * This is especially relevant for `allWorkItems()` (kind 11) where
- * the varlen sequence can be large but the caller may only need to
- * inspect the first few items or specific fields.
+ * A future optimization could expose `offset`/`length` so callers can
+ * request only the bytes they need — e.g. reading just the `serviceId`
+ * of a WorkItem without fetching its entire payload.
  */
 
 import { BytesBlob } from "../core/bytes";
@@ -62,55 +44,58 @@ export enum FetchError {
   DecodeError,
 }
 
-export class Fetcher {
-  private buf: Uint8Array;
-
-  protected constructor(bufSize: u32 = 1024) {
-    this.buf = new Uint8Array(bufSize);
+/**
+ * Reusable fetch buffer. Callers pass this to fetch functions so that
+ * consecutive fetches can reuse the same allocation.
+ */
+export class FetchBuffer {
+  static create(size: u32 = 1024): FetchBuffer {
+    return new FetchBuffer(size);
   }
 
-  /**
-   * Fetch raw bytes for the given kind/params.
-   *
-   * Returns a *copy* of the data (safe to hold across calls), or
-   * FetchError.None when the host indicates the data is unavailable.
-   * If the initial buffer is too small, it is expanded to the exact
-   * required size and the fetch is retried.
-   */
-  protected fetchRaw(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<Uint8Array, FetchError> {
-    let result = fetch(u32(this.buf.dataStart), 0, this.buf.length, kind, param1, param2);
+  buf: Uint8Array;
+
+  private constructor(size: u32) {
+    this.buf = new Uint8Array(size);
+  }
+}
+
+/**
+ * Fetch raw bytes for the given kind/params.
+ *
+ * Returns a *copy* of the data (safe to hold across calls), or
+ * FetchError.None when the host indicates the data is unavailable.
+ * If the buffer is too small, it is expanded to the exact
+ * required size and the fetch is retried.
+ */
+export function fetchRaw(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<Uint8Array, FetchError> {
+  let result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
+  if (result < 0) return Result.err<Uint8Array, FetchError>(FetchError.None);
+
+  // Auto-expand: the host told us the total length exceeds our buffer.
+  if (result > i64(fb.buf.length)) {
+    fb.buf = new Uint8Array(u32(result));
+    result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
     if (result < 0) return Result.err<Uint8Array, FetchError>(FetchError.None);
-
-    // Auto-expand: the host told us the total length exceeds our buffer.
-    if (result > i64(this.buf.length)) {
-      this.buf = new Uint8Array(u32(result));
-      result = fetch(u32(this.buf.dataStart), 0, this.buf.length, kind, param1, param2);
-      if (result < 0) return Result.err<Uint8Array, FetchError>(FetchError.None);
-    }
-
-    const len = u32(min(i64(this.buf.length), result));
-    return Result.ok<Uint8Array, FetchError>(this.buf.slice(0, len));
   }
 
-  /** Helper: fetch and wrap as BytesBlob. */
-  protected fetchBlob(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<BytesBlob, FetchError> {
-    const r = this.fetchRaw(kind, param1, param2);
-    if (r.isError) return Result.err<BytesBlob, FetchError>(r.error);
-    return Result.ok<BytesBlob, FetchError>(BytesBlob.wrap(r.okay!));
-  }
+  const len = u32(min(i64(fb.buf.length), result));
+  return Result.ok<Uint8Array, FetchError>(fb.buf.slice(0, len));
+}
 
-  /** Fetch raw bytes, decode using the given codec, and verify no trailing bytes. */
-  protected fetchAndDecode<T>(
-    codec: TryDecode<T>,
-    kind: FetchKind,
-    param1: u32 = 0,
-    param2: u32 = 0,
-  ): Result<T, FetchError> {
-    const raw = this.fetchRaw(kind, param1, param2);
-    if (raw.isError) return Result.err<T, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
-    const r = codec.decode(d);
-    if (r.isError || !d.isFinished()) return Result.err<T, FetchError>(FetchError.DecodeError);
-    return Result.ok<T, FetchError>(r.okay!);
-  }
+/** Fetch and wrap as BytesBlob. */
+export function fetchBlob(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<BytesBlob, FetchError> {
+  const r = fetchRaw(fb, kind, param1, param2);
+  if (r.isError) return Result.err<BytesBlob, FetchError>(r.error);
+  return Result.ok<BytesBlob, FetchError>(BytesBlob.wrap(r.okay!));
+}
+
+/** Fetch raw bytes, decode using the given codec, and verify no trailing bytes. */
+export function fetchAndDecode<T>(fb: FetchBuffer, codec: TryDecode<T>, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<T, FetchError> {
+  const raw = fetchRaw(fb, kind, param1, param2);
+  if (raw.isError) return Result.err<T, FetchError>(raw.error);
+  const d = Decoder.fromBlob(raw.okay!);
+  const r = codec.decode(d);
+  if (r.isError || !d.isFinished()) return Result.err<T, FetchError>(FetchError.DecodeError);
+  return Result.ok<T, FetchError>(r.okay!);
 }
