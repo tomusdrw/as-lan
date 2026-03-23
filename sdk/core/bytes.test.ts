@@ -11,10 +11,10 @@ export const TESTS: Test[] = [
     data[3] = 0xef;
 
     // when
-    const blob = new BytesBlob(data);
+    const blob = BytesBlob.wrap(data);
 
     // then
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(blob.toString(), "0xdeadbeef");
     return assert;
   }),
@@ -22,7 +22,7 @@ export const TESTS: Test[] = [
     // when
     const res = BytesBlob.parseBlobNoPrefix("deadbeef");
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(res.isOkay, true, "expected ok");
     const okay = res.okay;
     if (okay !== null) {
@@ -34,7 +34,7 @@ export const TESTS: Test[] = [
     // when
     const res = BytesBlob.parseBlobNoPrefix("1");
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(res.isError, true, "expected error");
     assert.isEqual(res.error, BlobParseError.InvalidNumberOfNibbles, "expected error");
     return assert;
@@ -43,7 +43,7 @@ export const TESTS: Test[] = [
     // when
     const res = BytesBlob.parseBlobNoPrefix("1234567890abcdefgh");
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(res.isError, true, "should be error");
     assert.isEqual(res.error, BlobParseError.InvalidCharacters, "expected error");
     return assert;

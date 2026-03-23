@@ -1,4 +1,4 @@
-import { Decoder, RefineArgs } from "@fluffylabs/as-lan";
+import { Decoder, RefineContext } from "@fluffylabs/as-lan";
 import { logger } from "./dispatch/common";
 import {
   dispatchFetch,
@@ -33,7 +33,8 @@ import { EcalliIndex } from "./ecalli-index";
  *   data: bytesVarLen (output buffer contents, if any)
  */
 export function refine(ptr: u32, len: u32): u64 {
-  const result = RefineArgs.parse(ptr, len);
+  const ctx = RefineContext.create();
+  const result = ctx.parseArgs(ptr, len);
   if (result.isError) {
     logger.warn(`Failed to parse refine args: ${result.error}`);
     return 0;

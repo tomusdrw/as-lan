@@ -48,7 +48,7 @@ import { Assert, Test, test } from "@fluffylabs/as-lan/test";
 
 export const TESTS: Test[] = [
   test("my feature works", () => {
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(1 + 1, 2, "basic math");
     return assert;
   }),
@@ -67,7 +67,7 @@ import { TestSuite, runTestSuites } from "@fluffylabs/as-lan/test";
 import * as myTests from "./index.test";
 
 export function runAllTests(): void {
-  runTestSuites([new TestSuite(myTests.TESTS, "my-service.ts")]);
+  runTestSuites([TestSuite.create(myTests.TESTS, "my-service.ts")]);
 }
 ```
 

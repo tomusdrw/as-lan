@@ -1,11 +1,15 @@
 import {
   AccumulateArgs,
+  AccumulateContext,
+  AccumulateItem,
   Bytes32,
   BytesBlob,
+  Decoder,
   Encoder,
   Operand,
   PendingTransfer,
   RefineArgs,
+  RefineContext,
   Response,
   WorkExecResult,
   WorkExecResultKind,
@@ -22,14 +26,15 @@ export { strBlob, unpackResult } from "@fluffylabs/as-lan/test";
 
 /** Call refine with the given ecalli dispatch payload. */
 export function callRefine(payload: Uint8Array): Response {
-  const args = new RefineArgs(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
+  const ctx = RefineContext.create();
+  const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
   const enc = Encoder.create();
-  args.encode(enc);
+  ctx.refineArgs.encode(args, enc);
   const encoded = enc.finish();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
   const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
-  return Response.decode(raw);
+  return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
 }
 
 // --- Accumulate helpers ---
@@ -38,9 +43,10 @@ const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
 
 /** Call accumulate with the given number of pre-set items. */
 export function callAccumulate(argsLength: u32): Uint8Array {
-  const args = new AccumulateArgs(7, 42, argsLength);
+  const ctx = AccumulateContext.create();
+  const args = AccumulateArgs.create(7, 42, argsLength);
   const enc = Encoder.create();
-  args.encode(enc);
+  ctx.accumulateArgs.encode(args, enc);
   const encoded = enc.finish();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
@@ -49,9 +55,10 @@ export function callAccumulate(argsLength: u32): Uint8Array {
 
 /** Encode a tagged transfer item. */
 export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64): Uint8Array {
-  const tx = new PendingTransfer(source, dest, amount, BytesBlob.empty(), gas);
+  const ctx = AccumulateContext.create();
+  const item = AccumulateItem.fromTransfer(PendingTransfer.create(source, dest, amount, BytesBlob.empty(), gas));
   const enc = Encoder.create();
-  tx.encodeTagged(enc);
+  ctx.accumulateItem.encode(item, enc);
   return enc.finish();
 }
 
@@ -60,19 +67,20 @@ export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64)
  * Returns the decoded Response from the dispatch.
  */
 export function callAccumulateWithOperand(ecalliPayload: Uint8Array): Response {
-  const op = new Operand(
+  const ctx = AccumulateContext.create();
+  const op = Operand.create(
     ZERO_HASH,
     ZERO_HASH,
     ZERO_HASH,
     ZERO_HASH,
     100000,
-    new WorkExecResult(WorkExecResultKind.Ok, BytesBlob.wrap(ecalliPayload)),
+    WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.wrap(ecalliPayload)),
     BytesBlob.empty(),
   );
   const enc = Encoder.create();
-  op.encodeTagged(enc);
+  ctx.accumulateItem.encode(AccumulateItem.fromOperand(op), enc);
   const item = enc.finish();
   TestAccumulate.setItem(0, item);
   const raw = callAccumulate(1);
-  return Response.decode(raw);
+  return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
 }

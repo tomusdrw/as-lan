@@ -1,15 +1,20 @@
-import { Bytes32, BytesBlob } from "../core/bytes";
-import { Decoder } from "../core/codec/decode";
-import { Encoder } from "../core/codec/encode";
-import { Assert, Test, test } from "../test/utils";
+import { Bytes32, BytesBlob } from "../../core/bytes";
+import { Decoder } from "../../core/codec/decode";
+import { Encoder } from "../../core/codec/encode";
+import { Assert, Test, test } from "../../test/utils";
 import {
+  AccumulateItem,
+  AccumulateItemCodec,
   AccumulateItemKind,
   Operand,
+  OperandCodec,
   PendingTransfer,
+  PendingTransferCodec,
   TRANSFER_MEMO_SIZE,
   WorkExecResult,
+  WorkExecResultCodec,
   WorkExecResultKind,
-} from "./accumulate-item";
+} from "./item";
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
 function bytes32Fill(v: u8): Bytes32 {
@@ -18,12 +23,18 @@ function bytes32Fill(v: u8): Bytes32 {
   return Bytes32.wrapUnchecked(raw);
 }
 
+// Create codec instances for tests (mirrors what a Context would do).
+const workExecResultCodec: WorkExecResultCodec = WorkExecResultCodec.create();
+const operandCodec: OperandCodec = OperandCodec.create(workExecResultCodec);
+const pendingTransferCodec: PendingTransferCodec = PendingTransferCodec.create();
+const accumulateItemCodec: AccumulateItemCodec = AccumulateItemCodec.create(operandCodec, pendingTransferCodec);
+
 /** Helper: encode to bytes, then decode back. */
 function roundtripWorkExecResult(original: WorkExecResult): WorkExecResult {
   const e = Encoder.create();
-  original.encode(e);
+  workExecResultCodec.encode(original, e);
   const d = Decoder.fromBlob(e.finish());
-  return WorkExecResult.decode(d);
+  return workExecResultCodec.decode(d).okay!;
 }
 
 export const TESTS: Test[] = [
@@ -31,14 +42,16 @@ export const TESTS: Test[] = [
 
   test("WorkExecResult roundtrip Ok with blob", () => {
     const blob = BytesBlob.parseBlob("0xdeadbeefcafe").okay!;
-    const original = new WorkExecResult(WorkExecResultKind.Ok, blob);
+    const original = WorkExecResult.create(WorkExecResultKind.Ok, blob);
 
     const e = Encoder.create();
-    original.encode(e);
+    workExecResultCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = WorkExecResult.decode(d);
+    const r = workExecResultCodec.decode(d);
 
-    const assert = new Assert();
+    const assert = Assert.create();
+    assert.isEqual(r.isOkay, true, "decode succeeded");
+    const decoded = r.okay!;
     assert.isEqual(decoded.kind, WorkExecResultKind.Ok, "kind");
     assert.isEqual(decoded.isOk, true, "isOk");
     assert.isEqualBytes(decoded.okBlob, blob, "okBlob");
@@ -48,18 +61,18 @@ export const TESTS: Test[] = [
   }),
 
   test("WorkExecResult roundtrip Ok with empty blob", () => {
-    const original = new WorkExecResult(WorkExecResultKind.Ok, BytesBlob.empty());
+    const original = WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.empty());
     const decoded = roundtripWorkExecResult(original);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.kind, WorkExecResultKind.Ok, "kind");
     assert.isEqualBytes(decoded.okBlob, BytesBlob.empty(), "empty okBlob");
     return assert;
   }),
 
   test("WorkExecResult roundtrip OutOfGas", () => {
-    const decoded = roundtripWorkExecResult(new WorkExecResult(WorkExecResultKind.OutOfGas, BytesBlob.empty()));
-    const assert = new Assert();
+    const decoded = roundtripWorkExecResult(WorkExecResult.create(WorkExecResultKind.OutOfGas, BytesBlob.empty()));
+    const assert = Assert.create();
     assert.isEqual(decoded.kind, WorkExecResultKind.OutOfGas, "kind");
     assert.isEqual(decoded.isOk, false, "isOk");
     assert.isEqualBytes(decoded.okBlob, BytesBlob.empty(), "okBlob empty");
@@ -75,9 +88,9 @@ export const TESTS: Test[] = [
       WorkExecResultKind.CodeOversize,
     ];
 
-    const assert = new Assert();
+    const assert = Assert.create();
     for (let i = 0; i < kinds.length; i++) {
-      const decoded = roundtripWorkExecResult(new WorkExecResult(kinds[i], BytesBlob.empty()));
+      const decoded = roundtripWorkExecResult(WorkExecResult.create(kinds[i], BytesBlob.empty()));
       assert.isEqual(decoded.kind, kinds[i], `kind[${i}]`);
       assert.isEqual(decoded.isOk, false, `isOk[${i}]`);
       assert.isEqualBytes(decoded.okBlob, BytesBlob.empty(), `okBlob[${i}]`);
@@ -90,22 +103,24 @@ export const TESTS: Test[] = [
   test("Operand roundtrip with Ok result", () => {
     const blob = BytesBlob.parseBlob("0xaabbccdd").okay!;
     const authOut = BytesBlob.parseBlob("0x1234").okay!;
-    const original = new Operand(
+    const original = Operand.create(
       bytes32Fill(0x01),
       bytes32Fill(0x02),
       bytes32Fill(0x03),
       bytes32Fill(0x04),
       1000,
-      new WorkExecResult(WorkExecResultKind.Ok, blob),
+      WorkExecResult.create(WorkExecResultKind.Ok, blob),
       authOut,
     );
 
     const e = Encoder.create();
-    original.encode(e);
+    operandCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = Operand.decode(d);
+    const r = operandCodec.decode(d);
 
-    const assert = new Assert();
+    const assert = Assert.create();
+    assert.isEqual(r.isOkay, true, "decode succeeded");
+    const decoded = r.okay!;
     assert.isEqualBytes(BytesBlob.wrap(decoded.hash.raw), BytesBlob.wrap(bytes32Fill(0x01).raw), "hash");
     assert.isEqualBytes(BytesBlob.wrap(decoded.exportsRoot.raw), BytesBlob.wrap(bytes32Fill(0x02).raw), "exportsRoot");
     assert.isEqualBytes(
@@ -124,49 +139,47 @@ export const TESTS: Test[] = [
   }),
 
   test("Operand roundtrip with empty authorizationOutput", () => {
-    const original = new Operand(
+    const original = Operand.create(
       bytes32Fill(0xaa),
       bytes32Fill(0xbb),
       bytes32Fill(0xcc),
       bytes32Fill(0xdd),
       42,
-      new WorkExecResult(WorkExecResultKind.Panic, BytesBlob.empty()),
+      WorkExecResult.create(WorkExecResultKind.Panic, BytesBlob.empty()),
       BytesBlob.empty(),
     );
 
     const e = Encoder.create();
-    original.encode(e);
-    const d = Decoder.fromBlob(e.finish());
-    const decoded = Operand.decode(d);
+    operandCodec.encode(original, e);
+    const decoded = operandCodec.decode(Decoder.fromBlob(e.finish())).okay!;
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.gas, 42, "gas");
     assert.isEqual(decoded.result.kind, WorkExecResultKind.Panic, "result kind");
     assert.isEqualBytes(decoded.authorizationOutput, BytesBlob.empty(), "empty authOut");
-    assert.isEqual(d.isFinished(), true, "finished");
     return assert;
   }),
 
   test("Operand encodeTagged roundtrip", () => {
-    const original = new Operand(
+    const original = Operand.create(
       bytes32Fill(0x11),
       bytes32Fill(0x22),
       bytes32Fill(0x33),
       bytes32Fill(0x44),
       500,
-      new WorkExecResult(WorkExecResultKind.Ok, BytesBlob.parseBlob("0xff").okay!),
+      WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.parseBlob("0xff").okay!),
       BytesBlob.parseBlob("0xab").okay!,
     );
 
     const e = Encoder.create();
-    original.encodeTagged(e);
+    accumulateItemCodec.encode(AccumulateItem.fromOperand(original), e);
     const d = Decoder.fromBlob(e.finish());
 
-    const assert = new Assert();
-    const tag = u32(d.varU64());
+    const assert = Assert.create();
+    const tag = d.varU32();
     assert.isEqual(tag, AccumulateItemKind.Operand, "tag");
 
-    const decoded = Operand.decode(d);
+    const decoded = operandCodec.decode(d).okay!;
     assert.isEqualBytes(BytesBlob.wrap(decoded.hash.raw), BytesBlob.wrap(bytes32Fill(0x11).raw), "hash");
     assert.isEqual(decoded.gas, 500, "gas");
     assert.isEqual(decoded.result.kind, WorkExecResultKind.Ok, "result kind");
@@ -181,14 +194,14 @@ export const TESTS: Test[] = [
     for (let i: u32 = 0; i < TRANSFER_MEMO_SIZE; i++) {
       memo[i] = u8(i & 0xff);
     }
-    const original = new PendingTransfer(100, 200, 999999, BytesBlob.wrap(memo), 50000);
+    const original = PendingTransfer.create(100, 200, 999999, BytesBlob.wrap(memo), 50000);
 
     const e = Encoder.create();
-    original.encode(e);
+    pendingTransferCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.source, 100, "source");
     assert.isEqual(decoded.destination, 200, "destination");
     assert.isEqual(decoded.amount, 999999, "amount");
@@ -201,18 +214,17 @@ export const TESTS: Test[] = [
 
   test("PendingTransfer roundtrip with short memo (zero-padded)", () => {
     const shortMemo = BytesBlob.parseBlob("0xdeadbeef").okay!;
-    const original = new PendingTransfer(1, 2, 100, shortMemo, 500);
+    const original = PendingTransfer.create(1, 2, 100, shortMemo, 500);
 
     const e = Encoder.create();
-    original.encode(e);
+    pendingTransferCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
 
-    // After encode/decode, the memo should be 128 bytes (zero-padded).
     const expectedMemo = new Uint8Array(TRANSFER_MEMO_SIZE);
     expectedMemo.set(shortMemo.raw);
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.source, 1, "source");
     assert.isEqual(decoded.destination, 2, "destination");
     assert.isEqual(decoded.amount, 100, "amount");
@@ -223,14 +235,14 @@ export const TESTS: Test[] = [
   }),
 
   test("PendingTransfer roundtrip with empty memo", () => {
-    const original = new PendingTransfer(0, 0xffffffff, u64.MAX_VALUE, BytesBlob.empty(), 0);
+    const original = PendingTransfer.create(0, 0xffffffff, u64.MAX_VALUE, BytesBlob.empty(), 0);
 
     const e = Encoder.create();
-    original.encode(e);
+    pendingTransferCodec.encode(original, e);
     const d = Decoder.fromBlob(e.finish());
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
 
-    const assert = new Assert();
+    const assert = Assert.create();
     assert.isEqual(decoded.source, 0, "source zero");
     assert.isEqual(decoded.destination, 0xffffffff, "destination max");
     assert.isEqual(decoded.amount, u64.MAX_VALUE, "amount max");
@@ -241,22 +253,55 @@ export const TESTS: Test[] = [
   }),
 
   test("PendingTransfer encodeTagged roundtrip", () => {
-    const original = new PendingTransfer(10, 20, 300, BytesBlob.empty(), 400);
+    const original = PendingTransfer.create(10, 20, 300, BytesBlob.empty(), 400);
 
     const e = Encoder.create();
-    original.encodeTagged(e);
+    accumulateItemCodec.encode(AccumulateItem.fromTransfer(original), e);
     const d = Decoder.fromBlob(e.finish());
 
-    const assert = new Assert();
-    const tag = u32(d.varU64());
+    const assert = Assert.create();
+    const tag = d.varU32();
     assert.isEqual(tag, AccumulateItemKind.Transfer, "tag");
 
-    const decoded = PendingTransfer.decode(d);
+    const decoded = pendingTransferCodec.decode(d).okay!;
     assert.isEqual(decoded.source, 10, "source");
     assert.isEqual(decoded.destination, 20, "destination");
     assert.isEqual(decoded.amount, 300, "amount");
     assert.isEqual(decoded.gas, 400, "gas");
     assert.isEqual(d.isFinished(), true, "finished");
+    return assert;
+  }),
+
+  // ─── Negative decode tests ───
+
+  test("WorkExecResult decode rejects invalid kind", () => {
+    const e = Encoder.create();
+    e.varU64(99);
+    const d = Decoder.fromBlob(e.finish());
+    const r = workExecResultCodec.decode(d);
+
+    const assert = Assert.create();
+    assert.isEqual(r.isError, true, "should fail");
+    return assert;
+  }),
+
+  test("AccumulateItem decode rejects unknown tag", () => {
+    const e = Encoder.create();
+    e.varU64(5);
+    const d = Decoder.fromBlob(e.finish());
+    const r = accumulateItemCodec.decode(d);
+
+    const assert = Assert.create();
+    assert.isEqual(r.isError, true, "should fail");
+    return assert;
+  }),
+
+  test("AccumulateItem decode rejects empty input", () => {
+    const d = Decoder.fromBlob(new Uint8Array(0));
+    const r = accumulateItemCodec.decode(d);
+
+    const assert = Assert.create();
+    assert.isEqual(r.isError, true, "should fail on empty");
     return assert;
   }),
 ];

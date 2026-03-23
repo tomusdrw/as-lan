@@ -4,7 +4,7 @@ import * as refineTests from "./refine.test";
 
 export function runAllTests(): void {
   runTestSuites([
-    new TestSuite(refineTests.TESTS, "refine.test.ts"),
-    new TestSuite(accumulateTests.TESTS, "accumulate.test.ts"),
+    TestSuite.create(refineTests.TESTS, "refine.test.ts"),
+    TestSuite.create(accumulateTests.TESTS, "accumulate.test.ts"),
   ]);
 }

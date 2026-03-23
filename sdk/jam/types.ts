@@ -12,6 +12,8 @@ export type CodeHash = Bytes32;
 export type PayloadHash = Bytes32;
 // blake2b
 export type WorkPackageHash = Bytes32;
+// blake2b (from VRF)
+export type EntropyHash = Bytes32;
 
 export type CoreIndex = u16;
 export type Slot = u32;

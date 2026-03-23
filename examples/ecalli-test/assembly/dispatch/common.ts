@@ -1,6 +1,6 @@
 import { Logger } from "@fluffylabs/as-lan";
 
-export const logger: Logger = new Logger("ecalli-test");
+export const logger: Logger = Logger.create("ecalli-test");
 
 /** Calculate how many bytes were written to the output buffer. */
 export function outputLen(result: i64, offset: u32, maxLen: u32): u32 {

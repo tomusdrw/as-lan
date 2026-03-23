@@ -11,7 +11,7 @@ const MAX_MSG: u32 = 256;
  * avoiding AssemblyScript's String machinery (concat, UTF8.encode, toString).
  *
  * Usage:
- *   const log = new LogMsg("target");
+ *   const log = LogMsg.create("target");
  *   log.str("count: ").u64(42).info();
  */
 export class LogMsg {
@@ -20,7 +20,11 @@ export class LogMsg {
   private _bufPtr: usize;
   private _pos: u32;
 
-  constructor(target: string) {
+  static create(target: string): LogMsg {
+    return new LogMsg(target);
+  }
+
+  private constructor(target: string) {
     // Encode target as ASCII bytes into raw memory
     const tLen = <u32>target.length;
     this._targetPtr = heap.alloc(tLen);

@@ -42,7 +42,7 @@ export class BytesBlob {
     return Result.ok<BytesBlob, BlobParseError>(new BytesBlob(bytes));
   }
 
-  protected constructor(public readonly raw: Uint8Array) {}
+  private constructor(public readonly raw: Uint8Array) {}
 
   toString(): string {
     return bytesToHexString(this.raw);
@@ -73,7 +73,7 @@ export class Bytes32 {
   public readonly bytes: BytesBlob;
   public readonly raw: Uint8Array;
 
-  protected constructor(data: Uint8Array) {
+  private constructor(data: Uint8Array) {
     const bytes = BytesBlob.wrap(data);
     this.bytes = bytes;
     this.raw = bytes.raw;
