@@ -68,7 +68,12 @@ export class FetchBuffer {
  * If the buffer is too small, it is expanded to the exact
  * required size and the fetch is retried.
  */
-export function fetchRaw(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<Uint8Array, FetchError> {
+export function fetchRaw(
+  fb: FetchBuffer,
+  kind: FetchKind,
+  param1: u32 = 0,
+  param2: u32 = 0,
+): Result<Uint8Array, FetchError> {
   let result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
   if (result < 0) return Result.err<Uint8Array, FetchError>(FetchError.None);
 
@@ -84,14 +89,25 @@ export function fetchRaw(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, para
 }
 
 /** Fetch and wrap as BytesBlob. */
-export function fetchBlob(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<BytesBlob, FetchError> {
+export function fetchBlob(
+  fb: FetchBuffer,
+  kind: FetchKind,
+  param1: u32 = 0,
+  param2: u32 = 0,
+): Result<BytesBlob, FetchError> {
   const r = fetchRaw(fb, kind, param1, param2);
   if (r.isError) return Result.err<BytesBlob, FetchError>(r.error);
   return Result.ok<BytesBlob, FetchError>(BytesBlob.wrap(r.okay!));
 }
 
 /** Fetch raw bytes, decode using the given codec, and verify no trailing bytes. */
-export function fetchAndDecode<T>(fb: FetchBuffer, codec: TryDecode<T>, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<T, FetchError> {
+export function fetchAndDecode<T>(
+  fb: FetchBuffer,
+  codec: TryDecode<T>,
+  kind: FetchKind,
+  param1: u32 = 0,
+  param2: u32 = 0,
+): Result<T, FetchError> {
   const raw = fetchRaw(fb, kind, param1, param2);
   if (raw.isError) return Result.err<T, FetchError>(raw.error);
   const d = Decoder.fromBlob(raw.okay!);

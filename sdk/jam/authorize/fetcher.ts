@@ -10,13 +10,7 @@
 import { BytesBlob } from "../../core/bytes";
 import { Result } from "../../core/result";
 import { FetchError } from "../fetcher";
-import {
-  AuthorizerInfo,
-  ProtocolConstants,
-  RefinementContext,
-  WorkItemInfo,
-  WorkPackage,
-} from "../work-package";
+import { AuthorizerInfo, ProtocolConstants, RefinementContext, WorkItemInfo, WorkPackage } from "../work-package";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
 export class AuthorizeFetcher {
@@ -31,26 +25,42 @@ export class AuthorizeFetcher {
   }
 
   /** Protocol constants (kind 0). */
-  constants(): Result<ProtocolConstants, FetchError> { return this.wp.constants(); }
+  constants(): Result<ProtocolConstants, FetchError> {
+    return this.wp.constants();
+  }
 
   /** Full work package (kind 7). */
-  workPackage(): Result<WorkPackage, FetchError> { return this.wp.fetchWorkPackage(); }
+  workPackage(): Result<WorkPackage, FetchError> {
+    return this.wp.fetchWorkPackage();
+  }
 
   /** Authorizer code hash and config (kind 8). */
-  authorizer(): Result<AuthorizerInfo, FetchError> { return this.wp.authorizer(); }
+  authorizer(): Result<AuthorizerInfo, FetchError> {
+    return this.wp.authorizer();
+  }
 
   /** Authorization token blob (kind 9). */
-  authorizationToken(): Result<BytesBlob, FetchError> { return this.wp.authorizationToken(); }
+  authorizationToken(): Result<BytesBlob, FetchError> {
+    return this.wp.authorizationToken();
+  }
 
   /** Refinement context (kind 10). */
-  refineContext(): Result<RefinementContext, FetchError> { return this.wp.fetchRefineContext(); }
+  refineContext(): Result<RefinementContext, FetchError> {
+    return this.wp.fetchRefineContext();
+  }
 
   /** All work-item summaries (kind 11). */
-  allWorkItems(): Result<StaticArray<WorkItemInfo>, FetchError> { return this.wp.allWorkItems(); }
+  allWorkItems(): Result<StaticArray<WorkItemInfo>, FetchError> {
+    return this.wp.allWorkItems();
+  }
 
   /** Single work-item summary (kind 12). */
-  oneWorkItem(workItem: u32): Result<WorkItemInfo, FetchError> { return this.wp.oneWorkItem(workItem); }
+  oneWorkItem(workItem: u32): Result<WorkItemInfo, FetchError> {
+    return this.wp.oneWorkItem(workItem);
+  }
 
   /** Work-item payload blob (kind 13). */
-  workItemPayload(workItem: u32): Result<BytesBlob, FetchError> { return this.wp.workItemPayload(workItem); }
+  workItemPayload(workItem: u32): Result<BytesBlob, FetchError> {
+    return this.wp.workItemPayload(workItem);
+  }
 }

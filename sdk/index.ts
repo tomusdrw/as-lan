@@ -12,7 +12,7 @@ export * from "./ecalli";
 export * from "./jam/accumulate";
 export * from "./jam/authorize";
 // Fetcher primitives + work package types
-export { FetchError, FetchBuffer, fetchRaw, fetchBlob, fetchAndDecode } from "./jam/fetcher";
+export { FetchBuffer, FetchError, fetchAndDecode, fetchBlob, fetchRaw } from "./jam/fetcher";
 export * from "./jam/refine";
 export * from "./jam/service";
 export * from "./jam/types";

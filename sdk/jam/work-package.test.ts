@@ -23,15 +23,15 @@ import {
 } from "./work-package";
 
 // Create shared codec instances for tests.
-const _bytes32 = Bytes32Codec.create();
-const _importRef = ImportRefCodec.create();
-const _extrinsicRef = ExtrinsicRefCodec.create();
-const _refinementCtx = RefinementContextCodec.create(_bytes32);
-const _workItem = WorkItemCodec.create(_importRef, _extrinsicRef);
-const _protocolConstants = ProtocolConstantsCodec.create();
-const _authorizerInfo = AuthorizerInfoCodec.create();
-const _workItemInfo = WorkItemInfoCodec.create();
-const _workPackage = WorkPackageCodec.create(_refinementCtx, _workItem);
+const _bytes32: Bytes32Codec = Bytes32Codec.create();
+const _importRef: ImportRefCodec = ImportRefCodec.create();
+const _extrinsicRef: ExtrinsicRefCodec = ExtrinsicRefCodec.create();
+const _refinementCtx: RefinementContextCodec = RefinementContextCodec.create(_bytes32);
+const _workItem: WorkItemCodec = WorkItemCodec.create(_importRef, _extrinsicRef);
+const _protocolConstants: ProtocolConstantsCodec = ProtocolConstantsCodec.create();
+const _authorizerInfo: AuthorizerInfoCodec = AuthorizerInfoCodec.create();
+const _workItemInfo: WorkItemInfoCodec = WorkItemInfoCodec.create();
+const _workPackage: WorkPackageCodec = WorkPackageCodec.create(_refinementCtx, _workItem);
 
 function bytes32Fill(v: u8): Bytes32 {
   const raw = new Uint8Array(32);

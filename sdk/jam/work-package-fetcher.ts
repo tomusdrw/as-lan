@@ -33,7 +33,7 @@ export class WorkPackageFetcher {
     return new WorkPackageFetcher(bufSize);
   }
 
-  readonly fb: FetchBuffer;
+  private readonly fb: FetchBuffer;
 
   // Lazy codec fields
   private _protocolConstants: ProtocolConstantsCodec | null = null;
@@ -130,5 +130,10 @@ export class WorkPackageFetcher {
   /** Work-item payload blob (kind 13). */
   workItemPayload(workItem: u32): Result<BytesBlob, FetchError> {
     return fetchBlob(this.fb, FetchKind.WorkItemPayload, workItem);
+  }
+
+  /** Fetch a raw blob by kind — used by composing fetchers for context-specific kinds. */
+  blob(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<BytesBlob, FetchError> {
+    return fetchBlob(this.fb, kind, param1, param2);
   }
 }
