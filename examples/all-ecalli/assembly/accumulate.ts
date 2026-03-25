@@ -59,15 +59,11 @@ export function accumulate(ptr: u32, len: u32): u64 {
     count++;
   }
 
-  // ─── Ecalli 1: fetch(kind=0 Constants) ────────────────────────────
-  {
-    const buf = new Uint8Array(256);
-    const r = fetch(u32(buf.dataStart), 0, 256, FetchKind.Constants, 0, 0);
-    logger.info(`[1] fetch(Constants) = ${r}`);
-    out.varU64(1);
-    out.u64(r);
-    count++;
-  }
+  // ─── Ecalli 1: fetch — all accumulate-context kinds (0, 1, 14, 15) ─
+  count += fetchAll(out, FetchKind.Constants, "Constants", 0, 0);
+  count += fetchAll(out, FetchKind.Entropy, "Entropy", 0, 0);
+  count += fetchAll(out, FetchKind.AllTransfersAndOperands, "AllTransfersAndOperands", 0, 0);
+  count += fetchAll(out, FetchKind.OneTransferOrOperand, "OneTransferOrOperand", 0, 0);
 
   // ─── Ecalli 2: lookup(current service, zero hash) ─────────────────
   {
@@ -267,6 +263,16 @@ export function accumulate(ptr: u32, len: u32): u64 {
   finalEnc.varU64(u64(count));
   finalEnc.bytesFixLen(results);
   return Response.with(i64(count), finalEnc.finish());
+}
+
+/** Call fetch with the given kind and record the result. Returns 1. */
+function fetchAll(out: Encoder, kind: u32, name: string, param1: u32, param2: u32): u32 {
+  const buf = new Uint8Array(256);
+  const r = fetch(u32(buf.dataStart), 0, 256, kind, param1, param2);
+  logger.info(`[1] fetch(${name}) = ${r}`);
+  out.varU64(1);
+  out.u64(r);
+  return 1;
 }
 
 /** Encode a string as a Uint8Array (UTF-8). */

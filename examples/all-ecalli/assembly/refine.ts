@@ -53,15 +53,21 @@ export function refine(ptr: u32, len: u32): u64 {
     count++;
   }
 
-  // ─── Ecalli 1: fetch(kind=7 WorkPackage) ──────────────────────────
-  {
-    const buf = new Uint8Array(256);
-    const r = fetch(u32(buf.dataStart), 0, 256, FetchKind.WorkPackage, 0, 0);
-    logger.info(`[1] fetch(WorkPackage) = ${r}`);
-    out.varU64(1);
-    out.u64(r);
-    count++;
-  }
+  // ─── Ecalli 1: fetch — all refine-context kinds (0-13) ─────────────
+  count += fetchAll(out, FetchKind.Constants, "Constants", 0, 0);
+  count += fetchAll(out, FetchKind.Entropy, "Entropy", 0, 0);
+  count += fetchAll(out, FetchKind.AuthorizerTrace, "AuthorizerTrace", 0, 0);
+  count += fetchAll(out, FetchKind.OtherWorkItemExtrinsics, "OtherWorkItemExtrinsics", 0, 0);
+  count += fetchAll(out, FetchKind.MyExtrinsics, "MyExtrinsics", 0, 0);
+  count += fetchAll(out, FetchKind.OtherWorkItemImports, "OtherWorkItemImports", 0, 0);
+  count += fetchAll(out, FetchKind.MyImports, "MyImports", 0, 0);
+  count += fetchAll(out, FetchKind.WorkPackage, "WorkPackage", 0, 0);
+  count += fetchAll(out, FetchKind.Authorizer, "Authorizer", 0, 0);
+  count += fetchAll(out, FetchKind.AuthorizationToken, "AuthorizationToken", 0, 0);
+  count += fetchAll(out, FetchKind.RefineContext, "RefineContext", 0, 0);
+  count += fetchAll(out, FetchKind.AllWorkItems, "AllWorkItems", 0, 0);
+  count += fetchAll(out, FetchKind.OneWorkItem, "OneWorkItem", 0, 0);
+  count += fetchAll(out, FetchKind.WorkItemPayload, "WorkItemPayload", 0, 0);
 
   // ─── Ecalli 2: lookup(current service, zero hash) ─────────────────
   {
@@ -213,6 +219,16 @@ export function refine(ptr: u32, len: u32): u64 {
   finalEnc.varU64(u64(count));
   finalEnc.bytesFixLen(results);
   return Response.with(i64(count), finalEnc.finish());
+}
+
+/** Call fetch with the given kind and record the result. Returns 1. */
+function fetchAll(out: Encoder, kind: u32, name: string, param1: u32, param2: u32): u32 {
+  const buf = new Uint8Array(256);
+  const r = fetch(u32(buf.dataStart), 0, 256, kind, param1, param2);
+  logger.info(`[1] fetch(${name}) = ${r}`);
+  out.varU64(1);
+  out.u64(r);
+  return 1;
 }
 
 /** Encode a string as a Uint8Array (UTF-8). */

@@ -13,10 +13,10 @@ import { Assert, Test, test, unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
 import { refine } from "./refine";
 
-/** Expected number of ecallis invoked by refine (general 0-5,100 + refine 6-13). */
-const REFINE_ECALLI_COUNT: u32 = 15;
-/** Expected number of ecallis invoked by accumulate (general 0-5,100 + accumulate 14-26). */
-const ACCUMULATE_ECALLI_COUNT: u32 = 20;
+/** Expected number of ecalli calls by refine (general 0-5,100 + fetch kinds 0-13 + refine 6-13). */
+const REFINE_ECALLI_COUNT: u32 = 28;
+/** Expected number of ecalli calls by accumulate (general 0-5,100 + fetch kinds 0,1,14,15 + accumulate 14-26). */
+const ACCUMULATE_ECALLI_COUNT: u32 = 23;
 
 function callRefine(): Response {
   const ctx = RefineContext.create();
