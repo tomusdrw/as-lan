@@ -1,8 +1,9 @@
 /**
  * Accumulate invocation context.
  *
- * Holds all codec instances and provides convenience methods for
- * parsing arguments, encoding responses, and creating the fetcher.
+ * Provides convenience methods for parsing arguments, encoding responses,
+ * and accessing accumulate-item codecs. Codecs are created lazily — only
+ * when first accessed.
  */
 
 import { Bytes32, BytesBlob } from "../../core/bytes";
@@ -20,7 +21,6 @@ import {
   Response,
   ResponseCodec,
 } from "../service";
-import { ProtocolConstantsCodec } from "../work-package";
 import { AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
 
 export class AccumulateContext {
@@ -28,32 +28,51 @@ export class AccumulateContext {
     return new AccumulateContext();
   }
 
-  // Codecs
-  readonly bytes32: Bytes32Codec;
-  readonly protocolConstants: ProtocolConstantsCodec;
-  readonly workExecResult: WorkExecResultCodec;
-  readonly operand: OperandCodec;
-  readonly pendingTransfer: PendingTransferCodec;
-  readonly accumulateItem: AccumulateItemCodec;
-  readonly accumulateArgs: AccumulateArgsCodec;
-  readonly response: ResponseCodec;
-  readonly optionalCodeHash: OptionalCodeHashCodec;
+  // Lazy codec fields
+  private _accumulateArgs: AccumulateArgsCodec | null = null;
+  private _response: ResponseCodec | null = null;
+  private _optionalCodeHash: OptionalCodeHashCodec | null = null;
+  private _workExecResult: WorkExecResultCodec | null = null;
+  private _operand: OperandCodec | null = null;
+  private _pendingTransfer: PendingTransferCodec | null = null;
+  private _accumulateItem: AccumulateItemCodec | null = null;
 
-  private constructor() {
-    const bytes32 = Bytes32Codec.create();
-    const workExecResult = WorkExecResultCodec.create();
-    const pendingTransfer = PendingTransferCodec.create();
-    const operand = OperandCodec.create(workExecResult);
+  private constructor() {}
 
-    this.bytes32 = bytes32;
-    this.protocolConstants = ProtocolConstantsCodec.create();
-    this.workExecResult = workExecResult;
-    this.operand = operand;
-    this.pendingTransfer = pendingTransfer;
-    this.accumulateItem = AccumulateItemCodec.create(operand, pendingTransfer);
-    this.accumulateArgs = AccumulateArgsCodec.create();
-    this.response = ResponseCodec.create();
-    this.optionalCodeHash = OptionalCodeHashCodec.create(bytes32);
+  get accumulateArgs(): AccumulateArgsCodec {
+    if (this._accumulateArgs === null) this._accumulateArgs = AccumulateArgsCodec.create();
+    return this._accumulateArgs!;
+  }
+
+  get response(): ResponseCodec {
+    if (this._response === null) this._response = ResponseCodec.create();
+    return this._response!;
+  }
+
+  get optionalCodeHash(): OptionalCodeHashCodec {
+    if (this._optionalCodeHash === null) this._optionalCodeHash = OptionalCodeHashCodec.create(Bytes32Codec.create());
+    return this._optionalCodeHash!;
+  }
+
+  get workExecResult(): WorkExecResultCodec {
+    if (this._workExecResult === null) this._workExecResult = WorkExecResultCodec.create();
+    return this._workExecResult!;
+  }
+
+  get operand(): OperandCodec {
+    if (this._operand === null) this._operand = OperandCodec.create(this.workExecResult);
+    return this._operand!;
+  }
+
+  get pendingTransfer(): PendingTransferCodec {
+    if (this._pendingTransfer === null) this._pendingTransfer = PendingTransferCodec.create();
+    return this._pendingTransfer!;
+  }
+
+  get accumulateItem(): AccumulateItemCodec {
+    if (this._accumulateItem === null)
+      this._accumulateItem = AccumulateItemCodec.create(this.operand, this.pendingTransfer);
+    return this._accumulateItem!;
   }
 
   /** Parse raw accumulate arguments from (ptr, len). */

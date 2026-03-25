@@ -11,13 +11,12 @@ export * from "./ecalli";
 // JAM types
 export * from "./jam/accumulate";
 export * from "./jam/authorize";
-// Fetcher base + work package types
-export { FetchError, Fetcher } from "./jam/fetcher";
+// Fetcher primitives + work package types
+export { FetchBuffer, FetchError, fetchAndDecode, fetchBlob, fetchRaw } from "./jam/fetcher";
 export * from "./jam/refine";
 export * from "./jam/service";
 export * from "./jam/types";
 export * from "./jam/work-package";
-export { WorkPackageContext } from "./jam/work-package-context";
 export { WorkPackageFetcher } from "./jam/work-package-fetcher";
 
 // Logger

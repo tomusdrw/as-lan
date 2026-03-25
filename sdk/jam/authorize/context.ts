@@ -1,17 +1,15 @@
 /**
  * Authorize (is_authorized) invocation context.
  *
- * Holds all codec instances for work-package data.
+ * This context has no ABI parsing/encoding of its own — it only
+ * provides the identity for the authorize entry point.
+ * Typed fetch functions are available in ./fetcher.ts.
  */
 
-import { WorkPackageContext } from "../work-package-context";
-
-export class AuthorizeContext extends WorkPackageContext {
+export class AuthorizeContext {
   static create(): AuthorizeContext {
     return new AuthorizeContext();
   }
 
-  private constructor() {
-    super();
-  }
+  private constructor() {}
 }
