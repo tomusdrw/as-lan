@@ -18,7 +18,7 @@ export class BytesBlob {
 
   static parseBlob(v: string): Result<BytesBlob, BlobParseError> {
     if (v.startsWith("0x")) {
-      return BytesBlob.parseBlobNoPrefix(v.substring(2));
+      return BytesBlob.parseBlobNoPrefix(v.slice(2));
     }
     return Result.err<BytesBlob, BlobParseError>(BlobParseError.MissingPrefix);
   }
@@ -31,7 +31,7 @@ export class BytesBlob {
 
     const bytes = new Uint8Array(len / 2);
     for (let i = 0; i < len - 1; i += 2) {
-      const c = v.substring(i, i + 2);
+      const c = v.slice(i, i + 2);
       const b = byteFromString(c);
       if (u8IsError(b)) {
         return Result.err<BytesBlob, BlobParseError>(BlobParseError.InvalidCharacters);
