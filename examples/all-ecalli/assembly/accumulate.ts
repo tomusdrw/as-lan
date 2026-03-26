@@ -31,6 +31,19 @@ import {
 
 const logger: Logger = Logger.create("all-ecalli");
 
+// ─── Test protocol constants (must match your host configuration) ────
+// Auth queue: Q entries × O code hashes × 32 bytes each.
+const TEST_Q: u32 = 2; // authorizersQueueSize
+const TEST_O: u32 = 2; // maxAuthorizersPerCore
+const AUTH_QUEUE_SIZE: u32 = TEST_Q * TEST_O * 32;
+
+// Auto-accumulate: n service IDs × 4 bytes each.
+const AUTO_ACCUM_COUNT: u32 = 2;
+
+// Validator key: Ed25519(32) + Bandersnatch(32) + BLS(144) + metadata(128) = 336 bytes.
+const VALIDATOR_KEY_SIZE: u32 = 336;
+const TEST_V: u32 = 6; // validatorsCount
+
 /**
  * Accumulate entry point that invokes every host call available in the
  * accumulate context (general 0-5, 100 + accumulate 14-26) one by one
@@ -119,21 +132,21 @@ export function accumulate(ptr: u32, len: u32): u64 {
     count++;
   }
 
-  // ─── Ecalli 14: bless(manager, auth_queue, delegator, registrar, auto_accum) ──
+  // ─── Ecalli 14: bless(manager=1, auth_queue, delegator=2, registrar=3, auto_accum) ──
   {
-    const authQueue = new Uint8Array(0);
-    const autoAccum = new Uint8Array(0);
-    const r = bless(1, u32(authQueue.dataStart), 2, 3, u32(autoAccum.dataStart), 0);
+    const authQueue = buildAuthQueue();
+    const autoAccum = buildAutoAccum();
+    const r = bless(1, u32(authQueue.dataStart), 2, 3, u32(autoAccum.dataStart), AUTO_ACCUM_COUNT);
     logger.info(`[14] bless() = ${r}`);
     out.varU64(14);
     out.u64(r);
     count++;
   }
 
-  // ─── Ecalli 15: assign(core=0, auth_queue, assigners=1) ───────────
+  // ─── Ecalli 15: assign(core=0, auth_queue, assigners=0b11) ────────
   {
-    const authQueue = new Uint8Array(0);
-    const r = assign(0, u32(authQueue.dataStart), 1);
+    const authQueue = buildAuthQueue();
+    const r = assign(0, u32(authQueue.dataStart), 0b11);
     logger.info(`[15] assign() = ${r}`);
     out.varU64(15);
     out.u64(r);
@@ -142,7 +155,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 16: designate(validators) ─────────────────────────────
   {
-    const validators = new Uint8Array(0);
+    const validators = buildValidators();
     const r = designate(u32(validators.dataStart));
     logger.info(`[16] designate() = ${r}`);
     out.varU64(16);
@@ -273,6 +286,66 @@ function fetchAll(out: Encoder, kind: u32, name: string, param1: u32, param2: u3
   out.varU64(1);
   out.u64(r);
   return 1;
+}
+
+/**
+ * Build a test auth queue: Q×O code hashes (32 bytes each).
+ * Each hash is filled with a pattern: byte[0]=queue_slot, byte[1]=auth_index,
+ * remaining bytes=0xCC so the host can identify each entry.
+ */
+function buildAuthQueue(): Uint8Array {
+  const buf = new Uint8Array(AUTH_QUEUE_SIZE);
+  for (let q: u32 = 0; q < TEST_Q; q++) {
+    for (let o: u32 = 0; o < TEST_O; o++) {
+      const offset = (q * TEST_O + o) * 32;
+      buf[offset] = u8(q);
+      buf[offset + 1] = u8(o);
+      for (let i: u32 = 2; i < 32; i++) {
+        buf[offset + i] = 0xcc;
+      }
+    }
+  }
+  return buf;
+}
+
+/**
+ * Build a test auto-accumulate service list: AUTO_ACCUM_COUNT u32 service IDs.
+ * Uses service IDs 100, 200 so they're easy to spot on the host side.
+ */
+function buildAutoAccum(): Uint8Array {
+  const enc = Encoder.into(new Uint8Array(AUTO_ACCUM_COUNT * 4));
+  for (let i: u32 = 0; i < AUTO_ACCUM_COUNT; i++) {
+    enc.u32((i + 1) * 100);
+  }
+  return enc.finish();
+}
+
+/**
+ * Build test validator keys: TEST_V entries, each VALIDATOR_KEY_SIZE bytes.
+ * Layout per key: Ed25519(32) + Bandersnatch(32) + BLS(144) + metadata(128).
+ * Each section is filled with a marker byte so the host can verify alignment:
+ *   Ed25519:     0xE0 | validator_index
+ *   Bandersnatch: 0xB0 | validator_index
+ *   BLS:         0xBB
+ *   metadata:    0xAA
+ * Byte[0] of each section additionally encodes the validator index.
+ */
+function buildValidators(): Uint8Array {
+  const buf = new Uint8Array(TEST_V * VALIDATOR_KEY_SIZE);
+  for (let v: u32 = 0; v < TEST_V; v++) {
+    const base = v * VALIDATOR_KEY_SIZE;
+    // Ed25519 (32 bytes)
+    for (let i: u32 = 0; i < 32; i++) buf[base + i] = 0xe0 | u8(v);
+    // Bandersnatch (32 bytes)
+    for (let i: u32 = 0; i < 32; i++) buf[base + 32 + i] = 0xb0 | u8(v);
+    // BLS (144 bytes)
+    for (let i: u32 = 0; i < 144; i++) buf[base + 64 + i] = 0xbb;
+    buf[base + 64] = u8(v); // first byte = validator index
+    // metadata (128 bytes)
+    for (let i: u32 = 0; i < 128; i++) buf[base + 208 + i] = 0xaa;
+    buf[base + 208] = u8(v); // first byte = validator index
+  }
+  return buf;
 }
 
 /** Encode a string as a Uint8Array (UTF-8). */
