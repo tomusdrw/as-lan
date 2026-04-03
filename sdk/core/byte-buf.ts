@@ -117,7 +117,7 @@ export class ByteBuf {
         store<u8>(this._ptr + this._pos, 45); // '-'
         this._pos++;
       }
-      return this.u32(<u32>(-v));
+      return this.u32(<u32>-v);
     }
     return this.u32(<u32>v);
   }

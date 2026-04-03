@@ -1,4 +1,4 @@
-import { AuthorizeContext, AuthorizeFetcher, ByteBuf, LogMsg, gas, panic, ptrAndLen } from "@fluffylabs/as-lan";
+import { AuthorizeContext, AuthorizeFetcher, ByteBuf, gas, LogMsg, panic, ptrAndLen } from "@fluffylabs/as-lan";
 
 const logger: LogMsg = LogMsg.create("auth");
 

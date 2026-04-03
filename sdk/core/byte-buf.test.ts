@@ -67,7 +67,7 @@ export const TESTS: Test[] = [
 
   test("u64 large value", () => {
     const a = Assert.create();
-    const result = ByteBuf.create(32).u64(18446744073709551615).finish();
+    const result = ByteBuf.create(32).u64(u64.MAX_VALUE).finish();
     assertBytes(a, result, ascii("18446744073709551615"), "u64 max");
     return a;
   }),

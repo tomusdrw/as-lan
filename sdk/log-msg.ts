@@ -1,5 +1,5 @@
 import { ByteBuf } from "./core/byte-buf";
-import {BytesBlob} from "./core/bytes";
+import { BytesBlob } from "./core/bytes";
 import { log } from "./ecalli";
 import { LogLevel } from "./logger";
 
