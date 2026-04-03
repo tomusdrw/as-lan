@@ -120,10 +120,13 @@ Fetchers receive their context via constructor: `AccumulateFetcher.create(ctx)`,
 
 High-level wrappers around the raw `fetch` ecalli (Ω_Y, GP Appendix B.5).
 Each fetcher receives its context via constructor and exposes typed fetch methods.
-All methods return `Result<T, FetchError>` with typed payloads.
+
+Methods that fetch **non-indexed, always-present** data return `T` directly and
+panic if the host returns NONE (host-contract violation). Methods that fetch
+**indexed** data (where the index may be out of bounds) return `T | null`.
 
 ```text
-Fetcher (base: fetchRaw, fetchBlob, fetchAndDecode)
+Fetcher primitives (fetchRaw, fetchRawOrPanic, fetchBlob, fetchBlobOrPanic, fetchAndDecode, fetchAndDecodeOptional)
   ├── WorkPackageFetcher(ctx) (kinds 0, 7-13: constants, WorkPackage, AuthorizerInfo, etc.)
   │     ├── AuthorizeFetcher(ctx) (kinds 0, 7-13)
   │     └── RefineFetcher(ctx) (adds entropy, trace, extrinsics, imports — kinds 0-13)

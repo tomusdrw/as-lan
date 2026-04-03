@@ -9,9 +9,8 @@ import { BytesBlob } from "../core/bytes";
 import { Bytes32Codec } from "../core/codec/bytes32";
 import { Decoder } from "../core/codec/decode";
 import { panic } from "../core/panic";
-import { Result } from "../core/result";
 import { FetchKind } from "../ecalli/general/fetch";
-import { FetchBuffer, FetchError, fetchAndDecode, fetchBlob, fetchRaw } from "./fetcher";
+import { FetchBuffer, fetchAndDecode, fetchAndDecodeOptional, fetchBlob, fetchBlobOrPanic, fetchRawOrPanic } from "./fetcher";
 import { EntropyHash } from "./types";
 import {
   AuthorizerInfo,
@@ -84,57 +83,61 @@ export class WorkPackageFetcher {
   }
 
   /** Protocol constants (kind 0, always available in all contexts). */
-  constants(): Result<ProtocolConstants, FetchError> {
+  constants(): ProtocolConstants {
     return fetchAndDecode<ProtocolConstants>(this.fb, this.protocolConstants, FetchKind.Constants);
   }
 
   /** Entropy pool (kind 1). */
-  entropy(): Result<EntropyHash, FetchError> {
+  entropy(): EntropyHash {
     return fetchAndDecode<EntropyHash>(this.fb, this.bytes32, FetchKind.Entropy);
   }
 
   /** Full work package (kind 7). GP type P ≡ { j, h, u, p, x, w }. */
-  fetchWorkPackage(): Result<WorkPackage, FetchError> {
+  fetchWorkPackage(): WorkPackage {
     return fetchAndDecode<WorkPackage>(this.fb, this.workPackage, FetchKind.WorkPackage);
   }
 
   /** Authorizer code hash and config (kind 8). */
-  authorizer(): Result<AuthorizerInfo, FetchError> {
+  authorizer(): AuthorizerInfo {
     return fetchAndDecode<AuthorizerInfo>(this.fb, this.authorizerInfo, FetchKind.Authorizer);
   }
 
   /** Authorization token blob (kind 9). */
-  authorizationToken(): Result<BytesBlob, FetchError> {
-    return fetchBlob(this.fb, FetchKind.AuthorizationToken);
+  authorizationToken(): BytesBlob {
+    return fetchBlobOrPanic(this.fb, FetchKind.AuthorizationToken);
   }
 
   /** Refinement context (kind 10). */
-  fetchRefineContext(): Result<RefinementContext, FetchError> {
+  fetchRefineContext(): RefinementContext {
     return fetchAndDecode<RefinementContext>(this.fb, this.refinementContext, FetchKind.RefineContext);
   }
 
   /** All work-item summaries as a decoded array (kind 11). */
-  allWorkItems(): Result<StaticArray<WorkItemInfo>, FetchError> {
-    const raw = fetchRaw(this.fb, FetchKind.AllWorkItems);
-    if (raw.isError) return Result.err<StaticArray<WorkItemInfo>, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
+  allWorkItems(): StaticArray<WorkItemInfo> {
+    const raw = fetchRawOrPanic(this.fb, FetchKind.AllWorkItems);
+    const d = Decoder.fromBlob(raw);
     const r = d.sequenceVarLen<WorkItemInfo>(this.workItemInfo);
     if (r.isError || !d.isFinished()) panic("allWorkItems: host returned malformed data");
-    return Result.ok<StaticArray<WorkItemInfo>, FetchError>(r.okay!);
+    return r.okay!;
   }
 
-  /** Single work-item summary (kind 12). */
-  oneWorkItem(workItem: u32): Result<WorkItemInfo, FetchError> {
-    return fetchAndDecode<WorkItemInfo>(this.fb, this.workItemInfo, FetchKind.OneWorkItem, workItem);
+  /** Single work-item summary (kind 12). Returns null if index is out of bounds. */
+  oneWorkItem(workItem: u32): WorkItemInfo | null {
+    return fetchAndDecodeOptional<WorkItemInfo>(this.fb, this.workItemInfo, FetchKind.OneWorkItem, workItem);
   }
 
-  /** Work-item payload blob (kind 13). */
-  workItemPayload(workItem: u32): Result<BytesBlob, FetchError> {
+  /** Work-item payload blob (kind 13). Returns null if index is out of bounds. */
+  workItemPayload(workItem: u32): BytesBlob | null {
     return fetchBlob(this.fb, FetchKind.WorkItemPayload, workItem);
   }
 
-  /** Fetch a raw blob by kind — used by composing fetchers for context-specific kinds. */
-  blob(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Result<BytesBlob, FetchError> {
+  /** Fetch a raw blob by kind, panicking if unavailable. */
+  blobOrPanic(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): BytesBlob {
+    return fetchBlobOrPanic(this.fb, kind, param1, param2);
+  }
+
+  /** Fetch a raw blob by kind, returning null if unavailable. */
+  blob(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): BytesBlob | null {
     return fetchBlob(this.fb, kind, param1, param2);
   }
 }

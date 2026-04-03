@@ -8,8 +8,6 @@
  */
 
 import { BytesBlob } from "../../core/bytes";
-import { Result } from "../../core/result";
-import { FetchError } from "../fetcher";
 import { AuthorizerInfo, ProtocolConstants, RefinementContext, WorkItemInfo, WorkPackage } from "../work-package";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
@@ -25,42 +23,42 @@ export class AuthorizeFetcher {
   }
 
   /** Protocol constants (kind 0). */
-  constants(): Result<ProtocolConstants, FetchError> {
+  constants(): ProtocolConstants {
     return this.wp.constants();
   }
 
   /** Full work package (kind 7). */
-  workPackage(): Result<WorkPackage, FetchError> {
+  workPackage(): WorkPackage {
     return this.wp.fetchWorkPackage();
   }
 
   /** Authorizer code hash and config (kind 8). */
-  authorizer(): Result<AuthorizerInfo, FetchError> {
+  authorizer(): AuthorizerInfo {
     return this.wp.authorizer();
   }
 
   /** Authorization token blob (kind 9). */
-  authorizationToken(): Result<BytesBlob, FetchError> {
+  authorizationToken(): BytesBlob {
     return this.wp.authorizationToken();
   }
 
   /** Refinement context (kind 10). */
-  refineContext(): Result<RefinementContext, FetchError> {
+  refineContext(): RefinementContext {
     return this.wp.fetchRefineContext();
   }
 
   /** All work-item summaries (kind 11). */
-  allWorkItems(): Result<StaticArray<WorkItemInfo>, FetchError> {
+  allWorkItems(): StaticArray<WorkItemInfo> {
     return this.wp.allWorkItems();
   }
 
-  /** Single work-item summary (kind 12). */
-  oneWorkItem(workItem: u32): Result<WorkItemInfo, FetchError> {
+  /** Single work-item summary (kind 12). Returns null if index is out of bounds. */
+  oneWorkItem(workItem: u32): WorkItemInfo | null {
     return this.wp.oneWorkItem(workItem);
   }
 
-  /** Work-item payload blob (kind 13). */
-  workItemPayload(workItem: u32): Result<BytesBlob, FetchError> {
+  /** Work-item payload blob (kind 13). Returns null if index is out of bounds. */
+  workItemPayload(workItem: u32): BytesBlob | null {
     return this.wp.workItemPayload(workItem);
   }
 }

@@ -5,6 +5,14 @@
  * error detection. Context-specific fetcher classes (RefineFetcher,
  * AccumulateFetcher, etc.) build on these primitives.
  *
+ * Functions come in two flavours:
+ * - **Must-exist** (`fetchRawOrPanic`, `fetchBlobOrPanic`, `fetchAndDecode`):
+ *   Panic when the host returns NONE. Use for data that is always present
+ *   in the current context (e.g. constants, work package).
+ * - **Optional** (`fetchRaw`, `fetchBlob`, `fetchAndDecodeOptional`):
+ *   Return `null` when the host returns NONE. Use for indexed data where
+ *   the index may be out of bounds (e.g. oneWorkItem, myImport).
+ *
  * ## Future direction: offset-based partial fetching
  *
  * The raw `fetch(dest, offset, length, kind, ...)` ecalli supports an
@@ -20,28 +28,7 @@
 import { BytesBlob } from "../core/bytes";
 import { Decoder, TryDecode } from "../core/codec/decode";
 import { panic } from "../core/panic";
-import { Result } from "../core/result";
 import { FetchKind, fetch } from "../ecalli/general/fetch";
-
-/**
- * Error codes returned by fetcher methods.
- *
- * The fetch ecalli (Ω_Y) only ever returns NONE or a positive data length
- * (GP Appendix B.5). Other ecalli sentinels (WHAT, WHO, OOB, etc.) are
- * not applicable to fetch. Memory write failures cause a PVM panic and
- * never reach SDK code.
- */
-export enum FetchError {
-  /**
-   * Data not available.
-   *
-   * Returned when the fetch kind/index has no data in the current context:
-   * e.g. index out of bounds for oneWorkItem(), or kind not applicable.
-   *
-   * GP: v = ∅ → φ'₇ = NONE
-   */
-  None = 0,
-}
 
 /**
  * Reusable fetch buffer. Callers pass this to fetch functions so that
@@ -63,7 +50,7 @@ export class FetchBuffer {
  * Fetch raw bytes for the given kind/params.
  *
  * Returns a *copy* of the data (safe to hold across calls), or
- * FetchError.None when the host indicates the data is unavailable.
+ * `null` when the host indicates the data is unavailable.
  * If the buffer is too small, it is expanded to the exact
  * required size and the fetch is retried.
  */
@@ -72,45 +59,88 @@ export function fetchRaw(
   kind: FetchKind,
   param1: u32 = 0,
   param2: u32 = 0,
-): Result<Uint8Array, FetchError> {
+): Uint8Array | null {
   let result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
-  if (result < 0) return Result.err<Uint8Array, FetchError>(FetchError.None);
+  if (result < 0) return null;
 
   // Auto-expand: the host told us the total length exceeds our buffer.
   if (result > i64(fb.buf.length)) {
     fb.buf = new Uint8Array(u32(result));
     result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
-    if (result < 0) return Result.err<Uint8Array, FetchError>(FetchError.None);
+    if (result < 0) return null;
   }
 
   const len = u32(min(i64(fb.buf.length), result));
-  return Result.ok<Uint8Array, FetchError>(fb.buf.slice(0, len));
+  return fb.buf.slice(0, len);
 }
 
-/** Fetch and wrap as BytesBlob. */
+/** Fetch raw bytes, panicking if the data is unavailable. */
+export function fetchRawOrPanic(
+  fb: FetchBuffer,
+  kind: FetchKind,
+  param1: u32 = 0,
+  param2: u32 = 0,
+): Uint8Array {
+  const raw = fetchRaw(fb, kind, param1, param2);
+  if (raw === null) panic("fetchRawOrPanic: host returned NONE for expected data");
+  return raw;
+}
+
+/** Fetch and wrap as BytesBlob, or `null` if unavailable. */
 export function fetchBlob(
   fb: FetchBuffer,
   kind: FetchKind,
   param1: u32 = 0,
   param2: u32 = 0,
-): Result<BytesBlob, FetchError> {
-  const r = fetchRaw(fb, kind, param1, param2);
-  if (r.isError) return Result.err<BytesBlob, FetchError>(r.error);
-  return Result.ok<BytesBlob, FetchError>(BytesBlob.wrap(r.okay!));
+): BytesBlob | null {
+  const raw = fetchRaw(fb, kind, param1, param2);
+  if (raw === null) return null;
+  return BytesBlob.wrap(raw);
 }
 
-/** Fetch raw bytes, decode using the given codec, and verify no trailing bytes. */
+/** Fetch and wrap as BytesBlob, panicking if unavailable. */
+export function fetchBlobOrPanic(
+  fb: FetchBuffer,
+  kind: FetchKind,
+  param1: u32 = 0,
+  param2: u32 = 0,
+): BytesBlob {
+  return BytesBlob.wrap(fetchRawOrPanic(fb, kind, param1, param2));
+}
+
+/**
+ * Fetch, decode using the given codec, and verify no trailing bytes.
+ * Panics if the data is unavailable or if decoding fails.
+ */
 export function fetchAndDecode<T>(
   fb: FetchBuffer,
   codec: TryDecode<T>,
   kind: FetchKind,
   param1: u32 = 0,
   param2: u32 = 0,
-): Result<T, FetchError> {
-  const raw = fetchRaw(fb, kind, param1, param2);
-  if (raw.isError) return Result.err<T, FetchError>(raw.error);
-  const d = Decoder.fromBlob(raw.okay!);
+): T {
+  const raw = fetchRawOrPanic(fb, kind, param1, param2);
+  const d = Decoder.fromBlob(raw);
   const r = codec.decode(d);
   if (r.isError || !d.isFinished()) panic("fetchAndDecode: host returned malformed data");
-  return Result.ok<T, FetchError>(r.okay!);
+  return r.okay!;
+}
+
+/**
+ * Fetch and decode, returning `null` when the data is unavailable.
+ * Panics if the data is present but decoding fails.
+ */
+export function fetchAndDecodeOptional<T>(
+  fb: FetchBuffer,
+  codec: TryDecode<T>,
+  kind: FetchKind,
+  param1: u32 = 0,
+  param2: u32 = 0,
+): T | null {
+  const raw = fetchRaw(fb, kind, param1, param2);
+  if (raw === null) return null;
+  const d = Decoder.fromBlob(raw);
+  const r = codec.decode(d);
+  if (r.isError || !d.isFinished()) panic("fetchAndDecodeOptional: host returned malformed data");
+  return r.okay!;
 }
