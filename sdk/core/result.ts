@@ -21,7 +21,10 @@ export class OptionalN<T> {
   }
 
   static none<T>(): OptionalN<T> {
-    return new OptionalN(false, changetype<T>(0));
+    if (isReference<T>()) {
+      return new OptionalN(false, changetype<T>(0));
+    }
+    return new OptionalN(false, <T>0);
   }
 
   private constructor(

@@ -6,7 +6,7 @@ AssemblyScript SDK for writing JAM (Join-Accumulate Machine) services.
 
 ```text
 sdk/                        AssemblyScript SDK library
-  core/                     Core types: bytes, codec (Encoder/Decoder), mem, pack, result
+  core/                     Core types: bytes, codec (Encoder/Decoder), mem, pack, panic, result
   ecalli/                   Host call declarations (@external decorators)
     general/                Ecalli 0-5, 100 (gas, fetch, lookup, read, write, info, log)
     refine/                 Ecalli 6-13 (historical_lookup, export, machine, peek, poke, pages, invoke, expunge)
@@ -14,6 +14,8 @@ sdk/                        AssemblyScript SDK library
   jam/                      JAM protocol types
     types.ts                Core type aliases (ServiceId, Slot, CodeHash, etc.)
     service.ts              Service ABI: RefineArgs, AccumulateArgs, Response + codec classes
+    account-info.ts         AccountInfo (96-byte service info from ecalli 5) + AccountInfoCodec
+    service-data.ts         ServiceData (info, read) + CurrentServiceData (adds write) — high-level storage wrappers
     fetcher.ts              Base Fetcher class with buffer management (constants only)
     work-package-fetcher.ts Intermediate fetcher adding typed kinds 7-13 (WorkPackage, AuthorizerInfo, etc.)
     work-package.ts         WorkPackage, WorkItem, WorkItemInfo, AuthorizerInfo, RefinementContext, ImportRef, ExtrinsicRef + codec classes
@@ -59,6 +61,7 @@ docs/                       Documentation (mdbook)
   - `pvm_ptr`: Converts WASM address to PVM address (for pointer arguments).
 - **sdk-ecalli-mocks**: JS stubs wired as WASM imports during test. Export names must match `@external` names exactly.
 - **EcalliResult**: Sentinel constants (NONE=-1, WHO=-4, FULL=-5, etc.) shared across all host calls.
+- **panic(msg)** (`sdk/core/panic.ts`): Use for host-contract violations where recovery is impossible (e.g. host returned malformed data). Do NOT use for expected failures — use `Result` or `Optional` instead.
 
 ### Codec Pattern (sdk/core/codec/ + sdk/jam/)
 
@@ -117,10 +120,13 @@ Fetchers receive their context via constructor: `AccumulateFetcher.create(ctx)`,
 
 High-level wrappers around the raw `fetch` ecalli (Ω_Y, GP Appendix B.5).
 Each fetcher receives its context via constructor and exposes typed fetch methods.
-All methods return `Result<T, FetchError>` with typed payloads.
+
+Methods that fetch **non-indexed, always-present** data return `T` directly and
+panic if the host returns NONE (host-contract violation). Methods that fetch
+**indexed** data (where the index may be out of bounds) return `T | null`.
 
 ```text
-Fetcher (base: fetchRaw, fetchBlob, fetchAndDecode)
+Fetcher primitives (fetchRaw, fetchRawOrPanic, fetchBlob, fetchBlobOrPanic, fetchAndDecode, fetchAndDecodeOptional)
   ├── WorkPackageFetcher(ctx) (kinds 0, 7-13: constants, WorkPackage, AuthorizerInfo, etc.)
   │     ├── AuthorizeFetcher(ctx) (kinds 0, 7-13)
   │     └── RefineFetcher(ctx) (adds entropy, trace, extrinsics, imports — kinds 0-13)
@@ -131,6 +137,15 @@ GP fetch parameter mapping per context (eq B.1, B.6, B.11):
 - **Is-Authorized**: `Ω_Y(ρ, φ, μ, 𝐩, ∅, ∅, ∅, ∅, ∅, ∅, ∅)` → p set, rest ∅
 - **Refine**: `Ω_Y(ρ, φ, μ, p, H₀, r, i, ī, x̄, ∅, (m,e))` → all except 𝐢
 - **Accumulate**: `Ω_Y(ρ, φ, μ, ∅, η'₀, ∅, ∅, ∅, ∅, 𝐢, (x,y))` → n and 𝐢 only
+
+### ServiceData (sdk/jam/service-data.ts)
+
+High-level wrappers for service storage (`read`/`write` ecallis) and account info (`info` ecalli).
+
+- **ServiceData** — read-only access to any service by ID. Methods: `info()` → `Optional<AccountInfo>`, `read(key)` → `Optional<Uint8Array>`.
+- **CurrentServiceData** extends ServiceData — adds `write(key, value)` → `Result<OptionalN<u64>, WriteError>` for the current service (uses `u32.MAX_VALUE` as service ID).
+- Both manage an internal reusable buffer with auto-expansion (same pattern as `FetchBuffer`).
+- `info()` panics on decode failure (host-contract violation). `read()` returns `Optional.none` for missing keys. `write()` returns `WriteError.Full` when storage quota is exceeded.
 
 ### Accumulate Flow
 

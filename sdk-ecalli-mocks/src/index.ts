@@ -17,7 +17,7 @@ export {
 } from "./general/index.js";
 export { lookup, setLookupPreimage } from "./general/index.js";
 export { read, write, setStorageEntry } from "./general/index.js";
-export { info } from "./general/index.js";
+export { info, setInfoData, setDefaultInfoData } from "./general/index.js";
 export { log } from "./general/index.js";
 
 // Refine ecalli stubs (6-13)

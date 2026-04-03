@@ -8,9 +8,8 @@
  */
 
 import { BytesBlob } from "../../core/bytes";
-import { Result } from "../../core/result";
+import { Optional } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
-import { FetchError } from "../fetcher";
 import { EntropyHash } from "../types";
 import { AuthorizerInfo, ProtocolConstants, RefinementContext, WorkItemInfo, WorkPackage } from "../work-package";
 import { WorkPackageFetcher } from "../work-package-fetcher";
@@ -29,74 +28,74 @@ export class RefineFetcher {
   // ─── Delegated work-package methods ──────────────────────────────────
 
   /** Protocol constants (kind 0). */
-  constants(): Result<ProtocolConstants, FetchError> {
+  constants(): ProtocolConstants {
     return this.wp.constants();
   }
 
   /** Entropy pool (kind 1). In refine context this is H₀ (anchor header hash, 32 bytes). */
-  entropy(): Result<EntropyHash, FetchError> {
+  entropy(): EntropyHash {
     return this.wp.entropy();
   }
 
   /** Full work package (kind 7). */
-  workPackage(): Result<WorkPackage, FetchError> {
+  workPackage(): WorkPackage {
     return this.wp.fetchWorkPackage();
   }
 
   /** Authorizer code hash and config (kind 8). */
-  authorizer(): Result<AuthorizerInfo, FetchError> {
+  authorizer(): AuthorizerInfo {
     return this.wp.authorizer();
   }
 
   /** Authorization token blob (kind 9). */
-  authorizationToken(): Result<BytesBlob, FetchError> {
+  authorizationToken(): BytesBlob {
     return this.wp.authorizationToken();
   }
 
   /** Refinement context (kind 10). */
-  refineContext(): Result<RefinementContext, FetchError> {
+  refineContext(): RefinementContext {
     return this.wp.fetchRefineContext();
   }
 
   /** All work-item summaries (kind 11). */
-  allWorkItems(): Result<StaticArray<WorkItemInfo>, FetchError> {
+  allWorkItems(): StaticArray<WorkItemInfo> {
     return this.wp.allWorkItems();
   }
 
-  /** Single work-item summary (kind 12). */
-  oneWorkItem(workItem: u32): Result<WorkItemInfo, FetchError> {
+  /** Single work-item summary (kind 12). Returns Optional.none if index is out of bounds. */
+  oneWorkItem(workItem: u32): Optional<WorkItemInfo> {
     return this.wp.oneWorkItem(workItem);
   }
 
-  /** Work-item payload blob (kind 13). */
-  workItemPayload(workItem: u32): Result<BytesBlob, FetchError> {
+  /** Work-item payload blob (kind 13). Returns Optional.none if index is out of bounds. */
+  workItemPayload(workItem: u32): Optional<BytesBlob> {
     return this.wp.workItemPayload(workItem);
   }
 
   // ─── Refine-only methods ─────────────────────────────────────────────
 
   /** Authorizer trace data (kind 2). */
-  authorizerTrace(): Result<BytesBlob, FetchError> {
-    return this.wp.blob(FetchKind.AuthorizerTrace);
+  authorizerTrace(): BytesBlob {
+    return this.wp.blobOrPanic(FetchKind.AuthorizerTrace);
   }
 
-  /** Extrinsic data for the current work item (kind 4). */
-  myExtrinsic(index: u32): Result<BytesBlob, FetchError> {
+  /** Extrinsic data for the current work item (kind 4). Returns Optional.none if index is out of bounds. */
+  myExtrinsic(index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.MyExtrinsics, index);
   }
 
-  /** Extrinsic data for another work item (kind 3). */
-  otherExtrinsic(workItem: u32, index: u32): Result<BytesBlob, FetchError> {
+  /** Extrinsic data for another work item (kind 3). Returns Optional.none if index is out of bounds. */
+  otherExtrinsic(workItem: u32, index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.OtherWorkItemExtrinsics, workItem, index);
   }
 
-  /** Import segment for the current work item (kind 6). */
-  myImport(index: u32): Result<BytesBlob, FetchError> {
+  /** Import segment for the current work item (kind 6). Returns Optional.none if index is out of bounds. */
+  myImport(index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.MyImports, index);
   }
 
-  /** Import segment for another work item (kind 5). */
-  otherImport(workItem: u32, index: u32): Result<BytesBlob, FetchError> {
+  /** Import segment for another work item (kind 5). Returns Optional.none if index is out of bounds. */
+  otherImport(workItem: u32, index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.OtherWorkItemImports, workItem, index);
   }
 }

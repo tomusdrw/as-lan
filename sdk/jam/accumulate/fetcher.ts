@@ -7,9 +7,10 @@
 
 import { Bytes32Codec } from "../../core/codec/bytes32";
 import { Decoder } from "../../core/codec/decode";
-import { Result } from "../../core/result";
+import { panic } from "../../core/panic";
+import { Optional } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
-import { FetchBuffer, FetchError, fetchAndDecode, fetchRaw } from "../fetcher";
+import { FetchBuffer, fetchAndDecode, fetchAndDecodeOptional, fetchRawOrPanic } from "../fetcher";
 import { EntropyHash } from "../types";
 import { ProtocolConstants, ProtocolConstantsCodec } from "../work-package";
 import { AccumulateItem, AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
@@ -51,12 +52,12 @@ export class AccumulateFetcher {
   }
 
   /** Protocol constants (kind 0). */
-  constants(): Result<ProtocolConstants, FetchError> {
+  constants(): ProtocolConstants {
     return fetchAndDecode<ProtocolConstants>(this.fb, this.protocolConstants, FetchKind.Constants);
   }
 
   /** Entropy pool (kind 1). In accumulate context this is η'₀ (posterior entropy, 32 bytes). */
-  entropy(): Result<EntropyHash, FetchError> {
+  entropy(): EntropyHash {
     return fetchAndDecode<EntropyHash>(this.fb, this.bytes32, FetchKind.Entropy);
   }
 
@@ -67,18 +68,16 @@ export class AccumulateFetcher {
    * The wire format is a varlen sequence: `varU64(count)` followed by
    * `count` concatenated tagged items.
    */
-  allTransfersAndOperands(): Result<StaticArray<AccumulateItem>, FetchError> {
-    const raw = fetchRaw(this.fb, FetchKind.AllTransfersAndOperands);
-    if (raw.isError) return Result.err<StaticArray<AccumulateItem>, FetchError>(raw.error);
-    const d = Decoder.fromBlob(raw.okay!);
+  allTransfersAndOperands(): StaticArray<AccumulateItem> {
+    const raw = fetchRawOrPanic(this.fb, FetchKind.AllTransfersAndOperands);
+    const d = Decoder.fromBlob(raw);
     const r = d.sequenceVarLen<AccumulateItem>(this.accumulateItem);
-    if (r.isError || !d.isFinished())
-      return Result.err<StaticArray<AccumulateItem>, FetchError>(FetchError.DecodeError);
-    return Result.ok<StaticArray<AccumulateItem>, FetchError>(r.okay!);
+    if (r.isError || !d.isFinished()) panic("allTransfersAndOperands: host returned malformed data");
+    return r.okay!;
   }
 
-  /** Fetch a single accumulate item by index, decoded as a typed union (kind 15). */
-  oneTransferOrOperand(index: u32): Result<AccumulateItem, FetchError> {
-    return fetchAndDecode<AccumulateItem>(this.fb, this.accumulateItem, FetchKind.OneTransferOrOperand, index);
+  /** Fetch a single accumulate item by index (kind 15). Returns Optional.none if index is out of bounds. */
+  oneTransferOrOperand(index: u32): Optional<AccumulateItem> {
+    return fetchAndDecodeOptional<AccumulateItem>(this.fb, this.accumulateItem, FetchKind.OneTransferOrOperand, index);
   }
 }
