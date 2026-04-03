@@ -3,10 +3,19 @@
 ## No string errors in the SDK
 
 All error types in the SDK must be enums, not strings. Never use `Result<T, string>` — always
-define a dedicated error enum (e.g., `ParseError`, `DecodeError`) and use `Result<T, MyError>`.
+define a dedicated error enum (e.g., `DecodeError`, `WriteError`) and use `Result<T, MyError>`.
 
 This applies to all code under `sdk/`. Examples may log enum values but must not introduce new
 string-based error patterns.
+
+## Panic on invalid host data
+
+The SDK does not allow recovering from invalid data provided by the host (e.g. malformed entry
+point arguments, corrupted fetch responses). These are host-contract violations — if the host
+sends garbage, continuing execution is meaningless. Use `panic()` instead of returning `Result`.
+
+`Result` is reserved for conditions the service can meaningfully handle (e.g. storage key not found,
+insufficient funds). Invalid host data is never one of those conditions.
 
 ## Keep binary size small
 

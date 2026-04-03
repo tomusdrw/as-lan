@@ -6,12 +6,6 @@ import { ptrAndLen } from "../core/pack";
 import { Result } from "../core/result";
 import { CodeHash, CoreIndex, ServiceId, Slot, WorkPackageHash } from "./types";
 
-/** Errors returned when parsing ABI arguments for refine or accumulate. */
-export enum ParseError {
-  DecodeError = 0,
-  TrailingBytes,
-}
-
 // ─── RefineArgs ───────────────────────────────────────────────────────
 
 export class RefineArgs {

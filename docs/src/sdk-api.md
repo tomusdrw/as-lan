@@ -12,8 +12,7 @@ Arguments are passed as a pointer + length into linear memory. The return value 
 
 The SDK provides helpers for parsing arguments and encoding results:
 
-- **`RefineArgs.parse(ptr, len)`** — Parse raw refine arguments. Returns `Result<RefineArgs, ParseError>`.
-- **`AccumulateArgs.parse(ptr, len)`** — Parse raw accumulate arguments. Returns `Result<AccumulateArgs, ParseError>`.
+- **`ctx.parseArgs(ptr, len)`** — Parse raw refine/accumulate arguments. Panics on invalid data.
 - **`encodeOptionalCodeHash(hash)`** — Encode an `Optional<CodeHash>` as a `BytesBlob` (for accumulate results).
 - **`readFromMemory(ptr, len)`** — Read raw bytes from WASM linear memory.
 - **`ptrAndLen(data)`** — Pack a raw `Uint8Array` into a `u64` return value.
@@ -29,29 +28,21 @@ export { refine, accumulate } from "./service";
 
 ```typescript
 // assembly/service.ts
-import { Logger, Optional, RefineArgs, AccumulateArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
+import { AccumulateContext, Logger, Optional, RefineContext } from "@fluffylabs/as-lan";
 import { CodeHash } from "@fluffylabs/as-lan";
 
 const logger = Logger.create("my-service");
 
 export function accumulate(ptr: u32, len: u32): u64 {
-  const result = AccumulateArgs.parse(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse accumulate args: ${result.error}`);
-    return 0;
-  }
-  const args = result.okay!;
+  const ctx = AccumulateContext.create();
+  const args = ctx.parseArgs(ptr, len);
   logger.info(`accumulate called for service ${args.serviceId}`);
-  return encodeOptionalCodeHash(Optional.none<CodeHash>()).toPtrAndLen();
+  return ctx.yieldHash(null);
 }
 
 export function refine(ptr: u32, len: u32): u64 {
-  const result = RefineArgs.parse(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse refine args: ${result.error}`);
-    return 0;
-  }
-  const args = result.okay!;
+  const ctx = RefineContext.create();
+  const args = ctx.parseArgs(ptr, len);
   logger.info(`refine called for service ${args.serviceId}`);
   return args.payload.toPtrAndLen();
 }
@@ -70,34 +61,6 @@ export function refine(ptr: u32, len: u32): u64 {
 - `slot: Slot` (`u32`)
 - `serviceId: ServiceId` (`u32`)
 - `argsLength: u32`
-
-### ParseError
-
-Both `RefineArgs.parse()` and `AccumulateArgs.parse()` return
-`Result<T, ParseError>`. The `ParseError` enum (defined in `sdk/service.ts`)
-has the following variants:
-
-| Variant | Value | Trigger |
-|---------|-------|---------|
-| `CoreIndexOutOfRange` | 0 | Decoded core index exceeds `u16` range |
-| `ItemIndexOutOfRange` | 1 | Decoded item index exceeds `u32` range |
-| `ServiceIdOutOfRange` | 2 | Decoded service ID exceeds `u32` range |
-| `SlotOutOfRange` | 3 | Decoded slot exceeds `u32` range |
-| `ArgsLengthOutOfRange` | 4 | Decoded args length exceeds `u32` range |
-| `DecodeError` | 5 | Underlying `Decoder` failed (malformed varint, truncated input, etc.) |
-| `TrailingBytes` | 6 | Input was not fully consumed after parsing all fields |
-
-Handling example:
-
-```typescript
-const result = AccumulateArgs.parse(ptr, len);
-if (result.isError) {
-  // result.error is a ParseError (i32 enum value)
-  logger.str("parse failed: ").i32(result.error).warn();
-  return 0;
-}
-const args = result.okay!;
-```
 
 ## Types
 

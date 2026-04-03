@@ -12,12 +12,11 @@ import { Decoder } from "../../core/codec/decode";
 import { Encoder } from "../../core/codec/encode";
 import { readFromMemory } from "../../core/mem";
 import { ptrAndLen } from "../../core/pack";
-import { Result } from "../../core/result";
+import { panic } from "../../core/panic";
 import {
   AccumulateArgs,
   AccumulateArgsCodec,
   OptionalCodeHashCodec,
-  ParseError,
   Response,
   ResponseCodec,
 } from "../service";
@@ -75,13 +74,13 @@ export class AccumulateContext {
     return this._accumulateItem!;
   }
 
-  /** Parse raw accumulate arguments from (ptr, len). */
-  parseArgs(ptr: u32, len: u32): Result<AccumulateArgs, ParseError> {
+  /** Parse raw accumulate arguments from (ptr, len). Panics on invalid data. */
+  parseArgs(ptr: u32, len: u32): AccumulateArgs {
     const decoder = Decoder.fromBlob(readFromMemory(ptr, len));
     const r = this.accumulateArgs.decode(decoder);
-    if (r.isError) return Result.err<AccumulateArgs, ParseError>(ParseError.DecodeError);
-    if (!decoder.isFinished()) return Result.err<AccumulateArgs, ParseError>(ParseError.TrailingBytes);
-    return Result.ok<AccumulateArgs, ParseError>(r.okay!);
+    if (r.isError) panic("Failed to decode AccumulateArgs");
+    if (!decoder.isFinished()) panic("Trailing bytes after AccumulateArgs");
+    return r.okay!;
   }
 
   /** Encode a response and return it as a ptrAndLen-packed u64. */
