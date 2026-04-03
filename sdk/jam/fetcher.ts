@@ -19,6 +19,7 @@
 
 import { BytesBlob } from "../core/bytes";
 import { Decoder, TryDecode } from "../core/codec/decode";
+import { panic } from "../core/panic";
 import { Result } from "../core/result";
 import { FetchKind, fetch } from "../ecalli/general/fetch";
 
@@ -40,8 +41,6 @@ export enum FetchError {
    * GP: v = ∅ → φ'₇ = NONE
    */
   None = 0,
-  /** Failed to decode the returned bytes into the expected type. */
-  DecodeError,
 }
 
 /**
@@ -112,6 +111,6 @@ export function fetchAndDecode<T>(
   if (raw.isError) return Result.err<T, FetchError>(raw.error);
   const d = Decoder.fromBlob(raw.okay!);
   const r = codec.decode(d);
-  if (r.isError || !d.isFinished()) return Result.err<T, FetchError>(FetchError.DecodeError);
+  if (r.isError || !d.isFinished()) panic("fetchAndDecode: host returned malformed data");
   return Result.ok<T, FetchError>(r.okay!);
 }

@@ -8,6 +8,7 @@
 import { BytesBlob } from "../core/bytes";
 import { Bytes32Codec } from "../core/codec/bytes32";
 import { Decoder } from "../core/codec/decode";
+import { panic } from "../core/panic";
 import { Result } from "../core/result";
 import { FetchKind } from "../ecalli/general/fetch";
 import { FetchBuffer, FetchError, fetchAndDecode, fetchBlob, fetchRaw } from "./fetcher";
@@ -118,7 +119,7 @@ export class WorkPackageFetcher {
     if (raw.isError) return Result.err<StaticArray<WorkItemInfo>, FetchError>(raw.error);
     const d = Decoder.fromBlob(raw.okay!);
     const r = d.sequenceVarLen<WorkItemInfo>(this.workItemInfo);
-    if (r.isError || !d.isFinished()) return Result.err<StaticArray<WorkItemInfo>, FetchError>(FetchError.DecodeError);
+    if (r.isError || !d.isFinished()) panic("allWorkItems: host returned malformed data");
     return Result.ok<StaticArray<WorkItemInfo>, FetchError>(r.okay!);
   }
 

@@ -7,6 +7,7 @@
 
 import { Bytes32Codec } from "../../core/codec/bytes32";
 import { Decoder } from "../../core/codec/decode";
+import { panic } from "../../core/panic";
 import { Result } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { FetchBuffer, FetchError, fetchAndDecode, fetchRaw } from "../fetcher";
@@ -72,8 +73,7 @@ export class AccumulateFetcher {
     if (raw.isError) return Result.err<StaticArray<AccumulateItem>, FetchError>(raw.error);
     const d = Decoder.fromBlob(raw.okay!);
     const r = d.sequenceVarLen<AccumulateItem>(this.accumulateItem);
-    if (r.isError || !d.isFinished())
-      return Result.err<StaticArray<AccumulateItem>, FetchError>(FetchError.DecodeError);
+    if (r.isError || !d.isFinished()) panic("allTransfersAndOperands: host returned malformed data");
     return Result.ok<StaticArray<AccumulateItem>, FetchError>(r.okay!);
   }
 
