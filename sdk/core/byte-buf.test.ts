@@ -93,6 +93,13 @@ export const TESTS: Test[] = [
     return a;
   }),
 
+  test("i32 MIN_VALUE", () => {
+    const a = Assert.create();
+    const result = ByteBuf.create(16).i32(i32.MIN_VALUE).finish();
+    assertBytes(a, result, ascii("-2147483648"), "i32 min");
+    return a;
+  }),
+
   test("i32 zero", () => {
     const a = Assert.create();
     const result = ByteBuf.create(8).i32(0).finish();

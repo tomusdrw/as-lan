@@ -24,7 +24,6 @@ function callAuthorize(coreIndex: u16): Uint8Array {
   const buf = new Uint8Array(args.length);
   buf.set(args);
   const result = authorize(u32(buf.dataStart), buf.byteLength);
-  assert(buf.length >= 0);
   return unpackResult(result);
 }
 

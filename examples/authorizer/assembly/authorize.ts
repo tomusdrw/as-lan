@@ -22,13 +22,11 @@ export function authorize(ptr: u32, len: u32): u64 {
     .str(" token")
     .info();
 
-  const param = authInfo.config;
-
-  if (!token.isEqualTo(param)) {
+  if (!token.isEqualTo(authInfo.config)) {
     panic("Authorization failed");
   }
 
-  const trace = ByteBuf.create(7 + token.raw.length)
+  const trace = ByteBuf.create(7 + token.length)
     .str("Auth=<")
     .bytes(token.raw)
     .str(">")

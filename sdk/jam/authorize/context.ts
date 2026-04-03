@@ -7,6 +7,7 @@
 
 import { Decoder } from "../../core/codec/decode";
 import { readFromMemory } from "../../core/mem";
+import { panic } from "../../core/panic";
 import { CoreIndex } from "../types";
 
 export class AuthorizeContext {
@@ -19,6 +20,10 @@ export class AuthorizeContext {
   /** Parse the core index from the raw (ptr, len) entry-point buffer. */
   parseCoreIndex(ptr: u32, len: u32): CoreIndex {
     const d = Decoder.fromBlob(readFromMemory(ptr, len));
-    return d.u16();
+    const coreIndex = d.u16();
+    if (d.isError) {
+      panic("parseCoreIndex: insufficient bytes for CoreIndex");
+    }
+    return coreIndex;
   }
 }
