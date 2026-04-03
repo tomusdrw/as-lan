@@ -1,4 +1,4 @@
-# as-lan
+# 🦁 as-lan
 
 AssemblyScript SDK for building [JAM](https://graypaper.com/) services.
 
