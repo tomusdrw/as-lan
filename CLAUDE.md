@@ -36,6 +36,7 @@ sdk-ecalli-mocks/           JS-side mock stubs for ecalli host calls (used in te
     accumulate/             Mock stubs for ecalli 14-26
 pvm-adapter.wat             WAT adapter mapping WASM imports to PVM host_call_N intrinsics
 examples/
+  authorizer/               Example authorizer service (is_authorized)
   fibonacci/                Example service (refine + accumulate)
   ecalli-test/              Example that exercises all ecalli host calls
     assembly/
@@ -106,10 +107,11 @@ export function accumulate(ptr: u32, len: u32): u64 {
 Contexts:
 - **AccumulateContext** — `parseArgs()` (panics on invalid data), `respond()`, `yieldHash()`, accumulate codecs
 - **RefineContext** (extends WorkPackageContext) — `parseArgs()` (panics on invalid data), `respond()`, refine + work-package codecs
-- **AuthorizeContext** (extends WorkPackageContext) — work-package codecs
+- **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16). No codec state.
 - **WorkPackageContext** — base with bytes32, protocolConstants, workPackage, etc.
 
 Fetchers receive their context via constructor: `AccumulateFetcher.create(ctx)`, `RefineFetcher.create(ctx)`.
+`AuthorizeFetcher.create()` takes no context (authorize context is stateless).
 
 ### Service ABI Types (sdk/jam/service.ts)
 

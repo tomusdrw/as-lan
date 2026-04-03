@@ -1,3 +1,4 @@
+import * as byteBuf from "../core/byte-buf.test";
 import * as bytes from "../core/bytes.test";
 import * as decode from "../core/codec/decode.test";
 import * as encode from "../core/codec/encode.test";
@@ -11,6 +12,7 @@ import { runTestSuites, TestSuite } from "./utils";
 
 export function runAllTests(): void {
   runTestSuites([
+    TestSuite.create(byteBuf.TESTS, "byte-buf.ts"),
     TestSuite.create(bytes.TESTS, "bytes.ts"),
     TestSuite.create(decode.TESTS, "decode.ts"),
     TestSuite.create(encode.TESTS, "encode.ts"),

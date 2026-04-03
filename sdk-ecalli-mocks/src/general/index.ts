@@ -2,7 +2,7 @@
 
 export { gas, setGasValue, resetGas } from "./gas.js";
 export {
-  fetch, setFetchData, setAccumulateItems, setAccumulateItem,
+  fetch, setFetchData, setFetchDataForKind, setAccumulateItems, setAccumulateItem,
   encodeOperand, encodeTransfer, resetFetch,
 } from "./fetch.js";
 export { lookup, setLookupPreimage, resetLookup } from "./lookup.js";

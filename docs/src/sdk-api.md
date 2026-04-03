@@ -131,11 +131,42 @@ Builder methods (all return `LogMsg` for chaining):
 - **`.u32(v)`** — append an unsigned 32-bit number as decimal
 - **`.u64(v)`** — append an unsigned 64-bit number as decimal
 - **`.i32(v)`** — append a signed 32-bit number as decimal
+- **`.blob(data)`** — append a `BytesBlob` as `0x`-prefixed hex (no String allocation)
 
 Terminal methods (send the message and reset the buffer):
 - **`.fatal()`**, **`.warn()`**, **`.info()`**, **`.debug()`**, **`.trace()`**
 
 `debug` and `trace` are compiled out at optimization level 3, same as `Logger`.
+
+### ByteBuf (byte-buffer builder)
+
+A lightweight `Uint8Array` builder that avoids String allocations. Used
+internally by `LogMsg` and useful for constructing binary output (e.g. auth
+traces) from string fragments and raw byte slices.
+
+```typescript
+import { ByteBuf, ptrAndLen } from "@fluffylabs/as-lan";
+
+const result = ByteBuf.create(64)
+  .str("Auth=<")
+  .bytes(token.raw)
+  .str(">")
+  .finish();           // → Uint8Array
+return ptrAndLen(result);
+```
+
+Builder methods (all return `ByteBuf` for chaining):
+- **`.str(s)`** — append an ASCII string
+- **`.bytes(data)`** — append raw `Uint8Array`
+- **`.hex(data)`** — append `Uint8Array` as `0x`-prefixed hex
+- **`.u32(v)`**, **`.u64(v)`**, **`.i32(v)`** — append numbers as decimal ASCII
+
+Terminal methods:
+- **`.finish()`** — copy buffer into a new `Uint8Array` and reset
+- **`.reset()`** — discard contents without producing output
+
+The buffer is heap-allocated at a fixed capacity; writes beyond the capacity
+are silently truncated.
 
 ### Decoder
 
