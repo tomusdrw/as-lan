@@ -13,13 +13,7 @@ import { Encoder } from "../../core/codec/encode";
 import { readFromMemory } from "../../core/mem";
 import { ptrAndLen } from "../../core/pack";
 import { panic } from "../../core/panic";
-import {
-  AccumulateArgs,
-  AccumulateArgsCodec,
-  OptionalCodeHashCodec,
-  Response,
-  ResponseCodec,
-} from "../service";
+import { AccumulateArgs, AccumulateArgsCodec, OptionalCodeHashCodec, Response, ResponseCodec } from "../service";
 import { AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
 
 export class AccumulateContext {
