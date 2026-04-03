@@ -28,7 +28,7 @@ export { refine, accumulate } from "./service";
 
 ```typescript
 // assembly/service.ts
-import { AccumulateContext, Logger, Optional, RefineContext } from "@fluffylabs/as-lan";
+import { AccumulateContext, Logger, RefineContext } from "@fluffylabs/as-lan";
 import { CodeHash } from "@fluffylabs/as-lan";
 
 const logger = Logger.create("my-service");
