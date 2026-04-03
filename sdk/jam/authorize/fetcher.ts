@@ -8,6 +8,7 @@
  */
 
 import { BytesBlob } from "../../core/bytes";
+import { Optional } from "../../core/result";
 import { AuthorizerInfo, ProtocolConstants, RefinementContext, WorkItemInfo, WorkPackage } from "../work-package";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
@@ -52,13 +53,13 @@ export class AuthorizeFetcher {
     return this.wp.allWorkItems();
   }
 
-  /** Single work-item summary (kind 12). Returns null if index is out of bounds. */
-  oneWorkItem(workItem: u32): WorkItemInfo | null {
+  /** Single work-item summary (kind 12). Returns Optional.none if index is out of bounds. */
+  oneWorkItem(workItem: u32): Optional<WorkItemInfo> {
     return this.wp.oneWorkItem(workItem);
   }
 
-  /** Work-item payload blob (kind 13). Returns null if index is out of bounds. */
-  workItemPayload(workItem: u32): BytesBlob | null {
+  /** Work-item payload blob (kind 13). Returns Optional.none if index is out of bounds. */
+  workItemPayload(workItem: u32): Optional<BytesBlob> {
     return this.wp.workItemPayload(workItem);
   }
 }

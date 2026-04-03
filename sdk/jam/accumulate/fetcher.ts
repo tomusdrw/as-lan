@@ -8,6 +8,7 @@
 import { Bytes32Codec } from "../../core/codec/bytes32";
 import { Decoder } from "../../core/codec/decode";
 import { panic } from "../../core/panic";
+import { Optional } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { FetchBuffer, fetchAndDecodeOptional, fetchRawOrPanic } from "../fetcher";
 import { EntropyHash } from "../types";
@@ -83,8 +84,8 @@ export class AccumulateFetcher {
     return r.okay!;
   }
 
-  /** Fetch a single accumulate item by index (kind 15). Returns null if index is out of bounds. */
-  oneTransferOrOperand(index: u32): AccumulateItem | null {
+  /** Fetch a single accumulate item by index (kind 15). Returns Optional.none if index is out of bounds. */
+  oneTransferOrOperand(index: u32): Optional<AccumulateItem> {
     return fetchAndDecodeOptional<AccumulateItem>(this.fb, this.accumulateItem, FetchKind.OneTransferOrOperand, index);
   }
 }

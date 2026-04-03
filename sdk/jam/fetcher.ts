@@ -10,8 +10,8 @@
  *   Panic when the host returns NONE. Use for data that is always present
  *   in the current context (e.g. constants, work package).
  * - **Optional** (`fetchRaw`, `fetchBlob`, `fetchAndDecodeOptional`):
- *   Return `null` when the host returns NONE. Use for indexed data where
- *   the index may be out of bounds (e.g. oneWorkItem, myImport).
+ *   Return `Optional.none` when the host returns NONE. Use for indexed data
+ *   where the index may be out of bounds (e.g. oneWorkItem, myImport).
  *
  * ## Future direction: offset-based partial fetching
  *
@@ -28,6 +28,7 @@
 import { BytesBlob } from "../core/bytes";
 import { Decoder, TryDecode } from "../core/codec/decode";
 import { panic } from "../core/panic";
+import { Optional } from "../core/result";
 import { FetchKind, fetch } from "../ecalli/general/fetch";
 
 /**
@@ -50,37 +51,37 @@ export class FetchBuffer {
  * Fetch raw bytes for the given kind/params.
  *
  * Returns a *copy* of the data (safe to hold across calls), or
- * `null` when the host indicates the data is unavailable.
+ * `Optional.none` when the host indicates the data is unavailable.
  * If the buffer is too small, it is expanded to the exact
  * required size and the fetch is retried.
  */
-export function fetchRaw(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Uint8Array | null {
+export function fetchRaw(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Optional<Uint8Array> {
   let result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
-  if (result < 0) return null;
+  if (result < 0) return Optional.none<Uint8Array>();
 
   // Auto-expand: the host told us the total length exceeds our buffer.
   if (result > i64(fb.buf.length)) {
     fb.buf = new Uint8Array(u32(result));
     result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
-    if (result < 0) return null;
+    if (result < 0) return Optional.none<Uint8Array>();
   }
 
   const len = u32(min(i64(fb.buf.length), result));
-  return fb.buf.slice(0, len);
+  return Optional.some<Uint8Array>(fb.buf.slice(0, len));
 }
 
 /** Fetch raw bytes, panicking if the data is unavailable. */
 export function fetchRawOrPanic(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Uint8Array {
   const raw = fetchRaw(fb, kind, param1, param2);
-  if (raw === null) panic("fetchRawOrPanic: host returned NONE for expected data");
-  return raw;
+  if (!raw.isSome) panic("fetchRawOrPanic: host returned NONE for expected data");
+  return raw.val!;
 }
 
-/** Fetch and wrap as BytesBlob, or `null` if unavailable. */
-export function fetchBlob(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): BytesBlob | null {
+/** Fetch and wrap as BytesBlob, or `Optional.none` if unavailable. */
+export function fetchBlob(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Optional<BytesBlob> {
   const raw = fetchRaw(fb, kind, param1, param2);
-  if (raw === null) return null;
-  return BytesBlob.wrap(raw);
+  if (!raw.isSome) return Optional.none<BytesBlob>();
+  return Optional.some<BytesBlob>(BytesBlob.wrap(raw.val!));
 }
 
 /** Fetch and wrap as BytesBlob, panicking if unavailable. */
@@ -107,7 +108,7 @@ export function fetchAndDecode<T>(
 }
 
 /**
- * Fetch and decode, returning `null` when the data is unavailable.
+ * Fetch and decode, returning `Optional.none` when the data is unavailable.
  * Panics if the data is present but decoding fails.
  */
 export function fetchAndDecodeOptional<T>(
@@ -116,11 +117,11 @@ export function fetchAndDecodeOptional<T>(
   kind: FetchKind,
   param1: u32 = 0,
   param2: u32 = 0,
-): T | null {
+): Optional<T> {
   const raw = fetchRaw(fb, kind, param1, param2);
-  if (raw === null) return null;
-  const d = Decoder.fromBlob(raw);
+  if (!raw.isSome) return Optional.none<T>();
+  const d = Decoder.fromBlob(raw.val!);
   const r = codec.decode(d);
   if (r.isError || !d.isFinished()) panic("fetchAndDecodeOptional: host returned malformed data");
-  return r.okay!;
+  return Optional.some<T>(r.okay!);
 }

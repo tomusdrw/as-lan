@@ -9,6 +9,7 @@ import { BytesBlob } from "../core/bytes";
 import { Bytes32Codec } from "../core/codec/bytes32";
 import { Decoder } from "../core/codec/decode";
 import { panic } from "../core/panic";
+import { Optional } from "../core/result";
 import { FetchKind } from "../ecalli/general/fetch";
 import {
   FetchBuffer,
@@ -128,13 +129,13 @@ export class WorkPackageFetcher {
     return r.okay!;
   }
 
-  /** Single work-item summary (kind 12). Returns null if index is out of bounds. */
-  oneWorkItem(workItem: u32): WorkItemInfo | null {
+  /** Single work-item summary (kind 12). Returns Optional.none if index is out of bounds. */
+  oneWorkItem(workItem: u32): Optional<WorkItemInfo> {
     return fetchAndDecodeOptional<WorkItemInfo>(this.fb, this.workItemInfo, FetchKind.OneWorkItem, workItem);
   }
 
-  /** Work-item payload blob (kind 13). Returns null if index is out of bounds. */
-  workItemPayload(workItem: u32): BytesBlob | null {
+  /** Work-item payload blob (kind 13). Returns Optional.none if index is out of bounds. */
+  workItemPayload(workItem: u32): Optional<BytesBlob> {
     return fetchBlob(this.fb, FetchKind.WorkItemPayload, workItem);
   }
 
@@ -143,8 +144,8 @@ export class WorkPackageFetcher {
     return fetchBlobOrPanic(this.fb, kind, param1, param2);
   }
 
-  /** Fetch a raw blob by kind, returning null if unavailable. */
-  blob(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): BytesBlob | null {
+  /** Fetch a raw blob by kind, returning Optional.none if unavailable. */
+  blob(kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Optional<BytesBlob> {
     return fetchBlob(this.fb, kind, param1, param2);
   }
 }

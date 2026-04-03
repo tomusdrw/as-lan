@@ -8,6 +8,7 @@
  */
 
 import { BytesBlob } from "../../core/bytes";
+import { Optional } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
 import { EntropyHash } from "../types";
 import { AuthorizerInfo, ProtocolConstants, RefinementContext, WorkItemInfo, WorkPackage } from "../work-package";
@@ -61,13 +62,13 @@ export class RefineFetcher {
     return this.wp.allWorkItems();
   }
 
-  /** Single work-item summary (kind 12). Returns null if index is out of bounds. */
-  oneWorkItem(workItem: u32): WorkItemInfo | null {
+  /** Single work-item summary (kind 12). Returns Optional.none if index is out of bounds. */
+  oneWorkItem(workItem: u32): Optional<WorkItemInfo> {
     return this.wp.oneWorkItem(workItem);
   }
 
-  /** Work-item payload blob (kind 13). Returns null if index is out of bounds. */
-  workItemPayload(workItem: u32): BytesBlob | null {
+  /** Work-item payload blob (kind 13). Returns Optional.none if index is out of bounds. */
+  workItemPayload(workItem: u32): Optional<BytesBlob> {
     return this.wp.workItemPayload(workItem);
   }
 
@@ -78,23 +79,23 @@ export class RefineFetcher {
     return this.wp.blobOrPanic(FetchKind.AuthorizerTrace);
   }
 
-  /** Extrinsic data for the current work item (kind 4). Returns null if index is out of bounds. */
-  myExtrinsic(index: u32): BytesBlob | null {
+  /** Extrinsic data for the current work item (kind 4). Returns Optional.none if index is out of bounds. */
+  myExtrinsic(index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.MyExtrinsics, index);
   }
 
-  /** Extrinsic data for another work item (kind 3). Returns null if index is out of bounds. */
-  otherExtrinsic(workItem: u32, index: u32): BytesBlob | null {
+  /** Extrinsic data for another work item (kind 3). Returns Optional.none if index is out of bounds. */
+  otherExtrinsic(workItem: u32, index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.OtherWorkItemExtrinsics, workItem, index);
   }
 
-  /** Import segment for the current work item (kind 6). Returns null if index is out of bounds. */
-  myImport(index: u32): BytesBlob | null {
+  /** Import segment for the current work item (kind 6). Returns Optional.none if index is out of bounds. */
+  myImport(index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.MyImports, index);
   }
 
-  /** Import segment for another work item (kind 5). Returns null if index is out of bounds. */
-  otherImport(workItem: u32, index: u32): BytesBlob | null {
+  /** Import segment for another work item (kind 5). Returns Optional.none if index is out of bounds. */
+  otherImport(workItem: u32, index: u32): Optional<BytesBlob> {
     return this.wp.blob(FetchKind.OtherWorkItemImports, workItem, index);
   }
 }
