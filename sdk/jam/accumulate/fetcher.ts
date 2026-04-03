@@ -10,7 +10,7 @@ import { Decoder } from "../../core/codec/decode";
 import { panic } from "../../core/panic";
 import { Optional } from "../../core/result";
 import { FetchKind } from "../../ecalli/general/fetch";
-import { FetchBuffer, fetchAndDecodeOptional, fetchRawOrPanic } from "../fetcher";
+import { FetchBuffer, fetchAndDecode, fetchAndDecodeOptional, fetchRawOrPanic } from "../fetcher";
 import { EntropyHash } from "../types";
 import { ProtocolConstants, ProtocolConstantsCodec } from "../work-package";
 import { AccumulateItem, AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
@@ -53,20 +53,12 @@ export class AccumulateFetcher {
 
   /** Protocol constants (kind 0). */
   constants(): ProtocolConstants {
-    const raw = fetchRawOrPanic(this.fb, FetchKind.Constants);
-    const d = Decoder.fromBlob(raw);
-    const r = this.protocolConstants.decode(d);
-    if (r.isError || !d.isFinished()) panic("constants: host returned malformed data");
-    return r.okay!;
+    return fetchAndDecode<ProtocolConstants>(this.fb, this.protocolConstants, FetchKind.Constants);
   }
 
   /** Entropy pool (kind 1). In accumulate context this is η'₀ (posterior entropy, 32 bytes). */
   entropy(): EntropyHash {
-    const raw = fetchRawOrPanic(this.fb, FetchKind.Entropy);
-    const d = Decoder.fromBlob(raw);
-    const r = this.bytes32.decode(d);
-    if (r.isError || !d.isFinished()) panic("entropy: host returned malformed data");
-    return r.okay!;
+    return fetchAndDecode<EntropyHash>(this.fb, this.bytes32, FetchKind.Entropy);
   }
 
   /**

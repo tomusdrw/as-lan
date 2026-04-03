@@ -99,7 +99,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const expected = AccountInfo.create(bytes32Fill(0xcc), 5000, 2500, 200_000, 100_000, 4096, 20, 2048, 10, 50, 77);
-    TestInfo.set(encodeInfoBytes(expected));
+    TestInfo.set(42, encodeInfoBytes(expected));
 
     const svc = ServiceData.create(42);
     const result = svc.info();
@@ -122,7 +122,7 @@ export const TESTS: Test[] = [
   test("ServiceData.info returns None for missing service", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    TestInfo.setNone();
+    TestInfo.setNone(999);
 
     const svc = ServiceData.create(999);
     const result = svc.info();

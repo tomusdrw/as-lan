@@ -48,8 +48,9 @@ export class ServiceData {
     }
     const result = info(this.serviceId, u32(this.buf.dataStart), 0, ACCOUNT_INFO_SIZE);
     if (result === EcalliResult.NONE) return Optional.none<AccountInfo>();
+    if (result !== i64(ACCOUNT_INFO_SIZE)) panic("ServiceData.info: host returned invalid info length");
 
-    const d = Decoder.fromBlob(this.buf.subarray(0, ACCOUNT_INFO_SIZE));
+    const d = Decoder.fromBlob(this.buf.subarray(0, u32(result)));
     const r = this.accountInfoCodec.decode(d);
     if (r.isError || !d.isFinished()) panic("ServiceData.info: host returned malformed data");
     return Optional.some<AccountInfo>(r.okay!);

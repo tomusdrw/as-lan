@@ -8,22 +8,33 @@ function buildDefaultInfoData(): Uint8Array {
   return data;
 }
 
-let infoData: Uint8Array | null = buildDefaultInfoData();
+const infoByService = new Map<number, Uint8Array | null>();
+let defaultInfoData: Uint8Array | null = buildDefaultInfoData();
 
-export function setInfoData(ptr: number, len: number): void {
+export function setInfoData(service: number, ptr: number, len: number): void {
   if (len === 0) {
-    infoData = null; // Simulate non-existent service (returns NONE)
+    infoByService.set(service, null);
   } else {
-    infoData = readBytes(ptr, len);
+    infoByService.set(service, readBytes(ptr, len));
   }
 }
 
-export function info(_service: number, out_ptr: number, offset: number, length: number): bigint {
-  if (infoData === null) return -1n; // NONE
-  writeToMem(out_ptr, infoData, offset, length);
-  return BigInt(infoData.length);
+export function setDefaultInfoData(ptr: number, len: number): void {
+  if (len === 0) {
+    defaultInfoData = null;
+  } else {
+    defaultInfoData = readBytes(ptr, len);
+  }
+}
+
+export function info(service: number, out_ptr: number, offset: number, length: number): bigint {
+  const data = infoByService.has(service) ? infoByService.get(service)! : defaultInfoData;
+  if (data === null || data === undefined) return -1n; // NONE
+  writeToMem(out_ptr, data, offset, length);
+  return BigInt(data.length);
 }
 
 export function resetInfo(): void {
-  infoData = buildDefaultInfoData();
+  infoByService.clear();
+  defaultInfoData = buildDefaultInfoData();
 }
