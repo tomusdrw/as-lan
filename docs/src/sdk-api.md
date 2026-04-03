@@ -12,8 +12,8 @@ Arguments are passed as a pointer + length into linear memory. The return value 
 
 The SDK provides helpers for parsing arguments and encoding results:
 
-- **`ctx.parseArgs(ptr, len)`** — Parse raw refine/accumulate arguments. Panics on invalid data.
-- **`encodeOptionalCodeHash(hash)`** — Encode an `Optional<CodeHash>` as a `BytesBlob` (for accumulate results).
+- **`ctx.parseArgs(ptr, len)`** — Parse raw refine/accumulate arguments. Panics on invalid host-provided entry-point data.
+- **`ctx.yieldHash(hash)`** — Encode an optional accumulate result hash and return the packed `u64`.
 - **`readFromMemory(ptr, len)`** — Read raw bytes from WASM linear memory.
 - **`ptrAndLen(data)`** — Pack a raw `Uint8Array` into a `u64` return value.
 
