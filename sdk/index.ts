@@ -14,7 +14,15 @@ export * from "./jam/account-info";
 export * from "./jam/accumulate";
 export * from "./jam/authorize";
 // Fetcher primitives + work package types
-export { FetchBuffer, fetchAndDecode, fetchAndDecodeOptional, fetchBlob, fetchBlobOrPanic, fetchRaw, fetchRawOrPanic } from "./jam/fetcher";
+export {
+  FetchBuffer,
+  fetchAndDecode,
+  fetchAndDecodeOptional,
+  fetchBlob,
+  fetchBlobOrPanic,
+  fetchRaw,
+  fetchRawOrPanic,
+} from "./jam/fetcher";
 export * from "./jam/refine";
 export * from "./jam/service";
 export * from "./jam/service-data";

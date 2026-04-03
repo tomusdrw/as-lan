@@ -10,7 +10,14 @@ import { Bytes32Codec } from "../core/codec/bytes32";
 import { Decoder } from "../core/codec/decode";
 import { panic } from "../core/panic";
 import { FetchKind } from "../ecalli/general/fetch";
-import { FetchBuffer, fetchAndDecode, fetchAndDecodeOptional, fetchBlob, fetchBlobOrPanic, fetchRawOrPanic } from "./fetcher";
+import {
+  FetchBuffer,
+  fetchAndDecode,
+  fetchAndDecodeOptional,
+  fetchBlob,
+  fetchBlobOrPanic,
+  fetchRawOrPanic,
+} from "./fetcher";
 import { EntropyHash } from "./types";
 import {
   AuthorizerInfo,

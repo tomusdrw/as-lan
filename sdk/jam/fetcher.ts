@@ -54,12 +54,7 @@ export class FetchBuffer {
  * If the buffer is too small, it is expanded to the exact
  * required size and the fetch is retried.
  */
-export function fetchRaw(
-  fb: FetchBuffer,
-  kind: FetchKind,
-  param1: u32 = 0,
-  param2: u32 = 0,
-): Uint8Array | null {
+export function fetchRaw(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Uint8Array | null {
   let result = fetch(u32(fb.buf.dataStart), 0, fb.buf.length, kind, param1, param2);
   if (result < 0) return null;
 
@@ -75,36 +70,21 @@ export function fetchRaw(
 }
 
 /** Fetch raw bytes, panicking if the data is unavailable. */
-export function fetchRawOrPanic(
-  fb: FetchBuffer,
-  kind: FetchKind,
-  param1: u32 = 0,
-  param2: u32 = 0,
-): Uint8Array {
+export function fetchRawOrPanic(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): Uint8Array {
   const raw = fetchRaw(fb, kind, param1, param2);
   if (raw === null) panic("fetchRawOrPanic: host returned NONE for expected data");
   return raw;
 }
 
 /** Fetch and wrap as BytesBlob, or `null` if unavailable. */
-export function fetchBlob(
-  fb: FetchBuffer,
-  kind: FetchKind,
-  param1: u32 = 0,
-  param2: u32 = 0,
-): BytesBlob | null {
+export function fetchBlob(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): BytesBlob | null {
   const raw = fetchRaw(fb, kind, param1, param2);
   if (raw === null) return null;
   return BytesBlob.wrap(raw);
 }
 
 /** Fetch and wrap as BytesBlob, panicking if unavailable. */
-export function fetchBlobOrPanic(
-  fb: FetchBuffer,
-  kind: FetchKind,
-  param1: u32 = 0,
-  param2: u32 = 0,
-): BytesBlob {
+export function fetchBlobOrPanic(fb: FetchBuffer, kind: FetchKind, param1: u32 = 0, param2: u32 = 0): BytesBlob {
   return BytesBlob.wrap(fetchRawOrPanic(fb, kind, param1, param2));
 }
 

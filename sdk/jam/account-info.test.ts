@@ -2,7 +2,7 @@ import { Bytes32, BytesBlob } from "../core/bytes";
 import { Decoder } from "../core/codec/decode";
 import { Encoder } from "../core/codec/encode";
 import { TestEcalli, TestInfo, TestStorage } from "../test/test-ecalli";
-import { Assert, Test, strBlob, test } from "../test/utils";
+import { Assert, strBlob, Test, test } from "../test/utils";
 import { ACCOUNT_INFO_SIZE, AccountInfo, AccountInfoCodec } from "./account-info";
 import { CurrentServiceData, ServiceData } from "./service-data";
 
@@ -35,19 +35,7 @@ export const TESTS: Test[] = [
 
   test("AccountInfo roundtrip", () => {
     const a = Assert.create();
-    const original = AccountInfo.create(
-      bytes32Fill(0xab),
-      1000,
-      500,
-      100_000,
-      50_000,
-      2048,
-      10,
-      1024,
-      7,
-      42,
-      99,
-    );
+    const original = AccountInfo.create(bytes32Fill(0xab), 1000, 500, 100_000, 50_000, 2048, 10, 1024, 7, 42, 99);
     const decoded = roundtrip(original);
     a.isEqual(decoded.codeHash.raw[0], 0xab, "codeHash[0]");
     a.isEqual(decoded.codeHash.raw[31], 0xab, "codeHash[31]");
@@ -66,9 +54,7 @@ export const TESTS: Test[] = [
 
   test("AccountInfo encoded size is 96 bytes", () => {
     const a = Assert.create();
-    const original = AccountInfo.create(
-      bytes32Fill(0x00), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    );
+    const original = AccountInfo.create(bytes32Fill(0x00), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     const e = Encoder.create();
     _codec.encode(original, e);
     const bytes = e.finish();
@@ -112,9 +98,7 @@ export const TESTS: Test[] = [
   test("ServiceData.info returns AccountInfo", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const expected = AccountInfo.create(
-      bytes32Fill(0xcc), 5000, 2500, 200_000, 100_000, 4096, 20, 2048, 10, 50, 77,
-    );
+    const expected = AccountInfo.create(bytes32Fill(0xcc), 5000, 2500, 200_000, 100_000, 4096, 20, 2048, 10, 50, 77);
     TestInfo.set(encodeInfoBytes(expected));
 
     const svc = ServiceData.create(42);

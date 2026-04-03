@@ -9,7 +9,7 @@ import { Bytes32Codec } from "../../core/codec/bytes32";
 import { Decoder } from "../../core/codec/decode";
 import { panic } from "../../core/panic";
 import { FetchKind } from "../../ecalli/general/fetch";
-import { FetchBuffer, fetchAndDecodeOptional, fetchRaw, fetchRawOrPanic } from "../fetcher";
+import { FetchBuffer, fetchAndDecodeOptional, fetchRawOrPanic } from "../fetcher";
 import { EntropyHash } from "../types";
 import { ProtocolConstants, ProtocolConstantsCodec } from "../work-package";
 import { AccumulateItem, AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
