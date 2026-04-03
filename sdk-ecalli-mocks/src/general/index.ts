@@ -7,7 +7,7 @@ export {
 } from "./fetch.js";
 export { lookup, setLookupPreimage, resetLookup } from "./lookup.js";
 export { read, write, setStorageEntry, resetStorage } from "./storage.js";
-export { info, resetInfo } from "./info.js";
+export { info, setInfoData, resetInfo } from "./info.js";
 export { log } from "./log.js";
 
 import { resetGas } from "./gas.js";

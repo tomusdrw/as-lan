@@ -11,6 +11,7 @@
 export { TestAccumulate } from "./accumulate";
 export { TestGas } from "./gas";
 export { TestFetch } from "./fetch";
+export { TestInfo } from "./info";
 export { TestLookup } from "./lookup";
 export { TestStorage } from "./storage";
 

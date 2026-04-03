@@ -43,7 +43,7 @@ export class ServiceData {
   /** Get account info for this service. Returns None if the service does not exist. */
   info(): Optional<AccountInfo> {
     // Ensure buffer is large enough for the 96-byte info structure.
-    if (this.buf.length < ACCOUNT_INFO_SIZE) {
+    if (u32(this.buf.length) < ACCOUNT_INFO_SIZE) {
       this.buf = new Uint8Array(ACCOUNT_INFO_SIZE);
     }
     const result = info(this.serviceId, u32(this.buf.dataStart), 0, ACCOUNT_INFO_SIZE);

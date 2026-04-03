@@ -1,4 +1,4 @@
-import { writeToMem } from "../memory.js";
+import { readBytes, writeToMem } from "../memory.js";
 
 function buildDefaultInfoData(): Uint8Array {
   const data = new Uint8Array(96);
@@ -8,9 +8,18 @@ function buildDefaultInfoData(): Uint8Array {
   return data;
 }
 
-let infoData: Uint8Array = buildDefaultInfoData();
+let infoData: Uint8Array | null = buildDefaultInfoData();
+
+export function setInfoData(ptr: number, len: number): void {
+  if (len === 0) {
+    infoData = null; // Simulate non-existent service (returns NONE)
+  } else {
+    infoData = readBytes(ptr, len);
+  }
+}
 
 export function info(_service: number, out_ptr: number, offset: number, length: number): bigint {
+  if (infoData === null) return -1n; // NONE
   writeToMem(out_ptr, infoData, offset, length);
   return BigInt(infoData.length);
 }
