@@ -51,13 +51,7 @@ const FETCH_BUF_SIZE: u32 = 4096;
  */
 export function accumulate(ptr: u32, len: u32): u64 {
   const ctx = AccumulateContext.create();
-  const result = ctx.parseArgs(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse accumulate args: ${result.error}`);
-    return 0;
-  }
-
-  const args = result.okay!;
+  const args = ctx.parseArgs(ptr, len);
   logger.info(`accumulate: slot=${args.slot} service=${args.serviceId} argsLength=${args.argsLength}`);
 
   let lastResponse: u64 = 0;

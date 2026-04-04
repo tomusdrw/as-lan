@@ -7,13 +7,7 @@ const logger: LogMsg = LogMsg.create("fib");
 
 export function accumulate(ptr: u32, len: u32): u64 {
   const ctx = AccumulateContext.create();
-  const result = ctx.parseArgs(ptr, len);
-  if (result.isError) {
-    logger.str("Failed to parse accumulate args: ").i32(result.error).warn();
-    return 0;
-  }
-
-  const args = result.okay!;
+  const args = ctx.parseArgs(ptr, len);
   logger.str("Fibonacci Service Accumulate, ").u32(args.serviceId).str(" @").u32(args.slot).info();
 
   const n: u64 = args.argsLength > 0 ? u64(args.argsLength) : 10;
@@ -30,13 +24,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
 export function refine(ptr: u32, len: u32): u64 {
   const ctx = RefineContext.create();
-  const result = ctx.parseArgs(ptr, len);
-  if (result.isError) {
-    logger.str("Failed to parse refine args: ").i32(result.error).warn();
-    return 0;
-  }
-
-  const args = result.okay!;
+  const args = ctx.parseArgs(ptr, len);
   logger.str("Fibonacci Service Refine, ").u32(args.serviceId).info();
   return args.payload.toPtrAndLen();
 }

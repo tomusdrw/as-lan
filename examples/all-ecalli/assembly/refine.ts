@@ -32,13 +32,7 @@ const logger: Logger = Logger.create("all-ecalli");
  */
 export function refine(ptr: u32, len: u32): u64 {
   const ctx = RefineContext.create();
-  const result = ctx.parseArgs(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse refine args: ${result.error}`);
-    return 0;
-  }
-
-  const args = result.okay!;
+  const args = ctx.parseArgs(ptr, len);
   logger.info(`refine: service=${args.serviceId} core=${args.coreIndex} item=${args.itemIndex}`);
 
   const out = Encoder.create();
