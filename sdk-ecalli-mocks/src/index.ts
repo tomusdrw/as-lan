@@ -12,7 +12,7 @@ export { setMemory } from "./memory.js";
 // General ecalli stubs (0-5, 100)
 export { gas, setGasValue } from "./general/index.js";
 export {
-  fetch, setFetchData, setAccumulateItems, setAccumulateItem,
+  fetch, setFetchData, setFetchDataForKind, setAccumulateItems, setAccumulateItem,
   encodeOperand, encodeTransfer,
 } from "./general/index.js";
 export { lookup, setLookupPreimage } from "./general/index.js";

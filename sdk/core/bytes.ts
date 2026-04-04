@@ -44,12 +44,31 @@ export class BytesBlob {
 
   private constructor(public readonly raw: Uint8Array) {}
 
+  get length(): i32 {
+    return this.raw.length;
+  }
+
   toString(): string {
     return bytesToHexString(this.raw);
   }
 
   toPtrAndLen(): u64 {
     return ptrAndLen(this.raw);
+  }
+
+  isEqualTo(other: BytesBlob): bool {
+    const a = this.raw;
+    const b = other.raw;
+    const len = a.length;
+    if (len !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < len; i++) {
+      if (a[i] !== b[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 }
 
