@@ -1,4 +1,5 @@
 // Core types
+export * from "./core/byte-buf";
 export * from "./core/bytes";
 export * from "./core/codec";
 export * from "./core/mem";

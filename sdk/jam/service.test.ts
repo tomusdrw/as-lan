@@ -28,11 +28,9 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
     const blob = e.finish();
-    const result = rCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
-    assert.isEqual(result.isOkay, true, "parse ok");
-    const parsed = result.okay!;
     assert.isEqual(parsed.coreIndex, 5, "coreIndex");
     assert.isEqual(parsed.itemIndex, 10, "itemIndex");
     assert.isEqual(parsed.serviceId, 42, "serviceId");
@@ -48,11 +46,9 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
     const blob = e.finish();
-    const result = rCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
-    assert.isEqual(result.isOkay, true, "parse ok");
-    const parsed = result.okay!;
     assert.isEqual(parsed.coreIndex, 0, "coreIndex");
     assert.isEqual(parsed.itemIndex, 0, "itemIndex");
     assert.isEqual(parsed.serviceId, 0, "serviceId");
@@ -69,11 +65,9 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
     const blob = e.finish();
-    const result = rCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
-    assert.isEqual(result.isOkay, true, "parse ok");
-    const parsed = result.okay!;
     assert.isEqual(parsed.coreIndex, 0xffff, "coreIndex max");
     assert.isEqual(parsed.itemIndex, 0xffffffff, "itemIndex max");
     assert.isEqual(parsed.serviceId, 0xffffffff, "serviceId max");
@@ -90,11 +84,9 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
     const blob = e.finish();
-    const result = aCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
-    assert.isEqual(result.isOkay, true, "parse ok");
-    const parsed = result.okay!;
     assert.isEqual(parsed.slot, 12345, "slot");
     assert.isEqual(parsed.serviceId, 678, "serviceId");
     assert.isEqual(parsed.argsLength, 3, "argsLength");
@@ -107,11 +99,9 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
     const blob = e.finish();
-    const result = aCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
-    assert.isEqual(result.isOkay, true, "parse ok");
-    const parsed = result.okay!;
     assert.isEqual(parsed.slot, 0, "slot");
     assert.isEqual(parsed.serviceId, 0, "serviceId");
     assert.isEqual(parsed.argsLength, 0, "argsLength");
@@ -124,11 +114,9 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
     const blob = e.finish();
-    const result = aCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
-    assert.isEqual(result.isOkay, true, "parse ok");
-    const parsed = result.okay!;
     assert.isEqual(parsed.slot, 0xffffffff, "slot max");
     assert.isEqual(parsed.serviceId, 0xffffffff, "serviceId max");
     assert.isEqual(parsed.argsLength, 0xffffffff, "argsLength max");

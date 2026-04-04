@@ -1,9 +1,14 @@
 import { readBytes, writeToMem } from "../memory.js";
 
 let fetchData: Uint8Array | null = null;
+const fetchDataByKind: Map<number, Uint8Array> = new Map();
 
 export function setFetchData(ptr: number, len: number): void {
   fetchData = readBytes(ptr, len);
+}
+
+export function setFetchDataForKind(kind: number, ptr: number, len: number): void {
+  fetchDataByKind.set(kind, readBytes(ptr, len));
 }
 
 // --- Accumulate items for fetch kind=14/15 ---
@@ -121,9 +126,11 @@ export function fetch(
     return BigInt(data.length);
   }
 
-  // Default: synthetic pattern or pre-set data
+  // Default: per-kind data, global pre-set, or synthetic pattern
   let data: Uint8Array;
-  if (fetchData !== null) {
+  if (fetchDataByKind.has(kind)) {
+    data = fetchDataByKind.get(kind)!;
+  } else if (fetchData !== null) {
     data = fetchData;
   } else {
     data = new Uint8Array(16);
@@ -137,6 +144,7 @@ export function fetch(
 
 export function resetFetch(): void {
   fetchData = null;
+  fetchDataByKind.clear();
   accumulateItems = [];
 }
 

@@ -36,6 +36,7 @@ sdk-ecalli-mocks/           JS-side mock stubs for ecalli host calls (used in te
     accumulate/             Mock stubs for ecalli 14-26
 pvm-adapter.wat             WAT adapter mapping WASM imports to PVM host_call_N intrinsics
 examples/
+  authorizer/               Example authorizer service (is_authorized)
   fibonacci/                Example service (refine + accumulate)
   ecalli-test/              Example that exercises all ecalli host calls
     assembly/
@@ -61,7 +62,7 @@ docs/                       Documentation (mdbook)
   - `pvm_ptr`: Converts WASM address to PVM address (for pointer arguments).
 - **sdk-ecalli-mocks**: JS stubs wired as WASM imports during test. Export names must match `@external` names exactly.
 - **EcalliResult**: Sentinel constants (NONE=-1, WHO=-4, FULL=-5, etc.) shared across all host calls.
-- **panic(msg)** (`sdk/core/panic.ts`): Use for host-contract violations where recovery is impossible (e.g. host returned malformed data). Do NOT use for expected failures — use `Result` or `Optional` instead.
+- **panic(msg)** (`sdk/core/panic.ts`): Use for host-contract violations where recovery is impossible (e.g. host returned malformed data, invalid entry point arguments). Do NOT use for expected failures — use `Result` or `Optional` instead. The SDK does not allow recovering from invalid host data — these are always panics, never `Result`.
 
 ### Codec Pattern (sdk/core/codec/ + sdk/jam/)
 
@@ -104,16 +105,17 @@ export function accumulate(ptr: u32, len: u32): u64 {
 ```
 
 Contexts:
-- **AccumulateContext** — `parseArgs()`, `respond()`, `yieldHash()`, accumulate codecs
-- **RefineContext** (extends WorkPackageContext) — `parseArgs()`, `respond()`, refine + work-package codecs
-- **AuthorizeContext** (extends WorkPackageContext) — work-package codecs
+- **AccumulateContext** — `parseArgs()` (panics on invalid data), `respond()`, `yieldHash()`, accumulate codecs
+- **RefineContext** (extends WorkPackageContext) — `parseArgs()` (panics on invalid data), `respond()`, refine + work-package codecs
+- **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16). No codec state.
 - **WorkPackageContext** — base with bytes32, protocolConstants, workPackage, etc.
 
 Fetchers receive their context via constructor: `AccumulateFetcher.create(ctx)`, `RefineFetcher.create(ctx)`.
+`AuthorizeFetcher.create()` takes no context (authorize context is stateless).
 
 ### Service ABI Types (sdk/jam/service.ts)
 
-- **RefineArgs / AccumulateArgs**: Pure data classes. Parse via `ctx.parseArgs(ptr, len)`.
+- **RefineArgs / AccumulateArgs**: Pure data classes. Parse via `ctx.parseArgs(ptr, len)` (panics on invalid data).
 - **Response**: Use `Response.with(result, data?)` for quick ptrAndLen encoding. Decode via `ctx.response`.
 
 ### Fetcher Hierarchy (sdk/jam/)
