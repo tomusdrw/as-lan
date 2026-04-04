@@ -10,14 +10,6 @@ function encodeCoreIndex(coreIndex: u16): Uint8Array {
   return enc.finish();
 }
 
-/** Encode AuthorizerInfo (kind 8): codeHash(32 zeros) + config(rest). */
-function encodeAuthorizerInfo(config: Uint8Array): Uint8Array {
-  const data = new Uint8Array(32 + config.length);
-  // first 32 bytes = zero code hash
-  data.set(config, 32);
-  return data;
-}
-
 /** Call authorize with the given core index, returning the raw output bytes. */
 function callAuthorize(coreIndex: u16): Uint8Array {
   const args = encodeCoreIndex(coreIndex);
@@ -36,7 +28,7 @@ export const TESTS: Test[] = [
   test("authorize succeeds when token matches config", () => {
     TestEcalli.reset();
     const token = strToBytes("hello");
-    TestFetch.setDataForKind(8, encodeAuthorizerInfo(token));
+    TestFetch.setDataForKind(8, token);
     TestFetch.setDataForKind(9, token);
 
     const result = callAuthorize(3);
@@ -56,7 +48,7 @@ export const TESTS: Test[] = [
     token[1] = 0xad;
     token[2] = 0xbe;
     token[3] = 0xef;
-    TestFetch.setDataForKind(8, encodeAuthorizerInfo(token));
+    TestFetch.setDataForKind(8, token);
     TestFetch.setDataForKind(9, token);
 
     const result = callAuthorize(7);
@@ -81,7 +73,7 @@ export const TESTS: Test[] = [
   test("authorize succeeds with empty token", () => {
     TestEcalli.reset();
     const token = new Uint8Array(0);
-    TestFetch.setDataForKind(8, encodeAuthorizerInfo(token));
+    TestFetch.setDataForKind(8, token);
     TestFetch.setDataForKind(9, token);
 
     const result = callAuthorize(0);

@@ -4,8 +4,6 @@ import { Decoder, TryDecode } from "../core/codec/decode";
 import { Encoder, TryEncode } from "../core/codec/encode";
 import { Assert, Test, test } from "../test/utils";
 import {
-  AuthorizerInfo,
-  AuthorizerInfoCodec,
   ExtrinsicRef,
   ExtrinsicRefCodec,
   ImportRef,
@@ -29,7 +27,6 @@ const _extrinsicRef: ExtrinsicRefCodec = ExtrinsicRefCodec.create();
 const _refinementCtx: RefinementContextCodec = RefinementContextCodec.create(_bytes32);
 const _workItem: WorkItemCodec = WorkItemCodec.create(_importRef, _extrinsicRef);
 const _protocolConstants: ProtocolConstantsCodec = ProtocolConstantsCodec.create();
-const _authorizerInfo: AuthorizerInfoCodec = AuthorizerInfoCodec.create();
 const _workItemInfo: WorkItemInfoCodec = WorkItemInfoCodec.create();
 const _workPackage: WorkPackageCodec = WorkPackageCodec.create(_refinementCtx, _workItem);
 
@@ -123,28 +120,6 @@ export const TESTS: Test[] = [
     assert.isEqual(decoded.transferMemoSize, 128, "W_T");
     assert.isEqual(decoded.maxExportSegments, 3072, "W_X");
     assert.isEqual(decoded.contestLength, 15, "Y");
-    return assert;
-  }),
-
-  // ─── AuthorizerInfo ───
-
-  test("AuthorizerInfo roundtrip", () => {
-    const original = AuthorizerInfo.create(bytes32Fill(0xaa), BytesBlob.parseBlob("0xdeadbeef").okay!);
-    const decoded = roundtrip<AuthorizerInfo>(original, _authorizerInfo, _authorizerInfo);
-
-    const assert = Assert.create();
-    assert.isEqualBytes(BytesBlob.wrap(decoded.codeHash.raw), BytesBlob.wrap(bytes32Fill(0xaa).raw), "codeHash");
-    assert.isEqualBytes(decoded.config, BytesBlob.parseBlob("0xdeadbeef").okay!, "config");
-    return assert;
-  }),
-
-  test("AuthorizerInfo roundtrip empty config", () => {
-    const original = AuthorizerInfo.create(bytes32Fill(0x00), BytesBlob.empty());
-    const decoded = roundtrip<AuthorizerInfo>(original, _authorizerInfo, _authorizerInfo);
-
-    const assert = Assert.create();
-    assert.isEqualBytes(BytesBlob.wrap(decoded.codeHash.raw), BytesBlob.wrap(bytes32Fill(0x00).raw), "codeHash");
-    assert.isEqualBytes(decoded.config, BytesBlob.empty(), "empty config");
     return assert;
   }),
 

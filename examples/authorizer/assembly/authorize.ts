@@ -7,8 +7,8 @@ export function authorize(ptr: u32, len: u32): u64 {
   const coreIndex = ctx.parseCoreIndex(ptr, len);
   const fetcher = AuthorizeFetcher.create();
 
-  const authInfo = fetcher.authorizer();
-  const token = fetcher.authorizationToken();
+  const authConfig = fetcher.authConfig();
+  const token = fetcher.authToken();
 
   logger
     .str("Null Authorizer, [")
@@ -16,13 +16,13 @@ export function authorize(ptr: u32, len: u32): u64 {
     .str("], ")
     .u64(u64(gas()))
     .str(" gas, ")
-    .blob(authInfo.config)
+    .blob(authConfig)
     .str(" param, ")
     .blob(token)
     .str(" token")
     .info();
 
-  if (!token.isEqualTo(authInfo.config)) {
+  if (!token.isEqualTo(authConfig)) {
     panic("Authorization failed");
   }
 

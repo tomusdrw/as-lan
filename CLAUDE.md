@@ -17,8 +17,8 @@ sdk/                        AssemblyScript SDK library
     account-info.ts         AccountInfo (96-byte service info from ecalli 5) + AccountInfoCodec
     service-data.ts         ServiceData (info, read) + CurrentServiceData (adds write) — high-level storage wrappers
     fetcher.ts              Base Fetcher class with buffer management (constants only)
-    work-package-fetcher.ts Intermediate fetcher adding typed kinds 7-13 (WorkPackage, AuthorizerInfo, etc.)
-    work-package.ts         WorkPackage, WorkItem, WorkItemInfo, AuthorizerInfo, RefinementContext, ImportRef, ExtrinsicRef + codec classes
+    work-package-fetcher.ts Intermediate fetcher adding typed kinds 7-13 (WorkPackage, etc.)
+    work-package.ts         WorkPackage, WorkItem, WorkItemInfo, RefinementContext, ImportRef, ExtrinsicRef + codec classes
     accumulate/             Accumulate-context types and fetcher
       item.ts               Operand, PendingTransfer, WorkExecResult, AccumulateItem + codec classes
       fetcher.ts            AccumulateFetcher (entropy, allTransfersAndOperands, oneTransferOrOperand)
@@ -129,7 +129,7 @@ panic if the host returns NONE (host-contract violation). Methods that fetch
 
 ```text
 Fetcher primitives (fetchRaw, fetchRawOrPanic, fetchBlob, fetchBlobOrPanic, fetchAndDecode, fetchAndDecodeOptional)
-  ├── WorkPackageFetcher(ctx) (kinds 0, 7-13: constants, WorkPackage, AuthorizerInfo, etc.)
+  ├── WorkPackageFetcher(ctx) (kinds 0, 7-13: constants, WorkPackage, etc.)
   │     ├── AuthorizeFetcher(ctx) (kinds 0, 7-13)
   │     └── RefineFetcher(ctx) (adds entropy, trace, extrinsics, imports — kinds 0-13)
   └── AccumulateFetcher(ctx) (kinds 0-1, 14-15: constants, entropy, accumulate items)

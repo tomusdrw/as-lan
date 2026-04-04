@@ -21,8 +21,6 @@ import {
 } from "./fetcher";
 import { EntropyHash } from "./types";
 import {
-  AuthorizerInfo,
-  AuthorizerInfoCodec,
   ExtrinsicRefCodec,
   ImportRefCodec,
   ProtocolConstants,
@@ -46,7 +44,6 @@ export class WorkPackageFetcher {
   // Lazy codec fields
   private _protocolConstants: ProtocolConstantsCodec | null = null;
   private _bytes32: Bytes32Codec | null = null;
-  private _authorizerInfo: AuthorizerInfoCodec | null = null;
   private _workItemInfo: WorkItemInfoCodec | null = null;
   private _refinementContext: RefinementContextCodec | null = null;
   private _workPackage: WorkPackageCodec | null = null;
@@ -63,11 +60,6 @@ export class WorkPackageFetcher {
   private get bytes32(): Bytes32Codec {
     if (this._bytes32 === null) this._bytes32 = Bytes32Codec.create();
     return this._bytes32!;
-  }
-
-  private get authorizerInfo(): AuthorizerInfoCodec {
-    if (this._authorizerInfo === null) this._authorizerInfo = AuthorizerInfoCodec.create();
-    return this._authorizerInfo!;
   }
 
   private get workItemInfo(): WorkItemInfoCodec {
@@ -105,14 +97,14 @@ export class WorkPackageFetcher {
     return fetchAndDecode<WorkPackage>(this.fb, this.workPackage, FetchKind.WorkPackage);
   }
 
-  /** Authorizer code hash and config (kind 8). */
-  authorizer(): AuthorizerInfo {
-    return fetchAndDecode<AuthorizerInfo>(this.fb, this.authorizerInfo, FetchKind.Authorizer);
+  /** Authorizer configuration blob (kind 8). */
+  authConfig(): BytesBlob {
+    return fetchBlobOrPanic(this.fb, FetchKind.AuthConfig);
   }
 
   /** Authorization token blob (kind 9). */
-  authorizationToken(): BytesBlob {
-    return fetchBlobOrPanic(this.fb, FetchKind.AuthorizationToken);
+  authToken(): BytesBlob {
+    return fetchBlobOrPanic(this.fb, FetchKind.AuthToken);
   }
 
   /** Refinement context (kind 10). */

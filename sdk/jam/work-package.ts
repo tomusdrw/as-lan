@@ -257,47 +257,6 @@ export class ProtocolConstantsCodec implements TryDecode<ProtocolConstants>, Try
   }
 }
 
-// ─── AuthorizerInfo ───────────────────────────────────────────────────
-
-/**
- * Authorizer info (fetch kind 8).
- *
- * Encoding: code_hash(32) ⌢ config(rest)
- */
-export class AuthorizerInfo {
-  static create(codeHash: CodeHash, config: BytesBlob): AuthorizerInfo {
-    return new AuthorizerInfo(codeHash, config);
-  }
-
-  private constructor(
-    /** Authorization code hash. */
-    public codeHash: CodeHash,
-    /** Configuration/parametrization blob. */
-    public config: BytesBlob,
-  ) {}
-}
-
-export class AuthorizerInfoCodec implements TryDecode<AuthorizerInfo>, TryEncode<AuthorizerInfo> {
-  static create(): AuthorizerInfoCodec {
-    return new AuthorizerInfoCodec();
-  }
-  private constructor() {}
-
-  decode(d: Decoder): Result<AuthorizerInfo, DecodeError> {
-    const codeHash = d.bytes32();
-    // Config extends to end of data — read remaining bytes.
-    const remaining = d.source.length - d.bytesRead();
-    const config = d.bytesFixLen(remaining);
-    if (d.isError) return Result.err<AuthorizerInfo, DecodeError>(DecodeError.MissingBytes);
-    return Result.ok<AuthorizerInfo, DecodeError>(AuthorizerInfo.create(codeHash, config));
-  }
-
-  encode(v: AuthorizerInfo, e: Encoder): void {
-    e.bytesFixLen(v.codeHash.raw);
-    e.bytesFixLen(v.config.raw);
-  }
-}
-
 // ─── RefinementContext ────────────────────────────────────────────────
 
 /**

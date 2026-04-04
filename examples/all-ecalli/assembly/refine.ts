@@ -56,8 +56,8 @@ export function refine(ptr: u32, len: u32): u64 {
   count += fetchAll(out, FetchKind.OtherWorkItemImports, "OtherWorkItemImports", 0, 0);
   count += fetchAll(out, FetchKind.MyImports, "MyImports", 0, 0);
   count += fetchAll(out, FetchKind.WorkPackage, "WorkPackage", 0, 0);
-  count += fetchAll(out, FetchKind.Authorizer, "Authorizer", 0, 0);
-  count += fetchAll(out, FetchKind.AuthorizationToken, "AuthorizationToken", 0, 0);
+  count += fetchAll(out, FetchKind.AuthConfig, "AuthConfig", 0, 0);
+  count += fetchAll(out, FetchKind.AuthToken, "AuthToken", 0, 0);
   count += fetchAll(out, FetchKind.RefineContext, "RefineContext", 0, 0);
   count += fetchAll(out, FetchKind.AllWorkItems, "AllWorkItems", 0, 0);
   count += fetchAll(out, FetchKind.OneWorkItem, "OneWorkItem", 0, 0);
