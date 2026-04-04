@@ -9,7 +9,7 @@
 
 import { BytesBlob } from "../../core/bytes";
 import { Optional } from "../../core/result";
-import { AuthorizerInfo, ProtocolConstants, RefinementContext, WorkItemInfo, WorkPackage } from "../work-package";
+import { ProtocolConstants, RefinementContext, WorkItemInfo, WorkPackage } from "../work-package";
 import { WorkPackageFetcher } from "../work-package-fetcher";
 
 export class AuthorizeFetcher {
@@ -33,14 +33,14 @@ export class AuthorizeFetcher {
     return this.wp.fetchWorkPackage();
   }
 
-  /** Authorizer code hash and config (kind 8). */
-  authorizer(): AuthorizerInfo {
-    return this.wp.authorizer();
+  /** Authorizer configuration blob (kind 8). */
+  authConfig(): BytesBlob {
+    return this.wp.authConfig();
   }
 
   /** Authorization token blob (kind 9). */
-  authorizationToken(): BytesBlob {
-    return this.wp.authorizationToken();
+  authToken(): BytesBlob {
+    return this.wp.authToken();
   }
 
   /** Refinement context (kind 10). */
