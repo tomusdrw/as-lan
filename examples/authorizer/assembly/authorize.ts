@@ -2,7 +2,7 @@ import { AuthorizeContext, AuthorizeFetcher, ByteBuf, gas, LogMsg, panic, ptrAnd
 
 const logger: LogMsg = LogMsg.create("auth");
 
-export function authorize(ptr: u32, len: u32): u64 {
+export function is_authorized(ptr: u32, len: u32): u64 {
   const ctx = AuthorizeContext.create();
   const coreIndex = ctx.parseCoreIndex(ptr, len);
   const fetcher = AuthorizeFetcher.create();

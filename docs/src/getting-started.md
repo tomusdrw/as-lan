@@ -44,7 +44,7 @@ The ecalli host call stubs used for testing live in `sdk/sdk-ecalli-mocks/` and 
 
 ## Implement Your Service
 
-Edit `assembly/fibonacci.ts` (rename it to match your service). You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service).
+Edit `assembly/fibonacci.ts` (rename it to match your service). You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service — see the [authorizer example](https://github.com/fluffylabs/as-lan/tree/main/examples/authorizer) and the [SDK API entry point pattern](./sdk-api.md#entry-point-pattern-authorizer-service)).
 
 Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a packed `u64` result. The SDK provides helpers for parsing arguments, and results are returned by calling `.toPtrAndLen()` on a `BytesBlob`:
 

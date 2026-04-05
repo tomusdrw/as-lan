@@ -19,7 +19,7 @@ The SDK provides helpers for parsing arguments and encoding results:
 
 To return a result, call `.toPtrAndLen()` on a `BytesBlob` (or use `ptrAndLen()` for a raw `Uint8Array`).
 
-### Entry Point Pattern
+### Entry Point Pattern (Regular Service)
 
 ```typescript
 // assembly/index.ts
@@ -47,6 +47,47 @@ export function refine(ptr: u32, len: u32): u64 {
   return args.payload.toPtrAndLen();
 }
 ```
+
+### Entry Point Pattern (Authorizer Service)
+
+An authorizer service must export a single `is_authorized` function. It receives
+the core index, and returns an authorization trace (opaque bytes passed to the
+accumulate stage).
+
+```typescript
+// assembly/index.ts
+export { is_authorized } from "./authorize";
+```
+
+```typescript
+// assembly/authorize.ts
+import { AuthorizeContext, AuthorizeFetcher, ByteBuf, panic, ptrAndLen } from "@fluffylabs/as-lan";
+
+export function is_authorized(ptr: u32, len: u32): u64 {
+  const ctx = AuthorizeContext.create();
+  const coreIndex = ctx.parseCoreIndex(ptr, len);
+  const fetcher = AuthorizeFetcher.create();
+
+  const authConfig = fetcher.authConfig();
+  const token = fetcher.authToken();
+
+  // Example: reject if the token doesn't match the config
+  if (!token.isEqualTo(authConfig)) {
+    panic("Authorization failed");
+  }
+
+  // Return an authorization trace
+  const trace = ByteBuf.create(7 + token.length)
+    .str("Auth=<")
+    .bytes(token.raw)
+    .str(">")
+    .finish();
+  return ptrAndLen(trace);
+}
+```
+
+The `AuthorizeFetcher` provides access to work-package data (fetch kinds 0, 7–13),
+including `authConfig()` and `authToken()`. See the [authorizer example](https://github.com/fluffylabs/as-lan/tree/main/examples/authorizer) for a complete project.
 
 ### Parsed Argument Types
 
