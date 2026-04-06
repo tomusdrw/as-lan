@@ -1,4 +1,5 @@
 import {
+  ByteBuf,
   Encoder,
   export_,
   expunge,
@@ -225,8 +226,7 @@ function fetchAll(out: Encoder, kind: u32, name: string, param1: u32, param2: u3
   return 1;
 }
 
-/** Encode a string as a Uint8Array (UTF-8). */
+/** Encode a string as a Uint8Array (ASCII). */
 function encodeString(s: string): Uint8Array {
-  const buf = String.UTF8.encode(s);
-  return Uint8Array.wrap(buf);
+  return ByteBuf.create(s.length).strAscii(s).finish();
 }

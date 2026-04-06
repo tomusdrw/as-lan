@@ -27,9 +27,9 @@ export function authorize(ptr: u32, len: u32): u64 {
   }
 
   const trace = ByteBuf.create(7 + token.length)
-    .str("Auth=<")
+    .strAscii("Auth=<")
     .bytes(token.raw)
-    .str(">")
+    .strAscii(">")
     .finish();
   return ptrAndLen(trace);
 }

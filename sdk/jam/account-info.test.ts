@@ -1,3 +1,4 @@
+import { ByteBuf } from "../core/byte-buf";
 import { Bytes32, BytesBlob } from "../core/bytes";
 import { Decoder } from "../core/codec/decode";
 import { Encoder } from "../core/codec/encode";
@@ -143,8 +144,8 @@ export const TESTS: Test[] = [
     TestStorage.set(strBlob("testkey"), BytesBlob.wrap(val));
 
     const svc = ServiceData.create(42);
-    const key = String.UTF8.encode("testkey");
-    const result = svc.read(Uint8Array.wrap(key));
+    const key = ByteBuf.create(32).strAscii("testkey").finish();
+    const result = svc.read(key);
     a.isEqual(result.isSome, true, "should be some");
     const data = result.val!;
     a.isEqual(data.length, 4, "length");
@@ -160,8 +161,8 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = ServiceData.create(42);
-    const key = String.UTF8.encode("nonexistent");
-    const result = svc.read(Uint8Array.wrap(key));
+    const key = ByteBuf.create(32).strAscii("nonexistent").finish();
+    const result = svc.read(key);
     a.isEqual(result.isSome, false, "should be none");
     return a;
   }),
@@ -175,8 +176,8 @@ export const TESTS: Test[] = [
 
     // Create with small buffer (64 bytes) to force auto-expansion
     const svc = ServiceData.create(42, 64);
-    const key = String.UTF8.encode("bigkey");
-    const result = svc.read(Uint8Array.wrap(key));
+    const key = ByteBuf.create(32).strAscii("bigkey").finish();
+    const result = svc.read(key);
     a.isEqual(result.isSome, true, "should be some");
     const data = result.val!;
     a.isEqual(data.length, 2048, "length");
@@ -194,12 +195,12 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = CurrentServiceData.create();
-    const key = String.UTF8.encode("newkey");
+    const key = ByteBuf.create(32).strAscii("newkey").finish();
     const val = new Uint8Array(3);
     val[0] = 1;
     val[1] = 2;
     val[2] = 3;
-    const result = svc.write(Uint8Array.wrap(key), val);
+    const result = svc.write(key, val);
     a.isEqual(result.isOkay, true, "should be ok");
     a.isEqual(result.okay!.isSome, false, "no previous value");
     return a;
@@ -210,18 +211,18 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = CurrentServiceData.create();
-    const key = String.UTF8.encode("overkey");
+    const key = ByteBuf.create(32).strAscii("overkey").finish();
     const val1 = new Uint8Array(5);
     val1.fill(0xaa);
     const val2 = new Uint8Array(3);
     val2.fill(0xbb);
 
     // First write — no previous value
-    svc.write(Uint8Array.wrap(key), val1);
+    svc.write(key, val1);
 
     // Second write — should return previous length (5)
-    const key2 = String.UTF8.encode("overkey");
-    const result = svc.write(Uint8Array.wrap(key2), val2);
+    const key2 = ByteBuf.create(32).strAscii("overkey").finish();
+    const result = svc.write(key2, val2);
     a.isEqual(result.isOkay, true, "should be ok");
     a.isEqual(result.okay!.isSome, true, "has previous value");
     a.isEqual(result.okay!.val, 5, "previous length");
@@ -233,17 +234,17 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = CurrentServiceData.create();
-    const key = String.UTF8.encode("rtkey");
+    const key = ByteBuf.create(32).strAscii("rtkey").finish();
     const val = new Uint8Array(4);
     val[0] = 0xca;
     val[1] = 0xfe;
     val[2] = 0xba;
     val[3] = 0xbe;
 
-    svc.write(Uint8Array.wrap(key), val);
+    svc.write(key, val);
 
-    const key2 = String.UTF8.encode("rtkey");
-    const result = svc.read(Uint8Array.wrap(key2));
+    const key2 = ByteBuf.create(32).strAscii("rtkey").finish();
+    const result = svc.read(key2);
     a.isEqual(result.isSome, true, "should be some");
     const data = result.val!;
     a.isEqual(data.length, 4, "length");

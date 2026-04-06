@@ -49,10 +49,9 @@ export function test(name: string, ptr: () => Assert): Test {
   return Test.create(name, ptr);
 }
 
-/** Wrap a string as a BytesBlob (via UTF-8 encoding). */
+/** Wrap a string as a BytesBlob (via ASCII encoding). */
 export function strBlob(s: string): BytesBlob {
-  const buf = String.UTF8.encode(s);
-  return BytesBlob.wrap(Uint8Array.wrap(buf));
+  return BytesBlob.encodeAscii(s);
 }
 
 /**

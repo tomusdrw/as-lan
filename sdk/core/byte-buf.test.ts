@@ -21,7 +21,7 @@ function ascii(s: string): u8[] {
 export const TESTS: Test[] = [
   test("str appends ASCII bytes", () => {
     const a = Assert.create();
-    const result = ByteBuf.create(16).str("hello").finish();
+    const result = ByteBuf.create(16).strAscii("hello").finish();
     assertBytes(a, result, ascii("hello"), "str");
     return a;
   }),
@@ -42,7 +42,7 @@ export const TESTS: Test[] = [
     const data = new Uint8Array(2);
     data[0] = 0xff;
     data[1] = 0x01;
-    const result = ByteBuf.create(32).str("A=").bytes(data).str("!").finish();
+    const result = ByteBuf.create(32).strAscii("A=").bytes(data).strAscii("!").finish();
     const expected: u8[] = ascii("A=");
     expected.push(0xff);
     expected.push(0x01);
@@ -136,7 +136,7 @@ export const TESTS: Test[] = [
 
   test("str truncated at capacity", () => {
     const a = Assert.create();
-    const result = ByteBuf.create(3).str("hello").finish();
+    const result = ByteBuf.create(3).strAscii("hello").finish();
     assertBytes(a, result, ascii("hel"), "truncated str");
     return a;
   }),
@@ -180,8 +180,8 @@ export const TESTS: Test[] = [
   test("finish resets for reuse", () => {
     const a = Assert.create();
     const buf = ByteBuf.create(16);
-    const first = buf.str("one").finish();
-    const second = buf.str("two").finish();
+    const first = buf.strAscii("one").finish();
+    const second = buf.strAscii("two").finish();
     assertBytes(a, first, ascii("one"), "first");
     assertBytes(a, second, ascii("two"), "second");
     return a;
@@ -190,11 +190,11 @@ export const TESTS: Test[] = [
   test("reset discards content", () => {
     const a = Assert.create();
     const buf = ByteBuf.create(16);
-    buf.str("discard");
+    buf.strAscii("discard");
     a.isEqual(buf.length, 7, "length before reset");
     buf.reset();
     a.isEqual(buf.length, 0, "length after reset");
-    const result = buf.str("kept").finish();
+    const result = buf.strAscii("kept").finish();
     assertBytes(a, result, ascii("kept"), "after reset");
     return a;
   }),
@@ -203,7 +203,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
     const buf = ByteBuf.create(32);
     a.isEqual(buf.length, 0, "initial");
-    buf.str("ab");
+    buf.strAscii("ab");
     a.isEqual(buf.length, 2, "after str");
     buf.u32(7);
     a.isEqual(buf.length, 3, "after u32");

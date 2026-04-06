@@ -1,4 +1,4 @@
-import { Encoder } from "@fluffylabs/as-lan";
+import { ByteBuf, Encoder } from "@fluffylabs/as-lan";
 import { Assert, Test, TestEcalli, TestFetch, test, unpackResult } from "@fluffylabs/as-lan/test";
 import { authorize } from "./authorize";
 
@@ -19,9 +19,9 @@ function callAuthorize(coreIndex: u16): Uint8Array {
   return unpackResult(result);
 }
 
-/** Convert a string to UTF-8 bytes. */
+/** Convert a string to ASCII bytes. */
 function strToBytes(s: string): Uint8Array {
-  return Uint8Array.wrap(String.UTF8.encode(s));
+  return ByteBuf.create(s.length).strAscii(s).finish();
 }
 
 export const TESTS: Test[] = [

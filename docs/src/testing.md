@@ -141,7 +141,7 @@ import { BytesBlob } from "@fluffylabs/as-lan";
 import { TestStorage } from "@fluffylabs/as-lan/test";
 
 // Pre-populate a key
-const key = BytesBlob.wrap(String.UTF8.encode("counter"));
+const key = BytesBlob.encodeAscii("counter");
 const value = BytesBlob.wrap(new Uint8Array(8));
 TestStorage.set(key, value);
 

@@ -37,7 +37,7 @@ export class LogMsg {
 
   /** Append an ASCII string to the buffer. */
   str(s: string): LogMsg {
-    this._buf.str(s);
+    this._buf.strAscii(s);
     return this;
   }
 

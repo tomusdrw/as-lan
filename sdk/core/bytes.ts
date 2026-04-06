@@ -12,6 +12,19 @@ export class BytesBlob {
     return new BytesBlob(data);
   }
 
+  static encodeAscii(str: string): BytesBlob {
+    const len = str.length;
+    const buf = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      buf[i] = str.charCodeAt(i);
+    }
+    return BytesBlob.wrap(buf);
+  }
+
+  static encodeUtf8(str: string): BytesBlob {
+    return BytesBlob.wrap(Uint8Array.wrap(String.UTF8.encode(str)));
+  }
+
   static empty(): BytesBlob {
     return new BytesBlob(new Uint8Array(0));
   }
@@ -50,6 +63,10 @@ export class BytesBlob {
 
   toString(): string {
     return bytesToHexString(this.raw);
+  }
+
+  ptr(): u32 {
+    return u32(this.raw.dataStart);
   }
 
   toPtrAndLen(): u64 {

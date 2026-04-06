@@ -1,6 +1,7 @@
 import {
   AccumulateContext,
   assign,
+  ByteBuf,
   // Accumulate ecallis (14-26)
   bless,
   checkpoint,
@@ -342,8 +343,7 @@ function buildValidators(): Uint8Array {
   return buf;
 }
 
-/** Encode a string as a Uint8Array (UTF-8). */
+/** Encode a string as a Uint8Array (ASCII). */
 function encodeString(s: string): Uint8Array {
-  const buf = String.UTF8.encode(s);
-  return Uint8Array.wrap(buf);
+  return ByteBuf.create(s.length).strAscii(s).finish();
 }
