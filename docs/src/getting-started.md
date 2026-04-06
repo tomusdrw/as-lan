@@ -81,7 +81,7 @@ export function refine(ptr: u32, len: u32): u64 {
 
 ## Build & Test
 
-You need [`wasm-pvm`](https://crates.io/crates/wasm-pvm-cli) installed (`cargo install wasm-pvm-cli@0.7.0`) to produce PVM binaries.
+You need [`wasm-pvm`](https://crates.io/crates/wasm-pvm-cli) installed (`cargo install wasm-pvm-cli@0.7.1`) to produce PVM binaries.
 
 ```bash
 npm run build          # compile WASM (debug + release) and PVM binary
