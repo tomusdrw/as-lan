@@ -30,7 +30,7 @@ import {
   write,
   yield_result,
 } from "@fluffylabs/as-lan";
-import { AUTO_ACCUM_COUNT, AuthQueue, AutoAccumulate, ValidatorKeys } from "./test-data";
+import { AUTO_ACCUM_COUNT, buildAuthQueue, buildAutoAccum, buildValidators } from "./test-data";
 
 const logger: Logger = Logger.create("all-ecalli");
 
@@ -120,8 +120,8 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 14: bless(manager=1, auth_queue, delegator=2, registrar=3, auto_accum) ──
   {
-    const authQueue = AuthQueue.create().encode();
-    const autoAccum = AutoAccumulate.create().encode();
+    const authQueue = buildAuthQueue();
+    const autoAccum = buildAutoAccum();
     const r = bless(1, authQueue.ptr(), 2, 3, autoAccum.ptr(), AUTO_ACCUM_COUNT);
     logger.info(`[14] bless() = ${r}`);
     out.varU64(14);
@@ -131,7 +131,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 15: assign(core=0, auth_queue, assigners=0b11) ────────
   {
-    const authQueue = AuthQueue.create().encode();
+    const authQueue = buildAuthQueue();
     const r = assign(0, authQueue.ptr(), 0b11);
     logger.info(`[15] assign() = ${r}`);
     out.varU64(15);
@@ -141,7 +141,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 16: designate(validators) ─────────────────────────────
   {
-    const validators = ValidatorKeys.create().encode();
+    const validators = buildValidators();
     const r = designate(validators.ptr());
     logger.info(`[16] designate() = ${r}`);
     out.varU64(16);
