@@ -30,7 +30,7 @@ export const TESTS: Test[] = [
   }),
 
   test("varU32 missing bytes sets error", () => {
-    const d = Decoder.fromBlob(new Uint8Array(0));
+    const d = Decoder.fromBlob(BytesBlob.empty().raw);
     const assert = Assert.create();
     assert.isEqual(d.varU32(), 0, "returns 0");
     assert.isEqual(d.isError, true, "error set");

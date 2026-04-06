@@ -71,12 +71,8 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Write);
     p.bytesVarLen(strBlob("mykey")); // key
-    const val = new Uint8Array(4);
-    val[0] = 0xca;
-    val[1] = 0xfe;
-    val[2] = 0xba;
-    val[3] = 0xbe;
-    p.bytesVarLen(BytesBlob.wrap(val)); // value
+    const val = BytesBlob.parseBlob("0xcafebabe").okay!;
+    p.bytesVarLen(val); // value
 
     const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
@@ -85,12 +81,8 @@ export const TESTS: Test[] = [
   }),
 
   test("read: reads back previously written value", () => {
-    const val = new Uint8Array(4);
-    val[0] = 0xca;
-    val[1] = 0xfe;
-    val[2] = 0xba;
-    val[3] = 0xbe;
-    TestStorage.set(strBlob("mykey"), BytesBlob.wrap(val));
+    const val = BytesBlob.parseBlob("0xcafebabe").okay!;
+    TestStorage.set(strBlob("mykey"), val);
 
     const p = Encoder.create();
     p.varU64(EcalliIndex.Read);
@@ -111,12 +103,8 @@ export const TESTS: Test[] = [
   }),
 
   test("write: overwrite returns previous value length", () => {
-    const val = new Uint8Array(4);
-    val[0] = 0xca;
-    val[1] = 0xfe;
-    val[2] = 0xba;
-    val[3] = 0xbe;
-    TestStorage.set(strBlob("mykey"), BytesBlob.wrap(val));
+    const val = BytesBlob.parseBlob("0xcafebabe").okay!;
+    TestStorage.set(strBlob("mykey"), val);
 
     const p = Encoder.create();
     p.varU64(EcalliIndex.Write);
@@ -180,9 +168,9 @@ export const TESTS: Test[] = [
   test("export: exports a segment", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Export);
-    const segment = new Uint8Array(8);
-    segment[0] = 0x42;
-    p.bytesVarLen(BytesBlob.wrap(segment));
+    const segment = BytesBlob.zero(8);
+    segment.raw[0] = 0x42;
+    p.bytesVarLen(segment);
 
     const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
@@ -193,8 +181,7 @@ export const TESTS: Test[] = [
   test("machine: creates inner PVM", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Machine);
-    const code = new Uint8Array(4);
-    p.bytesVarLen(BytesBlob.wrap(code));
+    p.bytesVarLen(BytesBlob.zero(4));
     p.varU64(0); // entrypoint
 
     const resp = callRefine(p.finishRaw());
@@ -221,10 +208,10 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Poke);
     p.varU64(0); // machine_id
-    const data = new Uint8Array(4);
-    data[0] = 0xde;
-    data[1] = 0xad;
-    p.bytesVarLen(BytesBlob.wrap(data));
+    const data = BytesBlob.zero(4);
+    data.raw[0] = 0xde;
+    data.raw[1] = 0xad;
+    p.bytesVarLen(data);
     p.varU64(0x1000); // dest address in machine
 
     const resp = callRefine(p.finishRaw());
@@ -251,8 +238,7 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Invoke);
     p.varU64(0); // machine_id
-    const io = new Uint8Array(8); // I/O structure
-    p.bytesVarLen(BytesBlob.wrap(io));
+    p.bytesVarLen(BytesBlob.zero(8)); // I/O structure
 
     const resp = callRefine(p.finishRaw());
     const assert = Assert.create();

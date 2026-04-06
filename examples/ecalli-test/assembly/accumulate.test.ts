@@ -31,10 +31,10 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Bless);
     p.varU64(1); // manager
-    p.bytesVarLen(BytesBlob.wrap(new Uint8Array(0))); // auth_queue
+    p.bytesVarLen(BytesBlob.empty()); // auth_queue
     p.varU64(2); // delegator
     p.varU64(3); // registrar
-    p.bytesVarLen(BytesBlob.wrap(new Uint8Array(0))); // auto_accum
+    p.bytesVarLen(BytesBlob.empty()); // auto_accum
     p.varU64(0); // auto_accum_count
 
     const resp = callAccumulateWithOperand(p.finishRaw());
@@ -47,7 +47,7 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Assign);
     p.varU64(0); // core
-    p.bytesVarLen(BytesBlob.wrap(new Uint8Array(0))); // auth_queue
+    p.bytesVarLen(BytesBlob.empty()); // auth_queue
     p.varU64(1); // assigners
 
     const resp = callAccumulateWithOperand(p.finishRaw());
@@ -59,7 +59,7 @@ export const TESTS: Test[] = [
   test("designate: sets next epoch validators", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Designate);
-    p.bytesVarLen(BytesBlob.wrap(new Uint8Array(0))); // validators
+    p.bytesVarLen(BytesBlob.empty()); // validators
 
     const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
@@ -112,8 +112,7 @@ export const TESTS: Test[] = [
     p.varU64(100); // dest service
     p.varU64(500); // amount
     p.varU64(1000); // gas_fee
-    const memo = new Uint8Array(128);
-    p.bytesVarLen(BytesBlob.wrap(memo)); // memo
+    p.bytesVarLen(BytesBlob.zero(128)); // memo
 
     const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
@@ -173,9 +172,7 @@ export const TESTS: Test[] = [
   test("yield_result: provides result hash", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.YieldResult);
-    const hash = new Uint8Array(32);
-    hash[0] = 0xff;
-    p.bytesFixLen(BytesBlob.wrap(hash));
+    p.bytesFixLen(BytesBlob.parseBlob("0xff00000000000000000000000000000000000000000000000000000000000000").okay!);
 
     const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();

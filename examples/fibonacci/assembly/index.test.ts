@@ -26,11 +26,11 @@ function pushBytes(out: u8[], bytes: Uint8Array): void {
 }
 
 function toBytes(out: u8[]): Uint8Array {
-  const v = new Uint8Array(out.length);
+  const v = BytesBlob.zero(out.length);
   for (let i = 0; i < out.length; i += 1) {
-    v[i] = out[i];
+    v.raw[i] = out[i];
   }
-  return v;
+  return v.raw;
 }
 
 function fromHex(hex: string): Uint8Array {
@@ -48,11 +48,9 @@ function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, m
 }
 
 function callWithArgs(fn: (ptr: u32, len: u32) => u64, data: Uint8Array): Uint8Array {
-  // Copy data into a managed buffer and keep it referenced across the
-  // fn() call so the compiler doesn't optimize it away.
-  const buf = new Uint8Array(data.length);
-  buf.set(data);
-  const result = fn(u32(buf.dataStart), buf.byteLength);
+  // Wrap data and use typed pointer access.
+  const buf = BytesBlob.wrap(data);
+  const result = fn(buf.ptr(), buf.length);
   // Reference buf after fn() to ensure it stays live.
   assert(buf.length >= 0);
   return unpackResult(result);
@@ -120,7 +118,7 @@ export const TESTS: Test[] = [
     pushVarU64(out, 1); // coreIndex
     pushVarU64(out, 0); // itemIndex
     pushVarU64(out, 10); // serviceId
-    pushBytesVarLen(out, new Uint8Array(0)); // empty payload
+    pushBytesVarLen(out, BytesBlob.empty().raw); // empty payload
     pushBytes(out, zeros32); // workPackageHash
 
     const result = callWithArgs(refine, toBytes(out));

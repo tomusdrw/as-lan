@@ -31,9 +31,9 @@ const _workItemInfo: WorkItemInfoCodec = WorkItemInfoCodec.create();
 const _workPackage: WorkPackageCodec = WorkPackageCodec.create(_refinementCtx, _workItem);
 
 function bytes32Fill(v: u8): Bytes32 {
-  const raw = new Uint8Array(32);
-  raw.fill(v);
-  return Bytes32.wrapUnchecked(raw);
+  const buf = BytesBlob.zero(32);
+  buf.raw.fill(v);
+  return Bytes32.wrapUnchecked(buf.raw);
 }
 
 function roundtrip<T>(original: T, enc: TryEncode<T>, dec: TryDecode<T>): T {

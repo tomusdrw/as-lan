@@ -20,14 +20,11 @@ const ACCUMULATE_ECALLI_COUNT: u32 = 23;
 
 function callRefine(): Response {
   const ctx = RefineContext.create();
-  const payload = new Uint8Array(0);
-  const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
+  const args = RefineArgs.create(0, 0, 42, BytesBlob.empty(), Bytes32.zero());
   const enc = Encoder.create();
   ctx.refineArgs.encode(args, enc);
-  const encoded = enc.finishRaw();
-  const buf = new Uint8Array(encoded.length);
-  buf.set(encoded);
-  const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
+  const blob = enc.finish();
+  const raw = unpackResult(refine(blob.ptr(), blob.length));
   return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
 }
 
@@ -36,10 +33,8 @@ function callAccumulate(): Response {
   const args = AccumulateArgs.create(7, 42, 0);
   const enc = Encoder.create();
   ctx.accumulateArgs.encode(args, enc);
-  const encoded = enc.finishRaw();
-  const buf = new Uint8Array(encoded.length);
-  buf.set(encoded);
-  const raw = unpackResult(accumulate(u32(buf.dataStart), buf.byteLength));
+  const blob = enc.finish();
+  const raw = unpackResult(accumulate(blob.ptr(), blob.length));
   return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
 }
 
