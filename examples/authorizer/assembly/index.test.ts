@@ -1,6 +1,6 @@
 import { BytesBlob, Encoder } from "@fluffylabs/as-lan";
 import { Assert, Test, TestEcalli, TestFetch, test, unpackResult } from "@fluffylabs/as-lan/test";
-import { authorize } from "./authorize";
+import { is_authorized } from "./authorize";
 
 /** Encode a u16 LE core index into a BytesBlob. */
 function encodeCoreIndex(coreIndex: u16): BytesBlob {
@@ -10,10 +10,10 @@ function encodeCoreIndex(coreIndex: u16): BytesBlob {
   return buf;
 }
 
-/** Call authorize with the given core index, returning the raw output bytes. */
+/** Call is_authorized with the given core index, returning the raw output bytes. */
 function callAuthorize(coreIndex: u16): Uint8Array {
   const args = encodeCoreIndex(coreIndex);
-  const result = authorize(args.ptr(), args.length);
+  const result = is_authorized(args.ptr(), args.length);
   return unpackResult(result);
 }
 
