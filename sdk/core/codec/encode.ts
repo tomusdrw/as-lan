@@ -61,13 +61,16 @@ export class Encoder {
   }
 
   /** Return the encoded bytes, trimmed to the actual length. */
-  finish(): Uint8Array {
+  finishRaw(): Uint8Array {
+    if (this.data.length === this.offset) {
+      return this.data;
+    }
     return this.data.subarray(0, this.offset);
   }
 
   /** Return the encoded bytes wrapped as a BytesBlob. */
-  finishBlob(): BytesBlob {
-    return BytesBlob.wrap(this.finish());
+  finish(): BytesBlob {
+    return BytesBlob.wrap(this.finishRaw());
   }
 
   /** Encode a single byte. */
@@ -136,24 +139,24 @@ export class Encoder {
 
   /** Encode a 32-byte sequence. */
   bytes32(value: Bytes32): void {
-    this.bytesFixLen(value.raw);
+    this.bytesFixLen(value.bytes);
   }
 
   /** Encode a fixed-length sequence of bytes. */
-  bytesFixLen(value: Uint8Array): void {
+  bytesFixLen(value: BytesBlob): void {
     const len = value.length;
     if (len === 0) {
       return;
     }
     if (!this.ensureCapacity(len)) return;
-    this.data.set(value, this.offset);
+    this.data.set(value.raw, this.offset);
     this.offset += len;
   }
 
   /** Encode a variable-length sequence of bytes (length-prefixed). */
   bytesVarLen(value: BytesBlob): void {
     this.varU64(u64(value.raw.length));
-    this.bytesFixLen(value.raw);
+    this.bytesFixLen(value);
   }
 
   /** Encode a composite object using the given codec. */

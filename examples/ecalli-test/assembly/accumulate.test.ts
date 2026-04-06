@@ -37,7 +37,7 @@ export const TESTS: Test[] = [
     p.bytesVarLen(BytesBlob.wrap(new Uint8Array(0))); // auto_accum
     p.varU64(0); // auto_accum_count
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "bless returns OK");
     return assert;
@@ -50,7 +50,7 @@ export const TESTS: Test[] = [
     p.bytesVarLen(BytesBlob.wrap(new Uint8Array(0))); // auth_queue
     p.varU64(1); // assigners
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "assign returns OK");
     return assert;
@@ -61,7 +61,7 @@ export const TESTS: Test[] = [
     p.varU64(EcalliIndex.Designate);
     p.bytesVarLen(BytesBlob.wrap(new Uint8Array(0))); // validators
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "designate returns OK");
     return assert;
@@ -71,7 +71,7 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Checkpoint);
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 1000000, "checkpoint returns gas");
     return assert;
@@ -80,14 +80,14 @@ export const TESTS: Test[] = [
   test("new_service: creates new service", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.NewService);
-    p.bytesFixLen(new Uint8Array(32)); // code_hash
+    p.bytesFixLen(BytesBlob.zero(32)); // code_hash
     p.varU64(1024); // code_len
     p.varU64(100000); // gas
     p.varU64(50000); // allowance
     p.varU64(0); // gratis_storage
     p.varU64(u64(u32.MAX_VALUE)); // requested_id (auto)
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 256, "new_service returns service ID 256");
     return assert;
@@ -96,11 +96,11 @@ export const TESTS: Test[] = [
   test("upgrade: upgrades service code", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Upgrade);
-    p.bytesFixLen(new Uint8Array(32)); // code_hash
+    p.bytesFixLen(BytesBlob.zero(32)); // code_hash
     p.varU64(100000); // gas
     p.varU64(50000); // allowance
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "upgrade returns OK");
     return assert;
@@ -115,7 +115,7 @@ export const TESTS: Test[] = [
     const memo = new Uint8Array(128);
     p.bytesVarLen(BytesBlob.wrap(memo)); // memo
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "transfer returns OK");
     return assert;
@@ -125,9 +125,9 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Eject);
     p.varU64(99); // service to eject
-    p.bytesFixLen(new Uint8Array(32)); // prev_code_hash
+    p.bytesFixLen(BytesBlob.zero(32)); // prev_code_hash
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "eject returns OK");
     return assert;
@@ -136,10 +136,10 @@ export const TESTS: Test[] = [
   test("query: checks preimage status", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Query);
-    p.bytesFixLen(new Uint8Array(32)); // hash
+    p.bytesFixLen(BytesBlob.zero(32)); // hash
     p.varU64(64); // length
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, -1, "query returns NONE");
     assert.isEqual(resp.data.raw.length, 8, "query returns r8");
@@ -149,10 +149,10 @@ export const TESTS: Test[] = [
   test("solicit: requests preimage", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Solicit);
-    p.bytesFixLen(new Uint8Array(32)); // hash
+    p.bytesFixLen(BytesBlob.zero(32)); // hash
     p.varU64(64); // length
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "solicit returns OK");
     return assert;
@@ -161,10 +161,10 @@ export const TESTS: Test[] = [
   test("forget: cancels preimage solicitation", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Forget);
-    p.bytesFixLen(new Uint8Array(32)); // hash
+    p.bytesFixLen(BytesBlob.zero(32)); // hash
     p.varU64(64); // length
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "forget returns OK");
     return assert;
@@ -175,9 +175,9 @@ export const TESTS: Test[] = [
     p.varU64(EcalliIndex.YieldResult);
     const hash = new Uint8Array(32);
     hash[0] = 0xff;
-    p.bytesFixLen(hash);
+    p.bytesFixLen(BytesBlob.wrap(hash));
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "yield_result returns OK");
     return assert;
@@ -191,7 +191,7 @@ export const TESTS: Test[] = [
     preimage[0] = 0xab;
     p.bytesVarLen(BytesBlob.wrap(preimage));
 
-    const resp = callAccumulateWithOperand(p.finish());
+    const resp = callAccumulateWithOperand(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "provide returns OK");
     return assert;

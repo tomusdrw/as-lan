@@ -52,7 +52,8 @@
       "!**/build",
       "!**/node_modules",
       "!**/sdk/ecalli",
-      "!**/sdk/test/test-ecalli"
+      "!**/sdk/test/test-ecalli",
+      "!**/sdk/core/pack.ts"
     ]
   }
 }

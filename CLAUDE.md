@@ -38,7 +38,12 @@ pvm-adapter.wat             WAT adapter mapping WASM imports to PVM host_call_N 
 examples/
   authorizer/               Example authorizer service (is_authorized)
   fibonacci/                Example service (refine + accumulate)
-  ecalli-test/              Example that exercises all ecalli host calls
+  all-ecalli/               Smoke-test service invoking every ecalli (refine + accumulate)
+    assembly/
+      refine.ts             Refine entry point — invokes general (0-5, 100) + refine (6-13) ecallis
+      accumulate.ts         Accumulate entry point — invokes general + accumulate (14-26) ecallis
+      test-data.ts          AuthQueue, AutoAccumulate, ValidatorKeys — test data classes with codecs
+  ecalli-test/              Example that exercises all ecalli host calls via dispatch
     assembly/
       refine.ts             Refine entry point — dispatches general + refine ecallis
       accumulate.ts         Accumulate entry point — fetches operands/transfers via fetch(kind=15)

@@ -1,4 +1,4 @@
-import { Decoder, fetch, gas, info, log, lookup, Response, read, write } from "@fluffylabs/as-lan";
+import { BytesBlob, Decoder, fetch, gas, info, log, lookup, Response, read, write } from "@fluffylabs/as-lan";
 import { logger, outputLen } from "./common";
 
 /** Ecalli 0: gas(). No params. */
@@ -20,8 +20,8 @@ export function dispatchFetch(d: Decoder): u64 {
     return 0;
   }
 
-  const buf = new Uint8Array(maxLen);
-  const result = fetch(u32(buf.dataStart), offset, maxLen, kind, param1, param2);
+  const buf = BytesBlob.zero(maxLen);
+  const result = fetch(buf.ptr(), offset, maxLen, kind, param1, param2);
   logger.info(`fetch(kind=${kind}) = ${result}`);
 
   return Response.with(result, buf.subarray(0, outputLen(result, offset, maxLen)));
@@ -38,8 +38,8 @@ export function dispatchLookup(d: Decoder): u64 {
     return 0;
   }
 
-  const buf = new Uint8Array(maxLen);
-  const result = lookup(service, u32(hash.raw.dataStart), u32(buf.dataStart), offset, maxLen);
+  const buf = BytesBlob.zero(maxLen);
+  const result = lookup(service, hash.ptr(), buf.ptr(), offset, maxLen);
   logger.info(`lookup() = ${result}`);
 
   return Response.with(result, buf.subarray(0, outputLen(result, offset, maxLen)));
@@ -56,8 +56,8 @@ export function dispatchRead(d: Decoder): u64 {
     return 0;
   }
 
-  const buf = new Uint8Array(maxLen);
-  const result = read(service, u32(key.raw.dataStart), key.raw.byteLength, u32(buf.dataStart), offset, maxLen);
+  const buf = BytesBlob.zero(maxLen);
+  const result = read(service, key.ptr(), key.length, buf.ptr(), offset, maxLen);
   logger.info(`read() = ${result}`);
 
   return Response.with(result, buf.subarray(0, outputLen(result, offset, maxLen)));
@@ -72,7 +72,7 @@ export function dispatchWrite(d: Decoder): u64 {
     return 0;
   }
 
-  const result = write(u32(key.raw.dataStart), key.raw.byteLength, u32(value.raw.dataStart), value.raw.byteLength);
+  const result = write(key.ptr(), key.length, value.ptr(), value.length);
   logger.info(`write() = ${result}`);
 
   return Response.with(result);
@@ -88,8 +88,8 @@ export function dispatchInfo(d: Decoder): u64 {
     return 0;
   }
 
-  const buf = new Uint8Array(maxLen);
-  const result = info(service, u32(buf.dataStart), offset, maxLen);
+  const buf = BytesBlob.zero(maxLen);
+  const result = info(service, buf.ptr(), offset, maxLen);
   logger.info(`info() = ${result}`);
 
   return Response.with(result, buf.subarray(0, outputLen(result, offset, maxLen)));

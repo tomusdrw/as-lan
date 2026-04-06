@@ -7,7 +7,7 @@ function encodeCoreIndex(coreIndex: u16): Uint8Array {
   const buf = new Uint8Array(2);
   const enc = Encoder.into(buf);
   enc.u16(coreIndex);
-  return enc.finish();
+  return buf;
 }
 
 /** Call authorize with the given core index, returning the raw output bytes. */

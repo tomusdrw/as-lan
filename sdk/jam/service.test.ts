@@ -27,7 +27,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
-    const blob = e.finish();
+    const blob = e.finishRaw();
     const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
@@ -45,7 +45,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
-    const blob = e.finish();
+    const blob = e.finishRaw();
     const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
@@ -64,7 +64,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
-    const blob = e.finish();
+    const blob = e.finishRaw();
     const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
@@ -83,7 +83,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
-    const blob = e.finish();
+    const blob = e.finishRaw();
     const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
@@ -98,7 +98,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
-    const blob = e.finish();
+    const blob = e.finishRaw();
     const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
@@ -113,7 +113,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
-    const blob = e.finish();
+    const blob = e.finishRaw();
     const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
 
     const assert = Assert.create();
@@ -131,7 +131,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, 42, "result");
@@ -145,7 +145,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, -1, "result negative");
@@ -158,7 +158,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, 0, "result zero");
@@ -171,7 +171,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, -4, "result WHO sentinel");

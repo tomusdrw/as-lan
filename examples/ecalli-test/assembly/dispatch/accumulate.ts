@@ -1,5 +1,6 @@
 import {
   assign,
+  BytesBlob,
   bless,
   checkpoint,
   Decoder,
@@ -31,14 +32,7 @@ export function dispatchBless(d: Decoder): u64 {
     return 0;
   }
 
-  const result = bless(
-    manager,
-    u32(authQueue.raw.dataStart),
-    delegator,
-    registrar,
-    u32(autoAccum.raw.dataStart),
-    autoAccumCount,
-  );
+  const result = bless(manager, authQueue.ptr(), delegator, registrar, autoAccum.ptr(), autoAccumCount);
   logger.info(`bless() = ${result}`);
 
   return Response.with(result);
@@ -54,7 +48,7 @@ export function dispatchAssign(d: Decoder): u64 {
     return 0;
   }
 
-  const result = assign(core, u32(authQueue.raw.dataStart), assigners);
+  const result = assign(core, authQueue.ptr(), assigners);
   logger.info(`assign() = ${result}`);
 
   return Response.with(result);
@@ -68,7 +62,7 @@ export function dispatchDesignate(d: Decoder): u64 {
     return 0;
   }
 
-  const result = designate(u32(validators.raw.dataStart));
+  const result = designate(validators.ptr());
   logger.info(`designate() = ${result}`);
 
   return Response.with(result);
@@ -95,7 +89,7 @@ export function dispatchNewService(d: Decoder): u64 {
     return 0;
   }
 
-  const result = new_service(u32(codeHash.raw.dataStart), codeLen, minGas, allowance, gratisStorage, requestedId);
+  const result = new_service(codeHash.ptr(), codeLen, minGas, allowance, gratisStorage, requestedId);
   logger.info(`new_service() = ${result}`);
 
   return Response.with(result);
@@ -111,7 +105,7 @@ export function dispatchUpgrade(d: Decoder): u64 {
     return 0;
   }
 
-  const result = upgrade(u32(codeHash.raw.dataStart), minGas, allowance);
+  const result = upgrade(codeHash.ptr(), minGas, allowance);
   logger.info(`upgrade() = ${result}`);
 
   return Response.with(result);
@@ -129,10 +123,9 @@ export function dispatchTransfer(d: Decoder): u64 {
   }
 
   // Pad memo to exactly TRANSFER_MEMO_SIZE bytes as required by the host call.
-  const padded = new Uint8Array(TRANSFER_MEMO_SIZE);
-  const raw = memo.raw;
-  padded.set(raw.subarray(0, min(<i32>raw.length, <i32>TRANSFER_MEMO_SIZE)));
-  const result = transfer(dest, amount, gasFee, u32(padded.dataStart));
+  const padded = BytesBlob.zero(TRANSFER_MEMO_SIZE);
+  padded.raw.set(memo.raw);
+  const result = transfer(dest, amount, gasFee, padded.ptr());
   logger.info(`transfer() = ${result}`);
 
   return Response.with(result);
@@ -147,7 +140,7 @@ export function dispatchEject(d: Decoder): u64 {
     return 0;
   }
 
-  const result = eject(service, u32(prevCodeHash.raw.dataStart));
+  const result = eject(service, prevCodeHash.ptr());
   logger.info(`eject() = ${result}`);
 
   return Response.with(result);
@@ -162,8 +155,8 @@ export function dispatchQuery(d: Decoder): u64 {
     return 0;
   }
 
-  const outR8 = new Uint8Array(8);
-  const result = query(u32(hash.raw.dataStart), length, u32(outR8.dataStart));
+  const outR8 = BytesBlob.zero(8);
+  const result = query(hash.ptr(), length, outR8.ptr());
   logger.info(`query() = ${result}`);
 
   return Response.with(result, outR8);
@@ -178,7 +171,7 @@ export function dispatchSolicit(d: Decoder): u64 {
     return 0;
   }
 
-  const result = solicit(u32(hash.raw.dataStart), length);
+  const result = solicit(hash.ptr(), length);
   logger.info(`solicit() = ${result}`);
 
   return Response.with(result);
@@ -193,7 +186,7 @@ export function dispatchForget(d: Decoder): u64 {
     return 0;
   }
 
-  const result = forget(u32(hash.raw.dataStart), length);
+  const result = forget(hash.ptr(), length);
   logger.info(`forget() = ${result}`);
 
   return Response.with(result);
@@ -207,7 +200,7 @@ export function dispatchYieldResult(d: Decoder): u64 {
     return 0;
   }
 
-  const result = yield_result(u32(hash.raw.dataStart));
+  const result = yield_result(hash.ptr());
   logger.info(`yield_result() = ${result}`);
 
   return Response.with(result);
@@ -222,7 +215,7 @@ export function dispatchProvide(d: Decoder): u64 {
     return 0;
   }
 
-  const result = provide(service, u32(preimage.raw.dataStart), preimage.raw.byteLength);
+  const result = provide(service, preimage.ptr(), preimage.length);
   logger.info(`provide() = ${result}`);
 
   return Response.with(result);

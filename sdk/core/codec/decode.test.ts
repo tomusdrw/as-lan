@@ -9,7 +9,7 @@ export const TESTS: Test[] = [
     e.varU64(42);
     e.varU64(0xffff_ffff);
 
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const assert = Assert.create();
     assert.isEqual(d.varU32(), 42, "small");
     assert.isEqual(d.varU32(), 0xffff_ffff, "max u32");
@@ -22,7 +22,7 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     e.varU64(0x1_0000_0000); // one above u32 max
 
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const assert = Assert.create();
     assert.isEqual(d.varU32(), 0, "returns 0");
     assert.isEqual(d.isError, true, "error set");

@@ -18,7 +18,7 @@ function bytes32Fill(v: u8): Bytes32 {
 function roundtrip(original: AccountInfo): AccountInfo {
   const e = Encoder.create();
   _codec.encode(original, e);
-  const d = Decoder.fromBlob(e.finish());
+  const d = Decoder.fromBlob(e.finishRaw());
   const r = _codec.decode(d);
   assert(r.isOkay, "roundtrip decode failed");
   assert(d.isFinished(), "trailing bytes after decode");
@@ -28,7 +28,7 @@ function roundtrip(original: AccountInfo): AccountInfo {
 function encodeInfoBytes(info: AccountInfo): Uint8Array {
   const e = Encoder.create();
   _codec.encode(info, e);
-  return e.finish();
+  return e.finishRaw();
 }
 
 export const TESTS: Test[] = [
@@ -58,7 +58,7 @@ export const TESTS: Test[] = [
     const original = AccountInfo.create(bytes32Fill(0x00), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     const e = Encoder.create();
     _codec.encode(original, e);
-    const bytes = e.finish();
+    const bytes = e.finishRaw();
     a.isEqual(bytes.length, <i32>ACCOUNT_INFO_SIZE, "encoded size");
     return a;
   }),

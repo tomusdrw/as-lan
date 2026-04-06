@@ -1,4 +1,5 @@
 import {
+  BytesBlob,
   Decoder,
   export_,
   expunge,
@@ -23,8 +24,8 @@ export function dispatchHistoricalLookup(d: Decoder): u64 {
     return 0;
   }
 
-  const buf = new Uint8Array(maxLen);
-  const result = historical_lookup(service, u32(hash.raw.dataStart), u32(buf.dataStart), offset, maxLen);
+  const buf = BytesBlob.zero(maxLen);
+  const result = historical_lookup(service, hash.ptr(), buf.ptr(), offset, maxLen);
   logger.info(`historical_lookup() = ${result}`);
 
   return Response.with(result, buf.subarray(0, outputLen(result, offset, maxLen)));
@@ -38,7 +39,7 @@ export function dispatchExport(d: Decoder): u64 {
     return 0;
   }
 
-  const result = export_(u32(segment.raw.dataStart), segment.raw.byteLength);
+  const result = export_(segment.ptr(), segment.length);
   logger.info(`export() = ${result}`);
 
   return Response.with(result);
@@ -53,7 +54,7 @@ export function dispatchMachine(d: Decoder): u64 {
     return 0;
   }
 
-  const result = machine(u32(code.raw.dataStart), code.raw.byteLength, entrypoint);
+  const result = machine(code.ptr(), code.length, entrypoint);
   logger.info(`machine() = ${result}`);
 
   return Response.with(result);
@@ -69,8 +70,8 @@ export function dispatchPeek(d: Decoder): u64 {
     return 0;
   }
 
-  const buf = new Uint8Array(length);
-  const result = peek(machineId, u32(buf.dataStart), source, length);
+  const buf = BytesBlob.zero(length);
+  const result = peek(machineId, buf.ptr(), source, length);
   logger.info(`peek() = ${result}`);
 
   if (result === 0) {
@@ -89,7 +90,7 @@ export function dispatchPoke(d: Decoder): u64 {
     return 0;
   }
 
-  const result = poke(machineId, u32(data.raw.dataStart), dest, data.raw.byteLength);
+  const result = poke(machineId, data.ptr(), dest, data.length);
   logger.info(`poke() = ${result}`);
 
   return Response.with(result);
@@ -121,8 +122,8 @@ export function dispatchInvoke(d: Decoder): u64 {
     return 0;
   }
 
-  const outR8 = new Uint8Array(8);
-  const result = invoke(machineId, u32(io.raw.dataStart), u32(outR8.dataStart));
+  const outR8 = BytesBlob.zero(8);
+  const result = invoke(machineId, io.ptr(), outR8.ptr());
   logger.info(`invoke() = ${result}`);
 
   return Response.with(result, outR8);

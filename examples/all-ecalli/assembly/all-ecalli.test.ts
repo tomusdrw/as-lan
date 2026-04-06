@@ -24,7 +24,7 @@ function callRefine(): Response {
   const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
   const enc = Encoder.create();
   ctx.refineArgs.encode(args, enc);
-  const encoded = enc.finish();
+  const encoded = enc.finishRaw();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
   const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
@@ -36,7 +36,7 @@ function callAccumulate(): Response {
   const args = AccumulateArgs.create(7, 42, 0);
   const enc = Encoder.create();
   ctx.accumulateArgs.encode(args, enc);
-  const encoded = enc.finish();
+  const encoded = enc.finishRaw();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
   const raw = unpackResult(accumulate(u32(buf.dataStart), buf.byteLength));

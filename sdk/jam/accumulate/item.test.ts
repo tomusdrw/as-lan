@@ -33,7 +33,7 @@ const accumulateItemCodec: AccumulateItemCodec = AccumulateItemCodec.create(oper
 function roundtripWorkExecResult(original: WorkExecResult): WorkExecResult {
   const e = Encoder.create();
   workExecResultCodec.encode(original, e);
-  const d = Decoder.fromBlob(e.finish());
+  const d = Decoder.fromBlob(e.finishRaw());
   return workExecResultCodec.decode(d).okay!;
 }
 
@@ -46,7 +46,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     workExecResultCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = workExecResultCodec.decode(d);
 
     const assert = Assert.create();
@@ -115,7 +115,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     operandCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = operandCodec.decode(d);
 
     const assert = Assert.create();
@@ -151,7 +151,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     operandCodec.encode(original, e);
-    const decoded = operandCodec.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = operandCodec.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.gas, 42, "gas");
@@ -173,7 +173,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     accumulateItemCodec.encode(AccumulateItem.fromOperand(original), e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
 
     const assert = Assert.create();
     const tag = d.varU32();
@@ -198,7 +198,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     pendingTransferCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const decoded = pendingTransferCodec.decode(d).okay!;
 
     const assert = Assert.create();
@@ -218,7 +218,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     pendingTransferCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const decoded = pendingTransferCodec.decode(d).okay!;
 
     const expectedMemo = new Uint8Array(TRANSFER_MEMO_SIZE);
@@ -239,7 +239,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     pendingTransferCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const decoded = pendingTransferCodec.decode(d).okay!;
 
     const assert = Assert.create();
@@ -257,7 +257,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     accumulateItemCodec.encode(AccumulateItem.fromTransfer(original), e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
 
     const assert = Assert.create();
     const tag = d.varU32();
@@ -277,7 +277,7 @@ export const TESTS: Test[] = [
   test("WorkExecResult decode rejects invalid kind", () => {
     const e = Encoder.create();
     e.varU64(99);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = workExecResultCodec.decode(d);
 
     const assert = Assert.create();
@@ -288,7 +288,7 @@ export const TESTS: Test[] = [
   test("AccumulateItem decode rejects unknown tag", () => {
     const e = Encoder.create();
     e.varU64(5);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = accumulateItemCodec.decode(d);
 
     const assert = Assert.create();
