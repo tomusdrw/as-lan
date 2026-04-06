@@ -15,9 +15,9 @@ export class ByteBuf {
     return new ByteBuf(heap.alloc(capacity), 0, capacity);
   }
 
-  /** Wrap an existing Uint8Array as a ByteBuf positioned at the end. Writes go directly into the array. */
+  /** Wrap an existing Uint8Array as a ByteBuf. Writes go directly into the array from the start. */
   static wrap(data: Uint8Array): ByteBuf {
-    return new ByteBuf(data.dataStart, <u32>data.length, <u32>data.length);
+    return new ByteBuf(data.dataStart, 0, <u32>data.length);
   }
 
   private constructor(ptr: usize, pos: u32, cap: u32) {

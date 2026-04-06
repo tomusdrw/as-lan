@@ -71,7 +71,7 @@ export function refine(ptr: u32, len: u32): u64 {
   {
     const hash = Bytes32.zero();
     const buf = BytesBlob.zero(256);
-    const r = lookup(CURRENT_SERVICE, hash.ptr(), buf.ptr(), 0, 256);
+    const r = lookup(CURRENT_SERVICE, hash.ptr(), buf.ptr(), 0, buf.length);
     logger.info(`[2] lookup() = ${r}`);
     out.varU64(2);
     out.u64(r);
@@ -125,7 +125,7 @@ export function refine(ptr: u32, len: u32): u64 {
   {
     const hash = Bytes32.zero();
     const buf = BytesBlob.zero(256);
-    const r = historical_lookup(CURRENT_SERVICE, hash.ptr(), buf.ptr(), 0, 256);
+    const r = historical_lookup(CURRENT_SERVICE, hash.ptr(), buf.ptr(), 0, buf.length);
     logger.info(`[6] historical_lookup() = ${r}`);
     out.varU64(6);
     out.u64(r);
