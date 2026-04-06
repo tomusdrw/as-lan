@@ -190,11 +190,7 @@ export const TESTS: Test[] = [
     assert.isEqual(e.isError, true, "error set");
     assert.isEqual(e.bytesWritten(), 1, "offset unchanged after error");
     // buffer should only have the first byte written
-    assert.isEqualBytes(
-      e.finish(),
-      BytesBlob.parseBlob("0xaa").okay!,
-      "finish returns written portion",
-    );
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0xaa").okay!, "finish returns written portion");
     return assert;
   }),
 
