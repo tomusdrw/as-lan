@@ -39,6 +39,6 @@ export class RefineContext {
     const bytes = data === null ? BytesBlob.empty() : BytesBlob.wrap(data);
     const enc = Encoder.create(8 + 1 + bytes.raw.length);
     this.response.encode(Response.create(ecalliResult, bytes), enc);
-    return ptrAndLen(enc.finish());
+    return ptrAndLen(enc.finishRaw());
   }
 }

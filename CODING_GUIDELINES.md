@@ -32,3 +32,9 @@ The biggest offenders for WASM/PVM binary size:
    `noAssert: true` in release builds.
 
 When writing small example services, prefer `LogMsg` to keep the output small. For large services the tradeoff might not be worth it.
+
+4. **`String.UTF8.encode`** — pulls in `byteLength`, `encodeUnsafe`, surrogate-pair handling
+   (~520 B WASM / ~1.15 KB PVM overhead). Use `ByteBuf.strAscii()` / `BytesBlob.encodeAscii()` instead
+   for ASCII strings. Use `ByteBuf.strUtf8()` / `BytesBlob.encodeUtf8()` when full UTF-8 is needed.
+   Exception: `Logger` keeps `String.UTF8.encode` because code using `Logger` already pulls in the
+   full string machinery via template literals.

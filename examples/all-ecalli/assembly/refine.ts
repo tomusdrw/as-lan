@@ -1,4 +1,6 @@
 import {
+  Bytes32,
+  BytesBlob,
   Encoder,
   export_,
   expunge,
@@ -24,6 +26,8 @@ import {
 } from "@fluffylabs/as-lan";
 
 const logger: Logger = Logger.create("all-ecalli");
+
+const CURRENT_SERVICE: u32 = u32.MAX_VALUE;
 
 /**
  * Refine entry point that invokes every host call available in the refine
@@ -65,9 +69,9 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 2: lookup(current service, zero hash) ─────────────────
   {
-    const hash = new Uint8Array(32);
-    const buf = new Uint8Array(256);
-    const r = lookup(u32.MAX_VALUE, u32(hash.dataStart), u32(buf.dataStart), 0, 256);
+    const hash = Bytes32.zero();
+    const buf = BytesBlob.zero(256);
+    const r = lookup(CURRENT_SERVICE, hash.ptr(), buf.ptr(), 0, buf.length);
     logger.info(`[2] lookup() = ${r}`);
     out.varU64(2);
     out.u64(r);
@@ -76,9 +80,9 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 3: read(current service, key="test") ──────────────────
   {
-    const key = encodeString("test");
-    const buf = new Uint8Array(256);
-    const r = read(u32.MAX_VALUE, u32(key.dataStart), key.byteLength, u32(buf.dataStart), 0, 256);
+    const key = BytesBlob.encodeAscii("test");
+    const buf = BytesBlob.zero(256);
+    const r = read(CURRENT_SERVICE, key.ptr(), key.length, buf.ptr(), 0, buf.length);
     logger.info(`[3] read() = ${r}`);
     out.varU64(3);
     out.u64(r);
@@ -87,9 +91,9 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 4: write(key="smoke", value="ok") ─────────────────────
   {
-    const key = encodeString("smoke");
-    const val = encodeString("ok");
-    const r = write(u32(key.dataStart), key.byteLength, u32(val.dataStart), val.byteLength);
+    const key = BytesBlob.encodeAscii("smoke");
+    const val = BytesBlob.encodeAscii("ok");
+    const r = write(key.ptr(), key.length, val.ptr(), val.length);
     logger.info(`[4] write() = ${r}`);
     out.varU64(4);
     out.u64(r);
@@ -98,8 +102,8 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 5: info(current service) ──────────────────────────────
   {
-    const buf = new Uint8Array(96);
-    const r = info(u32.MAX_VALUE, u32(buf.dataStart), 0, 96);
+    const buf = BytesBlob.zero(96);
+    const r = info(CURRENT_SERVICE, buf.ptr(), 0, buf.length);
     logger.info(`[5] info() = ${r}`);
     out.varU64(5);
     out.u64(r);
@@ -108,9 +112,9 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 100: log(level=3 helpful) ─────────────────────────────
   {
-    const target = encodeString("all-ecalli");
-    const message = encodeString("smoke test");
-    const r = log(3, u32(target.dataStart), target.byteLength, u32(message.dataStart), message.byteLength);
+    const target = BytesBlob.encodeAscii("all-ecalli");
+    const message = BytesBlob.encodeAscii("smoke test");
+    const r = log(3, target.ptr(), target.length, message.ptr(), message.length);
     logger.info(`[100] log() = ${r}`);
     out.varU64(100);
     out.u64(i64(r));
@@ -119,9 +123,9 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 6: historical_lookup(current service, zero hash) ──────
   {
-    const hash = new Uint8Array(32);
-    const buf = new Uint8Array(256);
-    const r = historical_lookup(u32.MAX_VALUE, u32(hash.dataStart), u32(buf.dataStart), 0, 256);
+    const hash = Bytes32.zero();
+    const buf = BytesBlob.zero(256);
+    const r = historical_lookup(CURRENT_SERVICE, hash.ptr(), buf.ptr(), 0, buf.length);
     logger.info(`[6] historical_lookup() = ${r}`);
     out.varU64(6);
     out.u64(r);
@@ -130,10 +134,10 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 7: export_(segment) ───────────────────────────────────
   {
-    const segment = new Uint8Array(16);
-    segment[0] = 0xab;
-    segment[1] = 0xcd;
-    const r = export_(u32(segment.dataStart), segment.byteLength);
+    const segment = BytesBlob.zero(16);
+    segment.raw[0] = 0xab;
+    segment.raw[1] = 0xcd;
+    const r = export_(segment.ptr(), segment.length);
     logger.info(`[7] export() = ${r}`);
     out.varU64(7);
     out.u64(r);
@@ -141,10 +145,10 @@ export function refine(ptr: u32, len: u32): u64 {
   }
 
   // ─── Ecalli 8: machine(code, entrypoint=0) ────────────────────────
-  const machineCode = new Uint8Array(4);
+  const machineCode = BytesBlob.zero(4);
   let machineId: i64;
   {
-    const r = machine(u32(machineCode.dataStart), machineCode.byteLength, 0);
+    const r = machine(machineCode.ptr(), machineCode.length, 0);
     machineId = r;
     logger.info(`[8] machine() = ${r}`);
     out.varU64(8);
@@ -163,12 +167,12 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 10: poke(machine, data, dest=0) ───────────────────────
   {
-    const data = new Uint8Array(4);
-    data[0] = 0xde;
-    data[1] = 0xad;
-    data[2] = 0xbe;
-    data[3] = 0xef;
-    const r = poke(u32(machineId), u32(data.dataStart), 0, data.byteLength);
+    const data = BytesBlob.zero(4);
+    data.raw[0] = 0xde;
+    data.raw[1] = 0xad;
+    data.raw[2] = 0xbe;
+    data.raw[3] = 0xef;
+    const r = poke(u32(machineId), data.ptr(), 0, data.length);
     logger.info(`[10] poke() = ${r}`);
     out.varU64(10);
     out.u64(r);
@@ -177,8 +181,8 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 9: peek(machine, source=0, len=4) ─────────────────────
   {
-    const buf = new Uint8Array(4);
-    const r = peek(u32(machineId), u32(buf.dataStart), 0, buf.byteLength);
+    const buf = BytesBlob.zero(4);
+    const r = peek(u32(machineId), buf.ptr(), 0, buf.length);
     logger.info(`[9] peek() = ${r}`);
     out.varU64(9);
     out.u64(r);
@@ -187,9 +191,9 @@ export function refine(ptr: u32, len: u32): u64 {
 
   // ─── Ecalli 12: invoke(machine, io) ───────────────────────────────
   {
-    const io = new Uint8Array(8);
-    const outR8 = new Uint8Array(8);
-    const r = invoke(u32(machineId), u32(io.dataStart), u32(outR8.dataStart));
+    const io = BytesBlob.zero(8);
+    const outR8 = BytesBlob.zero(8);
+    const r = invoke(u32(machineId), io.ptr(), outR8.ptr());
     logger.info(`[12] invoke() = ${r}`);
     out.varU64(12);
     out.u64(r);
@@ -217,16 +221,10 @@ export function refine(ptr: u32, len: u32): u64 {
 
 /** Call fetch with the given kind and record the result. Returns 1. */
 function fetchAll(out: Encoder, kind: u32, name: string, param1: u32, param2: u32): u32 {
-  const buf = new Uint8Array(256);
-  const r = fetch(u32(buf.dataStart), 0, 256, kind, param1, param2);
+  const buf = BytesBlob.zero(256);
+  const r = fetch(buf.ptr(), 0, buf.length, kind, param1, param2);
   logger.info(`[1] fetch(${name}) = ${r}`);
   out.varU64(1);
   out.u64(r);
   return 1;
-}
-
-/** Encode a string as a Uint8Array (UTF-8). */
-function encodeString(s: string): Uint8Array {
-  const buf = String.UTF8.encode(s);
-  return Uint8Array.wrap(buf);
 }

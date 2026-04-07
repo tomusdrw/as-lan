@@ -18,6 +18,6 @@ export class Bytes32Codec implements TryDecode<Bytes32>, TryEncode<Bytes32> {
   }
 
   encode(value: Bytes32, e: Encoder): void {
-    e.bytesFixLen(value.raw);
+    e.bytes32(value);
   }
 }

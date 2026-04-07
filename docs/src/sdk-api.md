@@ -78,9 +78,9 @@ export function is_authorized(ptr: u32, len: u32): u64 {
 
   // Return an authorization trace
   const trace = ByteBuf.create(7 + token.length)
-    .str("Auth=<")
+    .strAscii("Auth=<")
     .bytes(token.raw)
-    .str(">")
+    .strAscii(">")
     .finish();
   return ptrAndLen(trace);
 }
@@ -118,7 +118,7 @@ All types are imported from `"@fluffylabs/as-lan"`.
 | `HeaderHash` | 32-byte blake2b header hash |
 | `StateRootHash` | 32-byte blake2b state root hash |
 | `MmrPeakHash` | 32-byte keccak256 MMR peak hash |
-| `BytesBlob` | Variable-length byte array with `.toPtrAndLen()` |
+| `BytesBlob` | Variable-length byte array with `.toPtrAndLen()`, `.ptr()`, `.encodeAscii()`, `.encodeUtf8()` |
 | `WorkOutput` | Alias for `BytesBlob` |
 | `WorkPayload` | Alias for `BytesBlob` |
 | `AuthOutput` | Alias for `BytesBlob` |
@@ -126,7 +126,7 @@ All types are imported from `"@fluffylabs/as-lan"`.
 | `OptionalN<T>` | Option type for non-nullable `T` |
 | `Result<Ok, Err>` | Result type with `.isOkay`, `.okay`, `.isError`, `.error` |
 | `ResultN<Ok, Err>` | Result type for non-nullable `Ok` |
-| `Bytes32` | Fixed-size 32-byte wrapper with hex parsing |
+| `Bytes32` | Fixed-size 32-byte wrapper with hex parsing, `.ptr()` |
 
 ## Utilities
 
@@ -196,8 +196,13 @@ const result = ByteBuf.create(64)
 return ptrAndLen(result);
 ```
 
+Static constructors:
+- **`ByteBuf.create(capacity)`** — allocate a new buffer with given capacity (default 256)
+- **`ByteBuf.wrap(data)`** — wrap an existing `Uint8Array`; writes go directly into the array
+
 Builder methods (all return `ByteBuf` for chaining):
-- **`.str(s)`** — append an ASCII string
+- **`.strAscii(s)`** — append an ASCII string (1 byte per char, no UTF-8 overhead)
+- **`.strUtf8(s)`** — append a UTF-8 encoded string
 - **`.bytes(data)`** — append raw `Uint8Array`
 - **`.hex(data)`** — append `Uint8Array` as `0x`-prefixed hex
 - **`.u32(v)`**, **`.u64(v)`**, **`.i32(v)`** — append numbers as decimal ASCII
@@ -208,6 +213,10 @@ Terminal methods:
 
 The buffer is heap-allocated at a fixed capacity; writes beyond the capacity
 are silently truncated.
+
+> **Binary size tip:** Prefer `.strAscii()` over `.strUtf8()` for ASCII strings
+> (log targets, storage keys, etc.). `.strUtf8()` pulls in the full UTF-8 machinery
+> (~520 B WASM / ~1.15 KB PVM). See [Coding Guidelines](../../CODING_GUIDELINES.md).
 
 ### Decoder
 
@@ -226,8 +235,8 @@ Key methods: `u8`, `u16`, `u32`, `u64`, `varU64`, `bytes32`, `bytesFixLen`, `byt
 
 ### Byte Types
 
-- **`Bytes32`** — Fixed-size 32-byte array with hex string parsing
-- **`BytesBlob`** — Variable-length byte array wrapper with `.toPtrAndLen()` for returning results
+- **`Bytes32`** — Fixed-size 32-byte array with hex string parsing and `.ptr()` for raw pointer access
+- **`BytesBlob`** — Variable-length byte array wrapper with `.toPtrAndLen()` for returning results and `.ptr()` for raw pointer access. Factory methods: `BytesBlob.wrap(data)`, `BytesBlob.encodeAscii(str)`, `BytesBlob.encodeUtf8(str)`, `BytesBlob.zero(len)`, `BytesBlob.empty()`
 
 ### Host Calls (ecalli)
 

@@ -317,10 +317,10 @@ export class RefinementContextCodec implements TryDecode<RefinementContext>, Try
   }
 
   encode(v: RefinementContext, e: Encoder): void {
-    e.bytesFixLen(v.anchor.raw);
-    e.bytesFixLen(v.stateRoot.raw);
-    e.bytesFixLen(v.beefyRoot.raw);
-    e.bytesFixLen(v.lookupAnchor.raw);
+    e.bytesFixLen(v.anchor.bytes);
+    e.bytesFixLen(v.stateRoot.bytes);
+    e.bytesFixLen(v.beefyRoot.bytes);
+    e.bytesFixLen(v.lookupAnchor.bytes);
     e.u32(v.timeslot);
     e.sequenceVarLen<Bytes32>(this.bytes32, v.prerequisites);
   }
@@ -394,7 +394,7 @@ export class WorkItemInfoCodec implements TryDecode<WorkItemInfo>, TryEncode<Wor
 
   encode(v: WorkItemInfo, e: Encoder): void {
     e.u32(v.serviceId);
-    e.bytesFixLen(v.codeHash.raw);
+    e.bytesFixLen(v.codeHash.bytes);
     e.u64(v.gasRefine);
     e.u64(v.gasAccumulate);
     e.u16(v.exportCount);
@@ -446,7 +446,7 @@ export class ImportRefCodec implements TryDecode<ImportRef>, TryEncode<ImportRef
 
   encode(v: ImportRef, e: Encoder): void {
     e.u8(v.isWorkPackageHash ? 1 : 0);
-    e.bytesFixLen(v.hash.raw);
+    e.bytesFixLen(v.hash.bytes);
     e.varU64(u64(v.index));
   }
 }
@@ -486,7 +486,7 @@ export class ExtrinsicRefCodec implements TryDecode<ExtrinsicRef>, TryEncode<Ext
   }
 
   encode(v: ExtrinsicRef, e: Encoder): void {
-    e.bytesFixLen(v.hash.raw);
+    e.bytesFixLen(v.hash.bytes);
     e.varU64(u64(v.length));
   }
 }
@@ -575,7 +575,7 @@ export class WorkItemCodec implements TryDecode<WorkItem>, TryEncode<WorkItem> {
 
   encode(v: WorkItem, e: Encoder): void {
     e.u32(v.serviceId);
-    e.bytesFixLen(v.codeHash.raw);
+    e.bytesFixLen(v.codeHash.bytes);
     e.bytesVarLen(v.payload);
     e.u64(v.gasRefine);
     e.u64(v.gasAccumulate);
@@ -652,7 +652,7 @@ export class WorkPackageCodec implements TryDecode<WorkPackage>, TryEncode<WorkP
   encode(v: WorkPackage, e: Encoder): void {
     e.bytesVarLen(v.authToken);
     e.u32(v.authServiceId);
-    e.bytesFixLen(v.authCodeHash.raw);
+    e.bytesFixLen(v.authCodeHash.bytes);
     e.bytesVarLen(v.authConfig);
     e.object<RefinementContext>(this.refinementContext, v.context);
     e.sequenceVarLen<WorkItem>(this.workItem, v.workItems);

@@ -8,9 +8,9 @@ import { AccumulateArgs, RefineArgs, Response } from "./service";
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
 function bytes32Fill(v: u8): Bytes32 {
-  const raw = new Uint8Array(32);
-  raw.fill(v);
-  return Bytes32.wrapUnchecked(raw);
+  const buf = BytesBlob.zero(32);
+  buf.raw.fill(v);
+  return Bytes32.wrapUnchecked(buf.raw);
 }
 
 // Test-only: contexts created at module scope for convenience.
@@ -28,7 +28,7 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
     const blob = e.finish();
-    const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = rCtx.parseArgs(blob.ptr(), blob.length);
 
     const assert = Assert.create();
     assert.isEqual(parsed.coreIndex, 5, "coreIndex");
@@ -46,7 +46,7 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
     const blob = e.finish();
-    const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = rCtx.parseArgs(blob.ptr(), blob.length);
 
     const assert = Assert.create();
     assert.isEqual(parsed.coreIndex, 0, "coreIndex");
@@ -65,7 +65,7 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     rCtx.refineArgs.encode(original, e);
     const blob = e.finish();
-    const parsed = rCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = rCtx.parseArgs(blob.ptr(), blob.length);
 
     const assert = Assert.create();
     assert.isEqual(parsed.coreIndex, 0xffff, "coreIndex max");
@@ -84,7 +84,7 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
     const blob = e.finish();
-    const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = aCtx.parseArgs(blob.ptr(), blob.length);
 
     const assert = Assert.create();
     assert.isEqual(parsed.slot, 12345, "slot");
@@ -99,7 +99,7 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
     const blob = e.finish();
-    const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = aCtx.parseArgs(blob.ptr(), blob.length);
 
     const assert = Assert.create();
     assert.isEqual(parsed.slot, 0, "slot");
@@ -114,7 +114,7 @@ export const TESTS: Test[] = [
     const e = Encoder.create();
     aCtx.accumulateArgs.encode(original, e);
     const blob = e.finish();
-    const parsed = aCtx.parseArgs(u32(blob.dataStart), blob.length);
+    const parsed = aCtx.parseArgs(blob.ptr(), blob.length);
 
     const assert = Assert.create();
     assert.isEqual(parsed.slot, 0xffffffff, "slot max");
@@ -131,7 +131,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, 42, "result");
@@ -145,7 +145,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, -1, "result negative");
@@ -158,7 +158,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, 0, "result zero");
@@ -171,7 +171,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     aCtx.response.encode(original, e);
-    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = aCtx.response.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.result, -4, "result WHO sentinel");

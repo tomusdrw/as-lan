@@ -12,13 +12,18 @@ export class ByteBuf {
   private _cap: u32;
 
   static create(capacity: u32 = 256): ByteBuf {
-    return new ByteBuf(capacity);
+    return new ByteBuf(heap.alloc(capacity), 0, capacity);
   }
 
-  private constructor(capacity: u32) {
-    this._ptr = heap.alloc(capacity);
-    this._pos = 0;
-    this._cap = capacity;
+  /** Wrap an existing Uint8Array as a ByteBuf. Writes go directly into the array from the start. */
+  static wrap(data: Uint8Array): ByteBuf {
+    return new ByteBuf(data.dataStart, 0, <u32>data.length);
+  }
+
+  private constructor(ptr: usize, pos: u32, cap: u32) {
+    this._ptr = ptr;
+    this._pos = pos;
+    this._cap = cap;
   }
 
   /** Number of bytes written so far. */
@@ -31,12 +36,25 @@ export class ByteBuf {
     return this._ptr;
   }
 
-  /** Append an ASCII string. */
-  str(s: string): ByteBuf {
+  /** Append an ASCII string (1 byte per char, no UTF-8 overhead). */
+  strAscii(s: string): ByteBuf {
     const len = <u32>s.length;
     for (let i: u32 = 0; i < len; i++) {
       if (this._pos >= this._cap) break;
       store<u8>(this._ptr + this._pos, <u8>s.charCodeAt(i));
+      this._pos++;
+    }
+    return this;
+  }
+
+  /** Append a UTF-8 encoded string. */
+  strUtf8(s: string): ByteBuf {
+    const buf = String.UTF8.encode(s);
+    const len = <u32>buf.byteLength;
+    const src = changetype<usize>(buf);
+    for (let i: u32 = 0; i < len; i++) {
+      if (this._pos >= this._cap) break;
+      store<u8>(this._ptr + this._pos, load<u8>(src + i));
       this._pos++;
     }
     return this;

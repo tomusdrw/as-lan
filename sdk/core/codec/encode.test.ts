@@ -9,7 +9,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 1, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x42").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x42").okay!, "bytes");
     return assert;
   }),
 
@@ -19,7 +19,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 2, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x0201").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x0201").okay!, "bytes");
     return assert;
   }),
 
@@ -29,7 +29,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 4, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x04030201").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x04030201").okay!, "bytes");
     return assert;
   }),
 
@@ -40,7 +40,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 8, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x0807060504030201").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x0807060504030201").okay!, "bytes");
     return assert;
   }),
 
@@ -52,7 +52,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 7, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x01d204efbeadde").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x01d204efbeadde").okay!, "bytes");
     return assert;
   }),
 
@@ -64,7 +64,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 3, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x00057f").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x00057f").okay!, "bytes");
     return assert;
   }),
 
@@ -74,7 +74,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 2, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x8080").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x8080").okay!, "bytes");
     return assert;
   }),
 
@@ -84,7 +84,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 2, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x84d2").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x84d2").okay!, "bytes");
     return assert;
   }),
 
@@ -95,7 +95,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 3, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0xc00040").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0xc00040").okay!, "bytes");
     return assert;
   }),
 
@@ -105,24 +105,24 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 9, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0xffffffffffffffffff").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0xffffffffffffffffff").okay!, "bytes");
     return assert;
   }),
 
   test("encode bytesFixLen", () => {
     const raw = BytesBlob.parseBlob("0xdeadbeef").okay!;
     const e = Encoder.create();
-    e.bytesFixLen(raw.raw);
+    e.bytesFixLen(raw);
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 4, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), raw, "bytes");
+    assert.isEqualBytes(e.finish(), raw, "bytes");
     return assert;
   }),
 
   test("encode bytesFixLen empty", () => {
     const e = Encoder.create();
-    e.bytesFixLen(new Uint8Array(0));
+    e.bytesFixLen(BytesBlob.empty());
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 0, "bytesWritten");
@@ -137,7 +137,7 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     // 5 bytes payload + 1 byte length prefix
     assert.isEqual(e.bytesWritten(), 6, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0x051234567890").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0x051234567890").okay!, "bytes");
     return assert;
   }),
 
@@ -149,13 +149,13 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(e.bytesWritten(), 8, "bytesWritten");
-    assert.isEqualBytes(e.finishBlob(), BytesBlob.parseBlob("0xddccbbaa44332211").okay!, "bytes");
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0xddccbbaa44332211").okay!, "bytes");
     return assert;
   }),
 
   test("into: writes to pre-allocated buffer", () => {
-    const buf = new Uint8Array(4);
-    const e = Encoder.into(buf);
+    const buf = BytesBlob.zero(4);
+    const e = Encoder.into(buf.raw);
     e.u8(0xaa);
     e.u8(0xbb);
     e.u16(0x1234);
@@ -163,13 +163,13 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     assert.isEqual(e.isError, false, "no error");
     assert.isEqual(e.bytesWritten(), 4, "bytesWritten");
-    assert.isEqualBytes(BytesBlob.wrap(buf), BytesBlob.parseBlob("0xaabb3412").okay!, "buffer contents");
+    assert.isEqualBytes(buf, BytesBlob.parseBlob("0xaabb3412").okay!, "buffer contents");
     return assert;
   }),
 
   test("into: error on overflow", () => {
-    const buf = new Uint8Array(2);
-    const e = Encoder.into(buf);
+    const buf = BytesBlob.zero(2);
+    const e = Encoder.into(buf.raw);
     e.u8(0x01);
     e.u32(0xdeadbeef);
 
@@ -180,8 +180,8 @@ export const TESTS: Test[] = [
   }),
 
   test("into: subsequent writes skipped after overflow", () => {
-    const buf = new Uint8Array(3);
-    const e = Encoder.into(buf);
+    const buf = BytesBlob.zero(3);
+    const e = Encoder.into(buf.raw);
     e.u8(0xaa);
     e.u32(0xdeadbeef); // overflows — sets error
     e.u8(0xbb); // should be skipped
@@ -190,30 +190,26 @@ export const TESTS: Test[] = [
     assert.isEqual(e.isError, true, "error set");
     assert.isEqual(e.bytesWritten(), 1, "offset unchanged after error");
     // buffer should only have the first byte written
-    assert.isEqualBytes(
-      BytesBlob.wrap(e.finish()),
-      BytesBlob.parseBlob("0xaa").okay!,
-      "finish returns written portion",
-    );
+    assert.isEqualBytes(e.finish(), BytesBlob.parseBlob("0xaa").okay!, "finish returns written portion");
     return assert;
   }),
 
   test("into: exact fit", () => {
-    const buf = new Uint8Array(8);
-    const e = Encoder.into(buf);
+    const buf = BytesBlob.zero(8);
+    const e = Encoder.into(buf.raw);
     // biome-ignore lint/correctness/noPrecisionLoss: AS u64 literal
     e.u64(0x0102030405060708);
 
     const assert = Assert.create();
     assert.isEqual(e.isError, false, "no error");
     assert.isEqual(e.bytesWritten(), 8, "bytesWritten");
-    assert.isEqualBytes(BytesBlob.wrap(buf), BytesBlob.parseBlob("0x0807060504030201").okay!, "bytes");
+    assert.isEqualBytes(buf, BytesBlob.parseBlob("0x0807060504030201").okay!, "bytes");
     return assert;
   }),
 
   test("into: varU64 overflow", () => {
-    const buf = new Uint8Array(1);
-    const e = Encoder.into(buf);
+    const buf = BytesBlob.zero(1);
+    const e = Encoder.into(buf.raw);
     e.varU64(128); // needs 2 bytes
 
     const assert = Assert.create();

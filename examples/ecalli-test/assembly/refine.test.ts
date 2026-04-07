@@ -10,7 +10,7 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Gas);
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 1000000, "gas result");
     assert.isEqual(resp.data.raw.length, 0, "no output data");
@@ -26,7 +26,7 @@ export const TESTS: Test[] = [
     p.varU64(0); // offset
     p.varU64(32); // maxLen
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 16, "fetch total length");
     assert.isEqual(resp.data.raw.length, 16, "fetched data length");
@@ -40,11 +40,11 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Lookup);
     p.varU64(u64(u32.MAX_VALUE)); // service: current
-    p.bytesFixLen(new Uint8Array(32)); // hash: zeros
+    p.bytesFixLen(BytesBlob.zero(32)); // hash: zeros
     p.varU64(0); // offset
     p.varU64(256); // maxLen
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     // stub returns "test-preimage" (13 bytes)
     assert.isEqual(resp.result, 13, "lookup total length");
@@ -60,7 +60,7 @@ export const TESTS: Test[] = [
     p.varU64(0); // offset
     p.varU64(8); // maxLen
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, -1, "read returns NONE");
     assert.isEqual(resp.data.raw.length, 0, "no data for missing key");
@@ -71,26 +71,18 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Write);
     p.bytesVarLen(strBlob("mykey")); // key
-    const val = new Uint8Array(4);
-    val[0] = 0xca;
-    val[1] = 0xfe;
-    val[2] = 0xba;
-    val[3] = 0xbe;
-    p.bytesVarLen(BytesBlob.wrap(val)); // value
+    const val = BytesBlob.parseBlob("0xcafebabe").okay!;
+    p.bytesVarLen(val); // value
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, -1, "write returns NONE (no previous value)");
     return assert;
   }),
 
   test("read: reads back previously written value", () => {
-    const val = new Uint8Array(4);
-    val[0] = 0xca;
-    val[1] = 0xfe;
-    val[2] = 0xba;
-    val[3] = 0xbe;
-    TestStorage.set(strBlob("mykey"), BytesBlob.wrap(val));
+    const val = BytesBlob.parseBlob("0xcafebabe").okay!;
+    TestStorage.set(strBlob("mykey"), val);
 
     const p = Encoder.create();
     p.varU64(EcalliIndex.Read);
@@ -99,7 +91,7 @@ export const TESTS: Test[] = [
     p.varU64(0); // offset
     p.varU64(8); // maxLen
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 4, "read returns value length");
     assert.isEqual(resp.data.raw.length, 4, "data length");
@@ -111,19 +103,15 @@ export const TESTS: Test[] = [
   }),
 
   test("write: overwrite returns previous value length", () => {
-    const val = new Uint8Array(4);
-    val[0] = 0xca;
-    val[1] = 0xfe;
-    val[2] = 0xba;
-    val[3] = 0xbe;
-    TestStorage.set(strBlob("mykey"), BytesBlob.wrap(val));
+    const val = BytesBlob.parseBlob("0xcafebabe").okay!;
+    TestStorage.set(strBlob("mykey"), val);
 
     const p = Encoder.create();
     p.varU64(EcalliIndex.Write);
     p.bytesVarLen(strBlob("mykey")); // key
     p.bytesVarLen(strBlob("newval")); // value
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 4, "write returns previous value length");
     return assert;
@@ -136,7 +124,7 @@ export const TESTS: Test[] = [
     p.varU64(0); // offset
     p.varU64(96); // maxLen
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 96, "info total length");
     assert.isEqual(resp.data.raw.length, 96, "info data length");
@@ -154,7 +142,7 @@ export const TESTS: Test[] = [
     p.bytesVarLen(strBlob("test-target"));
     p.bytesVarLen(strBlob("hello from test"));
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "log returns 0");
     return assert;
@@ -166,11 +154,11 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.HistoricalLookup);
     p.varU64(u64(u32.MAX_VALUE)); // service: current
-    p.bytesFixLen(new Uint8Array(32)); // hash: zeros
+    p.bytesFixLen(BytesBlob.zero(32)); // hash: zeros
     p.varU64(0); // offset
     p.varU64(256); // maxLen
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 15, "historical_lookup total length");
     assert.isEqual(resp.data.raw.length, 15, "preimage data length");
@@ -180,11 +168,11 @@ export const TESTS: Test[] = [
   test("export: exports a segment", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Export);
-    const segment = new Uint8Array(8);
-    segment[0] = 0x42;
-    p.bytesVarLen(BytesBlob.wrap(segment));
+    const segment = BytesBlob.zero(8);
+    segment.raw[0] = 0x42;
+    p.bytesVarLen(segment);
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "export returns segment index 0");
     return assert;
@@ -193,11 +181,10 @@ export const TESTS: Test[] = [
   test("machine: creates inner PVM", () => {
     const p = Encoder.create();
     p.varU64(EcalliIndex.Machine);
-    const code = new Uint8Array(4);
-    p.bytesVarLen(BytesBlob.wrap(code));
+    p.bytesVarLen(BytesBlob.zero(4));
     p.varU64(0); // entrypoint
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "machine returns machine ID 0");
     return assert;
@@ -210,7 +197,7 @@ export const TESTS: Test[] = [
     p.varU64(0); // source address
     p.varU64(8); // length
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "peek returns OK");
     assert.isEqual(resp.data.raw.length, 8, "peek data length");
@@ -221,13 +208,13 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Poke);
     p.varU64(0); // machine_id
-    const data = new Uint8Array(4);
-    data[0] = 0xde;
-    data[1] = 0xad;
-    p.bytesVarLen(BytesBlob.wrap(data));
+    const data = BytesBlob.zero(4);
+    data.raw[0] = 0xde;
+    data.raw[1] = 0xad;
+    p.bytesVarLen(data);
     p.varU64(0x1000); // dest address in machine
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "poke returns OK");
     return assert;
@@ -241,7 +228,7 @@ export const TESTS: Test[] = [
     p.varU64(1); // page_count
     p.varU64(3); // access_type (read+write)
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "pages returns OK");
     return assert;
@@ -251,10 +238,9 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Invoke);
     p.varU64(0); // machine_id
-    const io = new Uint8Array(8); // I/O structure
-    p.bytesVarLen(BytesBlob.wrap(io));
+    p.bytesVarLen(BytesBlob.zero(8)); // I/O structure
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "invoke returns HALT");
     assert.isEqual(resp.data.raw.length, 8, "invoke returns r8 output");
@@ -266,7 +252,7 @@ export const TESTS: Test[] = [
     p.varU64(EcalliIndex.Expunge);
     p.varU64(0); // machine_id
 
-    const resp = callRefine(p.finish());
+    const resp = callRefine(p.finishRaw());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "expunge returns OK");
     return assert;

@@ -31,15 +31,15 @@ const _workItemInfo: WorkItemInfoCodec = WorkItemInfoCodec.create();
 const _workPackage: WorkPackageCodec = WorkPackageCodec.create(_refinementCtx, _workItem);
 
 function bytes32Fill(v: u8): Bytes32 {
-  const raw = new Uint8Array(32);
-  raw.fill(v);
-  return Bytes32.wrapUnchecked(raw);
+  const buf = BytesBlob.zero(32);
+  buf.raw.fill(v);
+  return Bytes32.wrapUnchecked(buf.raw);
 }
 
 function roundtrip<T>(original: T, enc: TryEncode<T>, dec: TryDecode<T>): T {
   const e = Encoder.create();
   enc.encode(original, e);
-  const d = Decoder.fromBlob(e.finish());
+  const d = Decoder.fromBlob(e.finishRaw());
   const r = dec.decode(d);
   assert(r.isOkay, "roundtrip decode failed");
   return r.okay!;
@@ -330,9 +330,9 @@ export const TESTS: Test[] = [
   test("ImportRef decode rejects invalid tag", () => {
     const e = Encoder.create();
     e.u8(2); // invalid tag (only 0 and 1 valid)
-    e.bytesFixLen(bytes32Fill(0x00).raw);
+    e.bytesFixLen(bytes32Fill(0x00).bytes);
     e.varU64(0);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = _importRef.decode(d);
 
     const assert = Assert.create();

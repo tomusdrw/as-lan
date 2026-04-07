@@ -1,27 +1,25 @@
-import { Encoder } from "@fluffylabs/as-lan";
+import { BytesBlob, Encoder } from "@fluffylabs/as-lan";
 import { Assert, Test, TestEcalli, TestFetch, test, unpackResult } from "@fluffylabs/as-lan/test";
 import { is_authorized } from "./authorize";
 
-/** Encode a u16 LE core index into a Uint8Array. */
-function encodeCoreIndex(coreIndex: u16): Uint8Array {
-  const buf = new Uint8Array(2);
-  const enc = Encoder.into(buf);
+/** Encode a u16 LE core index into a BytesBlob. */
+function encodeCoreIndex(coreIndex: u16): BytesBlob {
+  const buf = BytesBlob.zero(2);
+  const enc = Encoder.into(buf.raw);
   enc.u16(coreIndex);
-  return enc.finish();
+  return buf;
 }
 
 /** Call is_authorized with the given core index, returning the raw output bytes. */
 function callAuthorize(coreIndex: u16): Uint8Array {
   const args = encodeCoreIndex(coreIndex);
-  const buf = new Uint8Array(args.length);
-  buf.set(args);
-  const result = is_authorized(u32(buf.dataStart), buf.byteLength);
+  const result = is_authorized(args.ptr(), args.length);
   return unpackResult(result);
 }
 
-/** Convert a string to UTF-8 bytes. */
+/** Convert a string to ASCII bytes. */
 function strToBytes(s: string): Uint8Array {
-  return Uint8Array.wrap(String.UTF8.encode(s));
+  return BytesBlob.encodeAscii(s).raw;
 }
 
 export const TESTS: Test[] = [
@@ -43,13 +41,9 @@ export const TESTS: Test[] = [
 
   test("authorize succeeds with binary token", () => {
     TestEcalli.reset();
-    const token = new Uint8Array(4);
-    token[0] = 0xde;
-    token[1] = 0xad;
-    token[2] = 0xbe;
-    token[3] = 0xef;
-    TestFetch.setDataForKind(8, token);
-    TestFetch.setDataForKind(9, token);
+    const token = BytesBlob.parseBlob("0xdeadbeef").okay!;
+    TestFetch.setDataForKind(8, token.raw);
+    TestFetch.setDataForKind(9, token.raw);
 
     const result = callAuthorize(7);
     const a = Assert.create();
@@ -72,9 +66,9 @@ export const TESTS: Test[] = [
 
   test("authorize succeeds with empty token", () => {
     TestEcalli.reset();
-    const token = new Uint8Array(0);
-    TestFetch.setDataForKind(8, token);
-    TestFetch.setDataForKind(9, token);
+    const token = BytesBlob.empty();
+    TestFetch.setDataForKind(8, token.raw);
+    TestFetch.setDataForKind(9, token.raw);
 
     const result = callAuthorize(0);
     const a = Assert.create();

@@ -148,10 +148,10 @@ export class OperandCodec implements TryDecode<Operand>, TryEncode<Operand> {
   }
 
   encode(v: Operand, e: Encoder): void {
-    e.bytesFixLen(v.hash.raw);
-    e.bytesFixLen(v.exportsRoot.raw);
-    e.bytesFixLen(v.authorizerHash.raw);
-    e.bytesFixLen(v.payloadHash.raw);
+    e.bytesFixLen(v.hash.bytes);
+    e.bytesFixLen(v.exportsRoot.bytes);
+    e.bytesFixLen(v.authorizerHash.bytes);
+    e.bytesFixLen(v.payloadHash.bytes);
     e.varU64(v.gas);
     e.object<WorkExecResult>(this.workExecResult, v.result);
     e.bytesVarLen(v.authorizationOutput);
@@ -211,13 +211,12 @@ export class PendingTransferCodec implements TryDecode<PendingTransfer>, TryEnco
     e.u32(v.destination);
     e.u64(v.amount);
     // Memo is guaranteed <= TRANSFER_MEMO_SIZE by PendingTransfer.create; pad if shorter.
-    const raw = v.memo.raw;
-    if (<u32>raw.length === TRANSFER_MEMO_SIZE) {
-      e.bytesFixLen(raw);
+    if (<u32>v.memo.length === TRANSFER_MEMO_SIZE) {
+      e.bytesFixLen(v.memo);
     } else {
       const padded = new Uint8Array(TRANSFER_MEMO_SIZE);
-      padded.set(raw);
-      e.bytesFixLen(padded);
+      padded.set(v.memo.raw);
+      e.bytesFixLen(BytesBlob.wrap(padded));
     }
     e.u64(v.gas);
   }

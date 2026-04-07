@@ -52,7 +52,7 @@ export class RefineArgsCodec implements TryDecode<RefineArgs>, TryEncode<RefineA
     e.varU64(u64(v.itemIndex));
     e.varU64(u64(v.serviceId));
     e.bytesVarLen(v.payload);
-    e.bytesFixLen(v.workPackageHash.raw);
+    e.bytes32(v.workPackageHash);
   }
 }
 
@@ -114,12 +114,12 @@ export class Response {
    * Encode a response and return it as a ptrAndLen-packed u64.
    * This is the primary way dispatch functions return results.
    */
-  static with(ecalliResult: i64, data: Uint8Array | null = null): u64 {
-    const bytes = data === null ? BytesBlob.empty() : BytesBlob.wrap(data);
+  static with(ecalliResult: i64, data: BytesBlob | null = null): u64 {
+    const bytes = data === null ? BytesBlob.empty() : data;
     const enc = Encoder.create(8 + 1 + bytes.raw.length);
     enc.u64(u64(ecalliResult));
     enc.bytesVarLen(bytes);
-    return ptrAndLen(enc.finish());
+    return ptrAndLen(enc.finishRaw());
   }
 }
 

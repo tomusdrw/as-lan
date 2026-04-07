@@ -30,7 +30,7 @@ export function callRefine(payload: Uint8Array): Response {
   const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
   const enc = Encoder.create();
   ctx.refineArgs.encode(args, enc);
-  const encoded = enc.finish();
+  const encoded = enc.finishRaw();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
   const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
@@ -47,7 +47,7 @@ export function callAccumulate(argsLength: u32): Uint8Array {
   const args = AccumulateArgs.create(7, 42, argsLength);
   const enc = Encoder.create();
   ctx.accumulateArgs.encode(args, enc);
-  const encoded = enc.finish();
+  const encoded = enc.finishRaw();
   const buf = new Uint8Array(encoded.length);
   buf.set(encoded);
   return unpackResult(accumulate(u32(buf.dataStart), buf.byteLength));
@@ -59,7 +59,7 @@ export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64)
   const item = AccumulateItem.fromTransfer(PendingTransfer.create(source, dest, amount, BytesBlob.empty(), gas));
   const enc = Encoder.create();
   ctx.accumulateItem.encode(item, enc);
-  return enc.finish();
+  return enc.finishRaw();
 }
 
 /**
@@ -79,7 +79,7 @@ export function callAccumulateWithOperand(ecalliPayload: Uint8Array): Response {
   );
   const enc = Encoder.create();
   ctx.accumulateItem.encode(AccumulateItem.fromOperand(op), enc);
-  const item = enc.finish();
+  const item = enc.finishRaw();
   TestAccumulate.setItem(0, item);
   const raw = callAccumulate(1);
   return ctx.response.decode(Decoder.fromBlob(raw)).okay!;

@@ -1,4 +1,5 @@
 import { log } from "../ecalli";
+import { BytesBlob } from "./bytes";
 
 /**
  * Terminate execution with a message.
@@ -7,9 +8,8 @@ import { log } from "../ecalli";
  * where continuing execution is meaningless (e.g. the host returned malformed data).
  */
 export function panic(msg: string): void {
-  const target = "panic";
-  const targetBuf = String.UTF8.encode(target);
-  const msgBuf = String.UTF8.encode(msg);
-  log(0, changetype<u32>(targetBuf), targetBuf.byteLength, changetype<u32>(msgBuf), msgBuf.byteLength);
+  const targetBuf = BytesBlob.encodeAscii("panic");
+  const msgBuf = BytesBlob.encodeAscii(msg);
+  log(0, targetBuf.ptr(), targetBuf.length, msgBuf.ptr(), msgBuf.length);
   abort(msg);
 }

@@ -8,14 +8,43 @@ export enum BlobParseError {
 }
 
 export class BytesBlob {
+  /** Enrich an existing Uint8Array. */
   static wrap(data: Uint8Array): BytesBlob {
     return new BytesBlob(data);
   }
 
-  static empty(): BytesBlob {
-    return new BytesBlob(new Uint8Array(0));
+  /**
+   * Encode an ASCII string (1 byte per char, no UTF-8 overhead).
+   *
+   * Prefer this over `encodeUtf8` for ASCII-only strings (log targets, storage keys, etc.)
+   * as it avoids pulling in the full UTF-8 machinery (~520 B WASM / ~1.15 KB PVM).
+   * Use `encodeUtf8` when full UTF-8 support is needed.
+   */
+  static encodeAscii(str: string): BytesBlob {
+    const len = str.length;
+    const buf = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      buf[i] = str.charCodeAt(i);
+    }
+    return BytesBlob.wrap(buf);
   }
 
+  /** Encode an UTF8 string. */
+  static encodeUtf8(str: string): BytesBlob {
+    return BytesBlob.wrap(Uint8Array.wrap(String.UTF8.encode(str)));
+  }
+
+  /** Zero-filled bytes buffer of given length. */
+  static zero(length: u32): BytesBlob {
+    return new BytesBlob(new Uint8Array(length));
+  }
+
+  /** Empty byte buffer (zero-length). */
+  static empty(): BytesBlob {
+    return BytesBlob.zero(0);
+  }
+
+  /** Parse hex bytes blob with 0x prefix. */
   static parseBlob(v: string): Result<BytesBlob, BlobParseError> {
     if (v.startsWith("0x")) {
       return BytesBlob.parseBlobNoPrefix(v.slice(2));
@@ -23,6 +52,7 @@ export class BytesBlob {
     return Result.err<BytesBlob, BlobParseError>(BlobParseError.MissingPrefix);
   }
 
+  /** Parse hex bytes blob without 0x prefix. */
   static parseBlobNoPrefix(v: string): Result<BytesBlob, BlobParseError> {
     const len = v.length;
     if (len % 2 === 1) {
@@ -44,14 +74,25 @@ export class BytesBlob {
 
   private constructor(public readonly raw: Uint8Array) {}
 
+  @inline()
   get length(): i32 {
     return this.raw.length;
+  }
+
+  subarray(start: u32, end: u32): BytesBlob {
+    return BytesBlob.wrap(this.raw.subarray(start, end));
   }
 
   toString(): string {
     return bytesToHexString(this.raw);
   }
 
+  @inline()
+  ptr(): u32 {
+    return u32(this.raw.dataStart);
+  }
+
+  @inline()
   toPtrAndLen(): u64 {
     return ptrAndLen(this.raw);
   }
@@ -89,6 +130,10 @@ export class Bytes32 {
     return Result.ok<Bytes32, Bytes32Error>(new Bytes32(data));
   }
 
+  static zero(): Bytes32 {
+    return new Bytes32(new Uint8Array(32));
+  }
+
   public readonly bytes: BytesBlob;
   public readonly raw: Uint8Array;
 
@@ -96,6 +141,16 @@ export class Bytes32 {
     const bytes = BytesBlob.wrap(data);
     this.bytes = bytes;
     this.raw = bytes.raw;
+  }
+
+  @inline()
+  get length(): i32 {
+    return this.raw.length;
+  }
+
+  @inline()
+  ptr(): u32 {
+    return u32(this.raw.dataStart);
   }
 
   toString(): string {

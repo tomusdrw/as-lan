@@ -82,13 +82,13 @@ export class AccumulateContext {
     const bytes = data === null ? BytesBlob.empty() : BytesBlob.wrap(data);
     const enc = Encoder.create(8 + 1 + bytes.raw.length);
     this.response.encode(Response.create(ecalliResult, bytes), enc);
-    return ptrAndLen(enc.finish());
+    return ptrAndLen(enc.finishRaw());
   }
 
   /** Encode an optional CodeHash and return it as a ptrAndLen-packed u64. */
   yieldHash(hash: Bytes32 | null): u64 {
     const enc = Encoder.create(33);
     this.optionalCodeHash.encode(hash, enc);
-    return ptrAndLen(enc.finish());
+    return ptrAndLen(enc.finishRaw());
   }
 }

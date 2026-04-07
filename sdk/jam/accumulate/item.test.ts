@@ -18,9 +18,9 @@ import {
 
 /** Helper: create a Bytes32 filled with a repeating byte. */
 function bytes32Fill(v: u8): Bytes32 {
-  const raw = new Uint8Array(32);
-  raw.fill(v);
-  return Bytes32.wrapUnchecked(raw);
+  const buf = BytesBlob.zero(32);
+  buf.raw.fill(v);
+  return Bytes32.wrapUnchecked(buf.raw);
 }
 
 // Create codec instances for tests (mirrors what a Context would do).
@@ -33,7 +33,7 @@ const accumulateItemCodec: AccumulateItemCodec = AccumulateItemCodec.create(oper
 function roundtripWorkExecResult(original: WorkExecResult): WorkExecResult {
   const e = Encoder.create();
   workExecResultCodec.encode(original, e);
-  const d = Decoder.fromBlob(e.finish());
+  const d = Decoder.fromBlob(e.finishRaw());
   return workExecResultCodec.decode(d).okay!;
 }
 
@@ -46,7 +46,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     workExecResultCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = workExecResultCodec.decode(d);
 
     const assert = Assert.create();
@@ -115,7 +115,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     operandCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = operandCodec.decode(d);
 
     const assert = Assert.create();
@@ -151,7 +151,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     operandCodec.encode(original, e);
-    const decoded = operandCodec.decode(Decoder.fromBlob(e.finish())).okay!;
+    const decoded = operandCodec.decode(Decoder.fromBlob(e.finishRaw())).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.gas, 42, "gas");
@@ -173,7 +173,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     accumulateItemCodec.encode(AccumulateItem.fromOperand(original), e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
 
     const assert = Assert.create();
     const tag = d.varU32();
@@ -190,22 +190,22 @@ export const TESTS: Test[] = [
   // ─── PendingTransfer ───
 
   test("PendingTransfer roundtrip with full memo", () => {
-    const memo = new Uint8Array(TRANSFER_MEMO_SIZE);
+    const memo = BytesBlob.zero(TRANSFER_MEMO_SIZE);
     for (let i: u32 = 0; i < TRANSFER_MEMO_SIZE; i++) {
-      memo[i] = u8(i & 0xff);
+      memo.raw[i] = u8(i & 0xff);
     }
-    const original = PendingTransfer.create(100, 200, 999999, BytesBlob.wrap(memo), 50000);
+    const original = PendingTransfer.create(100, 200, 999999, memo, 50000);
 
     const e = Encoder.create();
     pendingTransferCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const decoded = pendingTransferCodec.decode(d).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.source, 100, "source");
     assert.isEqual(decoded.destination, 200, "destination");
     assert.isEqual(decoded.amount, 999999, "amount");
-    assert.isEqualBytes(decoded.memo, BytesBlob.wrap(memo), "memo");
+    assert.isEqualBytes(decoded.memo, memo, "memo");
     assert.isEqual(decoded.gas, 50000, "gas");
     assert.isEqual(d.isFinished(), true, "finished");
     assert.isEqual(d.isError, false, "no error");
@@ -218,17 +218,17 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     pendingTransferCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const decoded = pendingTransferCodec.decode(d).okay!;
 
-    const expectedMemo = new Uint8Array(TRANSFER_MEMO_SIZE);
-    expectedMemo.set(shortMemo.raw);
+    const expectedMemo = BytesBlob.zero(TRANSFER_MEMO_SIZE);
+    expectedMemo.raw.set(shortMemo.raw);
 
     const assert = Assert.create();
     assert.isEqual(decoded.source, 1, "source");
     assert.isEqual(decoded.destination, 2, "destination");
     assert.isEqual(decoded.amount, 100, "amount");
-    assert.isEqualBytes(decoded.memo, BytesBlob.wrap(expectedMemo), "padded memo");
+    assert.isEqualBytes(decoded.memo, expectedMemo, "padded memo");
     assert.isEqual(decoded.gas, 500, "gas");
     assert.isEqual(d.isFinished(), true, "finished");
     return assert;
@@ -239,14 +239,14 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     pendingTransferCodec.encode(original, e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const decoded = pendingTransferCodec.decode(d).okay!;
 
     const assert = Assert.create();
     assert.isEqual(decoded.source, 0, "source zero");
     assert.isEqual(decoded.destination, 0xffffffff, "destination max");
     assert.isEqual(decoded.amount, u64.MAX_VALUE, "amount max");
-    assert.isEqualBytes(decoded.memo, BytesBlob.wrap(new Uint8Array(TRANSFER_MEMO_SIZE)), "zero memo");
+    assert.isEqualBytes(decoded.memo, BytesBlob.zero(TRANSFER_MEMO_SIZE), "zero memo");
     assert.isEqual(decoded.gas, 0, "gas zero");
     assert.isEqual(d.isFinished(), true, "finished");
     return assert;
@@ -257,7 +257,7 @@ export const TESTS: Test[] = [
 
     const e = Encoder.create();
     accumulateItemCodec.encode(AccumulateItem.fromTransfer(original), e);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
 
     const assert = Assert.create();
     const tag = d.varU32();
@@ -277,7 +277,7 @@ export const TESTS: Test[] = [
   test("WorkExecResult decode rejects invalid kind", () => {
     const e = Encoder.create();
     e.varU64(99);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = workExecResultCodec.decode(d);
 
     const assert = Assert.create();
@@ -288,7 +288,7 @@ export const TESTS: Test[] = [
   test("AccumulateItem decode rejects unknown tag", () => {
     const e = Encoder.create();
     e.varU64(5);
-    const d = Decoder.fromBlob(e.finish());
+    const d = Decoder.fromBlob(e.finishRaw());
     const r = accumulateItemCodec.decode(d);
 
     const assert = Assert.create();
@@ -297,7 +297,7 @@ export const TESTS: Test[] = [
   }),
 
   test("AccumulateItem decode rejects empty input", () => {
-    const d = Decoder.fromBlob(new Uint8Array(0));
+    const d = Decoder.fromBlob(BytesBlob.empty().raw);
     const r = accumulateItemCodec.decode(d);
 
     const assert = Assert.create();
