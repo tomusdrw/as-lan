@@ -14,9 +14,11 @@ export class BytesBlob {
   }
 
   /**
-   * Encode an ASCII string (most likely you should prefer `encodeUtf8` instead).
+   * Encode an ASCII string (1 byte per char, no UTF-8 overhead).
    *
-   * Using ASCII saves few bytes IFF the entire program does not use template strings or UTF8 encoding.
+   * Prefer this over `encodeUtf8` for ASCII-only strings (log targets, storage keys, etc.)
+   * as it avoids pulling in the full UTF-8 machinery (~520 B WASM / ~1.15 KB PVM).
+   * Use `encodeUtf8` when full UTF-8 support is needed.
    */
   static encodeAscii(str: string): BytesBlob {
     const len = str.length;
