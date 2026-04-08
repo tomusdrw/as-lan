@@ -89,6 +89,36 @@ export function is_authorized(ptr: u32, len: u32): u64 {
 The `AuthorizeFetcher` provides access to work-package data (fetch kinds 0, 7–13),
 including `authConfig()` and `authToken()`. See the [authorizer example](https://github.com/fluffylabs/as-lan/tree/main/examples/authorizer) for a complete project.
 
+### Entry Point Pattern (Self-Authorizing Service)
+
+A single service can handle both authorization and refinement. In PVM, both
+`is_authorized` and `refine` start at PC=0 (accumulate starts at PC=5), so the
+entry point must detect which context it's running in at runtime.
+
+The detection uses input length: `is_authorized` receives exactly 2 bytes
+(a `u16` core index), while `refine` receives 10+ bytes (`RefineArgs`:
+varints + payload + 32-byte hash).
+
+```typescript
+// assembly/index.ts
+export { accumulate } from "./accumulate";
+import { refine as refine_ } from "./refine";
+import { is_authorized } from "./authorize";
+
+export function refine(ptr: u32, len: u32): u64 {
+  if (len === 2) {
+    return is_authorized(ptr, len);
+  }
+  return refine_(ptr, len);
+}
+```
+
+The `authorize.ts` and `refine.ts` files use their respective contexts
+(`AuthorizeContext` / `RefineContext`) as normal. See
+[all-ecalli](https://github.com/fluffylabs/as-lan/tree/main/examples/all-ecalli) and
+[ecalli-test](https://github.com/fluffylabs/as-lan/tree/main/examples/ecalli-test)
+for complete examples.
+
 ### Parsed Argument Types
 
 **`RefineArgs`** (fields available after successful parse):
