@@ -24,6 +24,7 @@ export {
   fetchRaw,
   fetchRawOrPanic,
 } from "./jam/fetcher";
+export * from "./jam/preimages";
 export * from "./jam/refine";
 export * from "./jam/service";
 export * from "./jam/service-data";

@@ -11,8 +11,10 @@
 export { TestAccumulate } from "./accumulate";
 export { TestGas } from "./gas";
 export { TestFetch } from "./fetch";
+export { TestHistoricalLookup } from "./historical-lookup";
 export { TestInfo } from "./info";
 export { TestLookup } from "./lookup";
+export { TestPreimages } from "./preimages";
 export { TestStorage } from "./storage";
 
 // @ts-expect-error: decorator

@@ -61,11 +61,17 @@ export class Result<Ok, Err> {
  */
 export class ResultN<Ok, Err> {
   static ok<Ok, Err>(ok: Ok): ResultN<Ok, Err> {
-    return new ResultN(true, ok, changetype<Err>(0));
+    if (isReference<Err>()) {
+      return new ResultN(true, ok, changetype<Err>(0));
+    }
+    return new ResultN(true, ok, <Err>0);
   }
 
   static err<Ok, Err>(error: Err): ResultN<Ok, Err> {
-    return new ResultN(false, changetype<Ok>(0), error);
+    if (isReference<Ok>()) {
+      return new ResultN(false, changetype<Ok>(0), error);
+    }
+    return new ResultN(false, <Ok>0, error);
   }
 
   public readonly isError: boolean;

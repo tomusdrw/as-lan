@@ -18,6 +18,9 @@ export type EntropyHash = Bytes32;
 export type CoreIndex = u16;
 export type Slot = u32;
 export type ServiceId = u32;
+
+/** Sentinel service ID meaning "the currently executing service". */
+export const CURRENT_SERVICE: ServiceId = u32.MAX_VALUE;
 export type WorkPayload = BytesBlob;
 export type AuthOutput = BytesBlob;
 export type WorkOutput = BytesBlob;
