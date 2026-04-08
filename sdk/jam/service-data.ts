@@ -13,6 +13,7 @@ import { info } from "../ecalli/general/info";
 import { read } from "../ecalli/general/read";
 import { write } from "../ecalli/general/write";
 import { ACCOUNT_INFO_SIZE, AccountInfo, AccountInfoCodec } from "./account-info";
+import { CURRENT_SERVICE } from "./types";
 
 export enum WriteError {
   /** Storage quota exceeded (FULL sentinel). */
@@ -79,7 +80,7 @@ export class CurrentServiceData extends ServiceData {
   }
 
   private constructor(bufSize: u32) {
-    super(u32.MAX_VALUE, bufSize);
+    super(CURRENT_SERVICE, bufSize);
   }
 
   /**

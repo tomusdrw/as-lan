@@ -1,0 +1,62 @@
+/**
+ * Refine-context preimage lookups (ecalli 2 + ecalli 6).
+ *
+ * Composes {@link Preimages} for standard lookups and adds
+ * {@link RefinePreimages.historicalLookup} for historical state.
+ */
+
+import { Bytes32, BytesBlob } from "../../core/bytes";
+import { Optional } from "../../core/result";
+import { EcalliResult } from "../../ecalli";
+import { historical_lookup } from "../../ecalli/refine/historical_lookup";
+import { Preimages } from "../preimages";
+import { CURRENT_SERVICE } from "../types";
+
+export class RefinePreimages {
+  static create(bufSize: u32 = 1024): RefinePreimages {
+    return new RefinePreimages(bufSize);
+  }
+
+  private readonly preimages: Preimages;
+  private buf: Uint8Array;
+
+  private constructor(bufSize: u32) {
+    this.preimages = Preimages.create(bufSize);
+    this.buf = new Uint8Array(bufSize);
+  }
+
+  /**
+   * Look up a preimage by its blake2b hash.
+   *
+   * @param hash - 32-byte blake2b hash of the preimage
+   * @param serviceId - service to query (default: current service)
+   * @returns the preimage data, or none if not found
+   */
+  lookup(hash: Bytes32, serviceId: u32 = CURRENT_SERVICE): Optional<BytesBlob> {
+    return this.preimages.lookup(hash, serviceId);
+  }
+
+  /**
+   * Look up a preimage by its blake2b hash using historical state (refine-only).
+   *
+   * Same semantics as {@link lookup} but queries the historical state
+   * available during refinement.
+   *
+   * @param hash - 32-byte blake2b hash of the preimage
+   * @param serviceId - service to query (default: current service)
+   * @returns the preimage data, or none if not found
+   */
+  historicalLookup(hash: Bytes32, serviceId: u32 = CURRENT_SERVICE): Optional<BytesBlob> {
+    let result = historical_lookup(serviceId, hash.ptr(), u32(this.buf.dataStart), 0, this.buf.length);
+    if (result === EcalliResult.NONE) return Optional.none<BytesBlob>();
+
+    if (result > i64(this.buf.length)) {
+      this.buf = new Uint8Array(u32(result));
+      result = historical_lookup(serviceId, hash.ptr(), u32(this.buf.dataStart), 0, this.buf.length);
+      if (result === EcalliResult.NONE) return Optional.none<BytesBlob>();
+    }
+
+    const len = u32(min(i64(this.buf.length), result));
+    return Optional.some<BytesBlob>(BytesBlob.wrap(this.buf.slice(0, len)));
+  }
+}

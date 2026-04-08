@@ -130,6 +130,47 @@ import { TestLookup } from "@fluffylabs/as-lan/test";
 const preimage = new Uint8Array(3);
 preimage[0] = 1; preimage[1] = 2; preimage[2] = 3;
 TestLookup.setPreimage(preimage);
+
+// Make lookup return NONE (preimage not found)
+TestLookup.setNone();
+```
+
+### TestHistoricalLookup
+
+Set the preimage returned by the `historical_lookup()` ecalli (refine context):
+
+```typescript
+import { TestHistoricalLookup } from "@fluffylabs/as-lan/test";
+
+TestHistoricalLookup.setPreimage(data);
+
+// Make historical_lookup return NONE
+TestHistoricalLookup.setNone();
+```
+
+### TestPreimages
+
+Configure accumulate-context preimage ecalli stubs (query, solicit, forget, provide):
+
+```typescript
+import { TestPreimages } from "@fluffylabs/as-lan/test";
+import { EcalliResult } from "@fluffylabs/as-lan";
+
+// Configure query to return "Available" with slot0=42:
+// r7 = (slot0 << 32) | kind, r8 = (slot2 << 32) | slot1
+TestPreimages.setQueryResult(i64((u64(42) << 32) | 1), 0);
+
+// Configure query to return NONE (not solicited)
+TestPreimages.setQueryResult(-1);
+
+// Configure solicit to return an error
+TestPreimages.setSolicitResult(EcalliResult.HUH);
+
+// Configure forget to return OK
+TestPreimages.setForgetResult(0);
+
+// Configure provide to return WHO error
+TestPreimages.setProvideResult(EcalliResult.WHO);
 ```
 
 ### TestStorage
