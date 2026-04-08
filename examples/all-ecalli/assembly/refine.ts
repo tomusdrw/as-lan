@@ -117,7 +117,7 @@ export function refine(ptr: u32, len: u32): u64 {
     const r = log(3, target.ptr(), target.length, message.ptr(), message.length);
     logger.info(`[100] log() = ${r}`);
     out.varU64(100);
-    out.u64(i64(r));
+    out.u64(u64(r));
     count++;
   }
 

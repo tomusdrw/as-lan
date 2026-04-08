@@ -19,8 +19,8 @@ import { EcalliIndex } from "./ecalli-index";
  *   ecalli_index: varU64
  *   ...params (ecalli-specific, see dispatch functions)
  *
- * The authToken (fetch kind=9) must match authConfig for authorization
- * to succeed. The dispatch result is returned as the authorization trace.
+ * This is a test dispatcher — it does not perform real authorization.
+ * The dispatch result is returned as the authorization trace.
  */
 export function is_authorized(ptr: u32, len: u32): u64 {
   const ctx = AuthorizeContext.create();
