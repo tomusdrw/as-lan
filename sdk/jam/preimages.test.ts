@@ -18,7 +18,7 @@ export const TESTS: Test[] = [
     const p = Preimages.create();
     const result = p.lookup(Bytes32.zero());
     a.isEqual(result.isSome, true, "should be some");
-    a.isEqual(result.val!.raw.length, 4, "length");
+    a.isEqual(result.val!.length, 4, "length");
     a.isEqual(result.val!.raw[0], 0xde, "byte 0");
     a.isEqual(result.val!.raw[3], 0xef, "byte 3");
     return a;
@@ -46,7 +46,7 @@ export const TESTS: Test[] = [
     const p = Preimages.create(64);
     const result = p.lookup(Bytes32.zero());
     a.isEqual(result.isSome, true, "should be some");
-    a.isEqual(result.val!.raw.length, 2048, "length");
+    a.isEqual(result.val!.length, 2048, "length");
     a.isEqual(result.val!.raw[0], 0, "byte 0");
     a.isEqual(result.val!.raw[255], 255, "byte 255");
     return a;
@@ -63,7 +63,7 @@ export const TESTS: Test[] = [
     const rp = RefinePreimages.create();
     const result = rp.lookup(Bytes32.zero());
     a.isEqual(result.isSome, true, "should be some");
-    a.isEqual(result.val!.raw.length, 2, "length");
+    a.isEqual(result.val!.length, 2, "length");
     a.isEqual(result.val!.raw[0], 0xca, "byte 0");
     return a;
   }),
@@ -79,7 +79,7 @@ export const TESTS: Test[] = [
     const rp = RefinePreimages.create();
     const result = rp.historicalLookup(Bytes32.zero());
     a.isEqual(result.isSome, true, "should be some");
-    a.isEqual(result.val!.raw.length, 4, "length");
+    a.isEqual(result.val!.length, 4, "length");
     a.isEqual(result.val!.raw[0], 0xaa, "byte 0");
     a.isEqual(result.val!.raw[3], 0xdd, "byte 3");
     return a;

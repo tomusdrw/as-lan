@@ -18,11 +18,11 @@ export class RefinePreimages {
   }
 
   private readonly preimages: Preimages;
-  private buf: Uint8Array;
+  private buf: BytesBlob;
 
   private constructor(bufSize: u32) {
     this.preimages = Preimages.create(bufSize);
-    this.buf = new Uint8Array(bufSize);
+    this.buf = BytesBlob.zero(bufSize);
   }
 
   /**
@@ -47,16 +47,16 @@ export class RefinePreimages {
    * @returns the preimage data, or none if not found
    */
   historicalLookup(hash: Bytes32, serviceId: u32 = CURRENT_SERVICE): Optional<BytesBlob> {
-    let result = historical_lookup(serviceId, hash.ptr(), u32(this.buf.dataStart), 0, this.buf.length);
+    let result = historical_lookup(serviceId, hash.ptr(), this.buf.ptr(), 0, this.buf.length);
     if (result === EcalliResult.NONE) return Optional.none<BytesBlob>();
 
     if (result > i64(this.buf.length)) {
-      this.buf = new Uint8Array(u32(result));
-      result = historical_lookup(serviceId, hash.ptr(), u32(this.buf.dataStart), 0, this.buf.length);
+      this.buf = BytesBlob.zero(u32(result));
+      result = historical_lookup(serviceId, hash.ptr(), this.buf.ptr(), 0, this.buf.length);
       if (result === EcalliResult.NONE) return Optional.none<BytesBlob>();
     }
 
     const len = u32(min(i64(this.buf.length), result));
-    return Optional.some<BytesBlob>(BytesBlob.wrap(this.buf.slice(0, len)));
+    return Optional.some<BytesBlob>(BytesBlob.wrap(this.buf.raw.slice(0, len)));
   }
 }

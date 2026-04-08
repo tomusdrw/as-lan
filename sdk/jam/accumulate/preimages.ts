@@ -41,11 +41,12 @@ export class AccumulatePreimages {
   }
 
   private readonly preimages: Preimages;
-  private readonly r8Buf: Uint8Array;
+  // Uint8Array: raw 8-byte buffer for load<i64> of the r8 register output from query ecalli.
+  private readonly r8Buf: BytesBlob;
 
   private constructor(bufSize: u32) {
     this.preimages = Preimages.create(bufSize);
-    this.r8Buf = new Uint8Array(8);
+    this.r8Buf = BytesBlob.zero(8);
   }
 
   /**
@@ -67,7 +68,7 @@ export class AccumulatePreimages {
    * @returns the preimage status, or none if not solicited
    */
   query(hash: Bytes32, length: u32): Optional<PreimageStatus> {
-    const r7 = query(hash.ptr(), length, u32(this.r8Buf.dataStart));
+    const r7 = query(hash.ptr(), length, this.r8Buf.ptr());
     if (r7 === EcalliResult.NONE) return Optional.none<PreimageStatus>();
 
     const r8 = loadR8(this.r8Buf);
@@ -113,7 +114,7 @@ export class AccumulatePreimages {
    * @returns ok(true) on success, or ProvideError
    */
   provide(preimage: BytesBlob, serviceId: u32 = CURRENT_SERVICE): ResultN<bool, ProvideError> {
-    const result = provide(serviceId, u32(preimage.raw.dataStart), preimage.raw.length);
+    const result = provide(serviceId, preimage.ptr(), preimage.length);
     if (result === EcalliResult.WHO) return ResultN.err<bool, ProvideError>(ProvideError.Who);
     if (result === EcalliResult.HUH) return ResultN.err<bool, ProvideError>(ProvideError.Huh);
     if (result >= 0) return ResultN.ok<bool, ProvideError>(true);
@@ -123,8 +124,9 @@ export class AccumulatePreimages {
 }
 
 /** Read the i64 value written by the query ecalli into the r8 buffer. */
-function loadR8(buf: Uint8Array): i64 {
-  return load<i64>(buf.dataStart);
+function loadR8(buf: BytesBlob): i64 {
+  // load<i64>: direct memory read from the buffer's backing store.
+  return load<i64>(buf.raw.dataStart);
 }
 
 /**
