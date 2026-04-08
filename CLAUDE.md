@@ -38,15 +38,19 @@ pvm-adapter.wat             WAT adapter mapping WASM imports to PVM host_call_N 
 examples/
   authorizer/               Example authorizer service (is_authorized)
   fibonacci/                Example service (refine + accumulate)
-  all-ecalli/               Smoke-test service invoking every ecalli (refine + accumulate)
+  all-ecalli/               Smoke-test service invoking every ecalli (refine + accumulate + authorize)
     assembly/
       refine.ts             Refine entry point — invokes general (0-5, 100) + refine (6-13) ecallis
       accumulate.ts         Accumulate entry point — invokes general + accumulate (14-26) ecallis
+      authorize.ts          Authorize entry point — invokes general + authorize-context fetch kinds (0, 7-13)
+      index.ts              Self-authorizing dispatch: len==2 → is_authorized, else → refine
       test-data.ts          AuthQueue, AutoAccumulate, ValidatorKeys — test data classes with codecs
   ecalli-test/              Example that exercises all ecalli host calls via dispatch
     assembly/
       refine.ts             Refine entry point — dispatches general + refine ecallis
       accumulate.ts         Accumulate entry point — fetches operands/transfers via fetch(kind=15)
+      authorize.ts          Authorize entry point — dispatches general ecallis via authConfig payload
+      index.ts              Self-authorizing dispatch: len==2 → is_authorized, else → refine
       dispatch/             Dispatch functions grouped by ecalli category
         common.ts           Shared logger and outputLen helper
         general.ts          Ecalli 0-5, 100 dispatch
@@ -54,6 +58,7 @@ examples/
         accumulate.ts       Ecalli 14-26 dispatch
       refine.test.ts        Tests for general + refine ecallis (17 tests)
       accumulate.test.ts    Tests for accumulate ecallis via operand/transfer flow (14 tests)
+      authorize.test.ts     Tests for general ecallis via authorize dispatch (7 tests)
       test-helpers.ts       Shared test utilities (callRefine, callAccumulate, builders)
 docs/                       Documentation (mdbook)
 ```
@@ -68,6 +73,7 @@ docs/                       Documentation (mdbook)
 - **sdk-ecalli-mocks**: JS stubs wired as WASM imports during test. Export names must match `@external` names exactly.
 - **EcalliResult**: Sentinel constants (NONE=-1, WHO=-4, FULL=-5, etc.) shared across all host calls.
 - **panic(msg)** (`sdk/core/panic.ts`): Use for host-contract violations where recovery is impossible (e.g. host returned malformed data, invalid entry point arguments). Do NOT use for expected failures — use `Result` or `Optional` instead. The SDK does not allow recovering from invalid host data — these are always panics, never `Result`.
+- **Self-authorizing services**: A single service can handle both `is_authorized` and `refine` by detecting the invocation context from input length. `is_authorized` receives exactly 2 bytes (u16 core index), `refine` receives 10+ bytes (RefineArgs). The `index.ts` dispatch pattern: `if (len == 2) return is_authorized(ptr, len); return refine_(ptr, len);`. See `examples/all-ecalli/` and `examples/ecalli-test/`.
 
 ### Codec Pattern (sdk/core/codec/ + sdk/jam/)
 
