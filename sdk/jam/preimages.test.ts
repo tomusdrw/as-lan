@@ -3,8 +3,7 @@ import { EcalliResult } from "../ecalli";
 import { TestEcalli, TestHistoricalLookup, TestLookup, TestPreimages } from "../test/test-ecalli";
 import { Assert, Test, test } from "../test/utils";
 import { AccumulatePreimages, ForgetError, ProvideError, SolicitError } from "./accumulate/preimages";
-import { PreimageStatusKind } from "./preimages";
-import { Preimages } from "./preimages";
+import { PreimageStatusKind, Preimages } from "./preimages";
 import { RefinePreimages } from "./refine/preimages";
 
 export const TESTS: Test[] = [

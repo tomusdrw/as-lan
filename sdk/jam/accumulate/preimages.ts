@@ -13,7 +13,7 @@ import { forget } from "../../ecalli/accumulate/forget";
 import { provide } from "../../ecalli/accumulate/provide";
 import { query } from "../../ecalli/accumulate/query";
 import { solicit } from "../../ecalli/accumulate/solicit";
-import { Preimages, PreimageStatus } from "../preimages";
+import { PreimageStatus, Preimages } from "../preimages";
 import { CURRENT_SERVICE } from "../types";
 
 export enum SolicitError {
