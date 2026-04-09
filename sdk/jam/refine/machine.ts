@@ -45,6 +45,22 @@ export class InvokeIo {
   }
 }
 
+/** Result of invoking an inner PVM machine. */
+export class InvokeOutcome {
+  static create(reason: ExitReason, r8: i64, io: InvokeIo): InvokeOutcome {
+    return new InvokeOutcome(reason, r8, io);
+  }
+
+  private constructor(
+    /** Exit reason (Halt, Panic, Fault, Host, Oog). */
+    public readonly reason: ExitReason,
+    /** Secondary result: host call index (if Host), fault address (if Fault). */
+    public readonly r8: i64,
+    /** Reference to the I/O structure — gas and registers reflect post-invoke state. */
+    public readonly io: InvokeIo,
+  ) {}
+}
+
 /** Exit reason from invoking an inner PVM machine. */
 export enum ExitReason {
   Halt = 0,
