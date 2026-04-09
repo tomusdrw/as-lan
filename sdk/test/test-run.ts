@@ -8,6 +8,7 @@ import * as accumulateItem from "../jam/accumulate/item.test";
 import * as context from "../jam/context.test";
 import * as preimages from "../jam/preimages.test";
 import * as service from "../jam/service.test";
+import * as machine from "../jam/machine.test";
 import * as workPackage from "../jam/work-package.test";
 
 import { runTestSuites, TestSuite } from "./utils";
@@ -22,6 +23,7 @@ export function runAllTests(): void {
     TestSuite.create(accountInfo.TESTS, "account-info.ts"),
     TestSuite.create(accumulateItem.TESTS, "accumulate-item.ts"),
     TestSuite.create(context.TESTS, "context.ts"),
+    TestSuite.create(machine.TESTS, "machine.ts"),
     TestSuite.create(preimages.TESTS, "preimages.ts"),
     TestSuite.create(service.TESTS, "service.ts"),
     TestSuite.create(workPackage.TESTS, "work-package.ts"),

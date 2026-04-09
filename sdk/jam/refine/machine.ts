@@ -1,3 +1,50 @@
+import { BytesBlob } from "../../core/bytes";
+
+const NUM_REGISTERS: u32 = 13;
+const REGISTER_SIZE: u32 = 8; // i64
+const GAS_SIZE: u32 = 8; // i64
+/** Total size of the invoke I/O structure: gas (8) + 13 registers (8 each) = 112 bytes. */
+export const INVOKE_IO_SIZE: u32 = GAS_SIZE + NUM_REGISTERS * REGISTER_SIZE;
+
+/**
+ * Typed wrapper over the 112-byte I/O structure used by the `invoke` ecalli.
+ *
+ * Layout: [gas: i64, r0: i64, r1: i64, ..., r12: i64]
+ *
+ * The structure is read before invoke (gas limit + initial registers) and
+ * written after (gas remaining + final registers). Reuse across invoke calls.
+ */
+export class InvokeIo {
+  static create(gas: u64): InvokeIo {
+    const buf = BytesBlob.zero(INVOKE_IO_SIZE);
+    const io = new InvokeIo(buf);
+    io.gas = gas;
+    return io;
+  }
+
+  private constructor(
+    readonly buf: BytesBlob,
+  ) {}
+
+  get gas(): u64 {
+    return load<u64>(this.buf.raw.dataStart);
+  }
+
+  set gas(value: u64) {
+    store<u64>(this.buf.raw.dataStart, value);
+  }
+
+  getRegister(index: u32): u64 {
+    assert(index < NUM_REGISTERS);
+    return load<u64>(this.buf.raw.dataStart + GAS_SIZE + index * REGISTER_SIZE);
+  }
+
+  setRegister(index: u32, value: u64): void {
+    assert(index < NUM_REGISTERS);
+    store<u64>(this.buf.raw.dataStart + GAS_SIZE + index * REGISTER_SIZE, value);
+  }
+}
+
 /** Exit reason from invoking an inner PVM machine. */
 export enum ExitReason {
   Halt = 0,
