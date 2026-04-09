@@ -101,7 +101,7 @@ const hash = decoder.bytes32();
 const blob = decoder.bytesVarLen();
 ```
 
-Key methods: `u8`, `u16`, `u32`, `u64`, `varU64`, `bytes32`, `bytesFixLen`, `bytesVarLen`, `object`, `optional`, `sequenceFixLen`, `sequenceVarLen`, `skip`, `isFinished`, `isError`.
+Key methods: `u8`, `u16`, `u32`, `u64`, `varU32`, `varU64`, `bytes32`, `bytesFixLen`, `bytesVarLen`, `object`, `optional`, `sequenceFixLen`, `sequenceVarLen`, `skip`, `isFinished`, `isError`.
 
 ## Byte Types
 
