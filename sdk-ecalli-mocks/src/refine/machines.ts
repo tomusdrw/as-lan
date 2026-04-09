@@ -6,13 +6,21 @@
 import { writeI64 } from "../memory.js";
 
 let machineCounter = 0;
+let machineResult: bigint | null = null;
+let peekResult: bigint | null = null;
+let pokeResult: bigint | null = null;
+let pagesResult: bigint | null = null;
+let invokeResult: bigint | null = null;
+let invokeR8: bigint = 0n;
+let expungeResult: bigint | null = null;
 
-/** Ecalli 8: Create inner PVM machine — returns incrementing machine ID. */
+/** Ecalli 8: Create inner PVM machine. */
 export function machine(
   _code_ptr: number,
   _code_len: number,
   _entrypoint: number,
 ): bigint {
+  if (machineResult !== null) return machineResult;
   return BigInt(machineCounter++);
 }
 
@@ -23,6 +31,7 @@ export function peek(
   _source: number,
   _length: number,
 ): bigint {
+  if (peekResult !== null) return peekResult;
   return 0n; // OK
 }
 
@@ -33,6 +42,7 @@ export function poke(
   _dest: number,
   _length: number,
 ): bigint {
+  if (pokeResult !== null) return pokeResult;
   return 0n; // OK
 }
 
@@ -43,16 +53,18 @@ export function pages(
   _page_count: number,
   _access_type: number,
 ): bigint {
+  if (pagesResult !== null) return pagesResult;
   return 0n; // OK
 }
 
-/** Ecalli 12: Invoke inner machine — returns HALT (0), writes r8 = 0. */
+/** Ecalli 12: Invoke inner machine — returns HALT (0), writes r8. */
 export function invoke(
   _machine_id: number,
   _io_ptr: number,
   out_r8: number,
 ): bigint {
-  writeI64(out_r8, 0n);
+  writeI64(out_r8, invokeR8);
+  if (invokeResult !== null) return invokeResult;
   return 0n; // HALT
 }
 
@@ -60,9 +72,44 @@ export function invoke(
 export function expunge(
   _machine_id: number,
 ): bigint {
+  if (expungeResult !== null) return expungeResult;
   return 0n; // OK
+}
+
+// ─── Configuration functions (called from AS test-ecalli helpers) ───
+
+export function setMachineResult(result: bigint): void {
+  machineResult = result;
+}
+
+export function setPeekResult(result: bigint): void {
+  peekResult = result;
+}
+
+export function setPokeResult(result: bigint): void {
+  pokeResult = result;
+}
+
+export function setPagesResult(result: bigint): void {
+  pagesResult = result;
+}
+
+export function setInvokeResult(result: bigint, r8: bigint = 0n): void {
+  invokeResult = result;
+  invokeR8 = r8;
+}
+
+export function setExpungeResult(result: bigint): void {
+  expungeResult = result;
 }
 
 export function resetMachines(): void {
   machineCounter = 0;
+  machineResult = null;
+  peekResult = null;
+  pokeResult = null;
+  pagesResult = null;
+  invokeResult = null;
+  invokeR8 = 0n;
+  expungeResult = null;
 }
