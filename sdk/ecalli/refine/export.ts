@@ -14,4 +14,4 @@
  */
 // @ts-expect-error: decorator
 @external("ecalli", "export")
-export declare function export_(segment_ptr: u32, segment_len: u32): i64;
+export declare function export_segment(segment_ptr: u32, segment_len: u32): i64;

@@ -1,7 +1,7 @@
 import {
   BytesBlob,
   Decoder,
-  export_,
+  export_segment,
   expunge,
   historical_lookup,
   invoke,
@@ -31,7 +31,7 @@ export function dispatchHistoricalLookup(d: Decoder): u64 {
   return Response.with(result, buf.subarray(0, outputLen(result, offset, maxLen)));
 }
 
-/** Ecalli 7: export_(segment[bytesVarLen]). */
+/** Ecalli 7: export_segment(segment[bytesVarLen]). */
 export function dispatchExport(d: Decoder): u64 {
   const segment = d.bytesVarLen();
   if (d.isError) {
@@ -39,8 +39,8 @@ export function dispatchExport(d: Decoder): u64 {
     return 0;
   }
 
-  const result = export_(segment.ptr(), segment.length);
-  logger.info(`export() = ${result}`);
+  const result = export_segment(segment.ptr(), segment.length);
+  logger.info(`export_segment() = ${result}`);
 
   return Response.with(result);
 }

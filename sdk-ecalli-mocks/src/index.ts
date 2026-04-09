@@ -25,7 +25,7 @@ export {
   historical_lookup, setHistoricalLookupPreimage, setHistoricalPreimage,
   setHistoricalLookupNone,
 } from "./refine/index.js";
-export { export_ as export } from "./refine/index.js";
+export { export_segment as export, setExportSegmentResult } from "./refine/index.js";
 export { machine, peek, poke, pages, invoke, expunge } from "./refine/index.js";
 
 // Accumulate ecalli stubs (14-26)

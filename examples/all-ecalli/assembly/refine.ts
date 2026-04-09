@@ -2,7 +2,7 @@ import {
   Bytes32,
   BytesBlob,
   Encoder,
-  export_,
+  export_segment,
   expunge,
   FetchKind,
   fetch,
@@ -132,13 +132,13 @@ export function refine(ptr: u32, len: u32): u64 {
     count++;
   }
 
-  // ─── Ecalli 7: export_(segment) ───────────────────────────────────
+  // ─── Ecalli 7: export_segment(segment) ────────────────────────────
   {
     const segment = BytesBlob.zero(16);
     segment.raw[0] = 0xab;
     segment.raw[1] = 0xcd;
-    const r = export_(segment.ptr(), segment.length);
-    logger.info(`[7] export() = ${r}`);
+    const r = export_segment(segment.ptr(), segment.length);
+    logger.info(`[7] export_segment() = ${r}`);
     out.varU64(7);
     out.u64(r);
     count++;

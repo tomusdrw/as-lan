@@ -13,6 +13,7 @@ import { Encoder } from "../../core/codec/encode";
 import { readFromMemory } from "../../core/mem";
 import { ptrAndLen } from "../../core/pack";
 import { panic } from "../../core/panic";
+import { checkpoint as checkpoint_, yield_result } from "../../ecalli/accumulate";
 import { AccumulateArgs, AccumulateArgsCodec, OptionalCodeHashCodec, Response, ResponseCodec } from "../service";
 import { AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
 
@@ -66,6 +67,22 @@ export class AccumulateContext {
     if (this._accumulateItem === null)
       this._accumulateItem = AccumulateItemCodec.create(this.operand, this.pendingTransfer);
     return this._accumulateItem!;
+  }
+
+  /**
+   * Create a state checkpoint, committing all changes up to this point (ecalli 17).
+   *
+   * @returns remaining gas after the checkpoint.
+   */
+  checkpoint(): i64 {
+    return checkpoint_();
+  }
+
+  /**
+   * Provide the accumulation result hash (ecalli 25).
+   */
+  yieldResult(hash: Bytes32): void {
+    yield_result(hash.ptr());
   }
 
   /** Parse raw accumulate arguments from (ptr, len). Panics on invalid data. */
