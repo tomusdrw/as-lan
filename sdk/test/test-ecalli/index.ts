@@ -16,6 +16,7 @@ export { TestHistoricalLookup } from "./historical-lookup";
 export { TestInfo } from "./info";
 export { TestLookup } from "./lookup";
 export { TestPreimages } from "./preimages";
+export { TestMachine } from "./machines";
 export { TestStorage } from "./storage";
 
 // @ts-expect-error: decorator
