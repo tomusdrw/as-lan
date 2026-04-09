@@ -9,9 +9,10 @@ import {
   RefineContext,
   Response,
 } from "@fluffylabs/as-lan";
-import { Assert, Test, test, unpackResult } from "@fluffylabs/as-lan/test";
+import { Assert, Test, TestEcalli, test, unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
-import { refine } from "./refine";
+import { AUTHORIZE_ECALLI_COUNT } from "./authorize";
+import { refine } from "./index";
 
 /** Expected number of ecalli calls by refine (general 0-5,100 + fetch kinds 0-13 + refine 6-13). */
 const REFINE_ECALLI_COUNT: u32 = 28;
@@ -38,6 +39,15 @@ function callAccumulate(): Response {
   return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
 }
 
+/** Call is_authorized via refine dispatch (len==2), returning raw trace bytes. */
+function callAuthorize(): Uint8Array {
+  TestEcalli.reset();
+  const buf = BytesBlob.zero(2);
+  const enc = Encoder.into(buf.raw);
+  enc.u16(0); // core index
+  return unpackResult(refine(buf.ptr(), buf.length));
+}
+
 export const TESTS: Test[] = [
   test("refine: invokes all general + refine ecallis", () => {
     const resp = callRefine();
@@ -48,6 +58,27 @@ export const TESTS: Test[] = [
     const d = Decoder.fromBlob(resp.data.raw);
     const count = d.varU32();
     assert.isEqual(count, REFINE_ECALLI_COUNT, "encoded count matches");
+
+    // Verify we can decode all result pairs (ecalli_index + u64 result)
+    for (let i: u32 = 0; i < count; i++) {
+      const idx = d.varU64();
+      const _result = d.u64();
+      if (d.isError) {
+        assert.fail(`failed to decode result pair at index ${i} (ecalli ${idx})`);
+        break;
+      }
+    }
+    return assert;
+  }),
+
+  test("authorize: invokes all general + authorize-context ecallis", () => {
+    const raw = callAuthorize();
+    const assert = Assert.create();
+
+    // Decode the count from the trace
+    const d = Decoder.fromBlob(raw);
+    const count = d.varU32();
+    assert.isEqual(count, AUTHORIZE_ECALLI_COUNT, "authorize ecalli count");
 
     // Verify we can decode all result pairs (ecalli_index + u64 result)
     for (let i: u32 = 0; i < count; i++) {
