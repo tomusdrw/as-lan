@@ -59,9 +59,9 @@ traces) from string fragments and raw byte slices.
 import { ByteBuf, ptrAndLen } from "@fluffylabs/as-lan";
 
 const result = ByteBuf.create(64)
-  .str("Auth=<")
+  .strAscii("Auth=<")
   .bytes(token.raw)
-  .str(">")
+  .strAscii(">")
   .finish();           // → Uint8Array
 return ptrAndLen(result);
 ```
