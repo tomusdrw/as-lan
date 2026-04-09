@@ -390,6 +390,39 @@ up to 3 timeslot fields:
 | `Unavailable` | `slot0`, `slot1` | Was available, now removed |
 | `Reavailable` | `slot0`, `slot1`, `slot2` | Removed then re-added |
 
+### Context Wrappers
+
+`RefineContext` and `AccumulateContext` provide high-level methods for common
+host calls that are specific to their invocation context.
+
+**`RefineContext.exportSegment`** — export a data segment (ecalli 7). Returns
+the segment index on success, or `ExportSegmentError.Full` when the limit is reached.
+
+```typescript
+import { RefineContext, ExportSegmentError, BytesBlob } from "@fluffylabs/as-lan";
+
+const ctx = RefineContext.create();
+const segment = BytesBlob.wrap(data);
+const result = ctx.exportSegment(segment);  // ResultN<u32, ExportSegmentError>
+if (result.isOkay) {
+  const index = result.okay;  // segment index
+}
+```
+
+**`AccumulateContext.checkpoint`** — commit all state changes up to this point
+(ecalli 17). Returns the remaining gas after the checkpoint.
+
+**`AccumulateContext.yieldResult`** — provide the accumulation result hash
+(ecalli 25).
+
+```typescript
+import { AccumulateContext, Bytes32 } from "@fluffylabs/as-lan";
+
+const ctx = AccumulateContext.create();
+const gas = ctx.checkpoint();          // i64 — remaining gas
+ctx.yieldResult(Bytes32.zero());       // void
+```
+
 ### Host Calls (ecalli)
 
 Declared host functions available to services. Import from `"@fluffylabs/as-lan"` or
@@ -412,7 +445,7 @@ from a specific group (`"@fluffylabs/as-lan/ecalli/general"`, `.../refine`, `...
 | ID | Function | Description |
 |----|----------|-------------|
 | 6 | `historical_lookup(service, hash_ptr, out_ptr, offset, length)` | Historical preimage lookup |
-| 7 | `export_(segment_ptr, segment_len)` | Export a data segment |
+| 7 | `export_segment(segment_ptr, segment_len)` | Export a data segment |
 | 8 | `machine(code_ptr, code_len, entrypoint)` | Create inner PVM machine |
 | 9 | `peek(machine_id, dest_ptr, source, length)` | Read inner machine memory |
 | 10 | `poke(machine_id, source_ptr, dest, length)` | Write inner machine memory |

@@ -10,6 +10,9 @@ import { Encoder } from "../../core/codec/encode";
 import { readFromMemory } from "../../core/mem";
 import { ptrAndLen } from "../../core/pack";
 import { panic } from "../../core/panic";
+import { ResultN } from "../../core/result";
+import { EcalliResult } from "../../ecalli";
+import { export_segment } from "../../ecalli/refine";
 import { RefineArgs, RefineArgsCodec, Response, ResponseCodec } from "../service";
 
 export class RefineContext {
@@ -34,6 +37,19 @@ export class RefineContext {
     return r.okay!;
   }
 
+  /**
+   * Export a segment of data (ecalli 7).
+   *
+   * @returns segment index on success, or ExportSegmentError.Full if limit reached.
+   */
+  exportSegment(segment: BytesBlob): ResultN<u32, ExportSegmentError> {
+    const result = export_segment(segment.ptr(), segment.length);
+    if (result === EcalliResult.FULL) {
+      return ResultN.err<u32, ExportSegmentError>(ExportSegmentError.Full);
+    }
+    return ResultN.ok<u32, ExportSegmentError>(u32(result));
+  }
+
   /** Encode a response and return it as a ptrAndLen-packed u64. */
   respond(ecalliResult: i64, data: Uint8Array | null = null): u64 {
     const bytes = data === null ? BytesBlob.empty() : BytesBlob.wrap(data);
@@ -41,4 +57,10 @@ export class RefineContext {
     this.response.encode(Response.create(ecalliResult, bytes), enc);
     return ptrAndLen(enc.finishRaw());
   }
+}
+
+/** Error from exportSegment(). */
+export enum ExportSegmentError {
+  /** Segment export limit reached (FULL sentinel). */
+  Full,
 }

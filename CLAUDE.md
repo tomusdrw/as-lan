@@ -116,8 +116,8 @@ export function accumulate(ptr: u32, len: u32): u64 {
 ```
 
 Contexts:
-- **AccumulateContext** — `parseArgs()` (panics on invalid data), `respond()`, `yieldHash()`, accumulate codecs
-- **RefineContext** (extends WorkPackageContext) — `parseArgs()` (panics on invalid data), `respond()`, refine + work-package codecs
+- **AccumulateContext** — `parseArgs()` (panics on invalid data), `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, accumulate codecs
+- **RefineContext** (extends WorkPackageContext) — `parseArgs()` (panics on invalid data), `respond()`, `exportSegment()`, refine + work-package codecs
 - **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16). No codec state.
 - **WorkPackageContext** — base with bytes32, protocolConstants, workPackage, etc.
 

@@ -173,6 +173,21 @@ TestPreimages.setForgetResult(0);
 TestPreimages.setProvideResult(EcalliResult.WHO);
 ```
 
+### TestExportSegment
+
+Override the `export_segment()` ecalli return value (refine context):
+
+```typescript
+import { TestExportSegment } from "@fluffylabs/as-lan/test";
+import { EcalliResult } from "@fluffylabs/as-lan";
+
+// Make export_segment return FULL (segment limit reached)
+TestExportSegment.setResult(EcalliResult.FULL);
+```
+
+By default, `export_segment()` returns an auto-incrementing segment index (0, 1, 2, …).
+Use `TestEcalli.reset()` to restore the default behavior.
+
 ### TestStorage
 
 Pre-populate or delete entries in the `read()`/`write()` stub storage:
@@ -219,7 +234,7 @@ TestEcalli.reset();
 | Ecalli | Default |
 |--------|---------|
 | `historical_lookup()` | Writes `"test-historical"` (15 bytes), returns `15` |
-| `export_()` | Returns incrementing segment index (0, 1, 2, ...) |
+| `export_segment()` | Returns incrementing segment index (0, 1, 2, ...) |
 | `machine()` | Returns incrementing machine ID (0, 1, 2, ...) |
 | `peek()` | Returns `OK` (0) |
 | `poke()` | Returns `OK` (0) |

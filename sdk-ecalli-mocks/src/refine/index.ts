@@ -4,7 +4,7 @@ export {
   historical_lookup, setHistoricalLookupPreimage, setHistoricalPreimage,
   setHistoricalLookupNone, resetHistoricalLookup,
 } from "./lookup.js";
-export { export_, resetSegments } from "./segments.js";
+export { export_segment, setExportSegmentResult, resetSegments } from "./segments.js";
 export { machine, peek, poke, pages, invoke, expunge, resetMachines } from "./machines.js";
 
 import { resetHistoricalLookup } from "./lookup.js";

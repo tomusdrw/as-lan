@@ -9,6 +9,7 @@
 // calls setGasValue() exported by sdk-ecalli-mocks/src/gas.ts.
 
 export { TestAccumulate } from "./accumulate";
+export { TestExportSegment } from "./export-segment";
 export { TestGas } from "./gas";
 export { TestFetch } from "./fetch";
 export { TestHistoricalLookup } from "./historical-lookup";
