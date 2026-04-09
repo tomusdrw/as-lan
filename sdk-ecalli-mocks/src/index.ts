@@ -15,13 +15,16 @@ export {
   fetch, setFetchData, setFetchDataForKind, setAccumulateItems, setAccumulateItem,
   encodeOperand, encodeTransfer,
 } from "./general/index.js";
-export { lookup, setLookupPreimage } from "./general/index.js";
+export { lookup, setLookupPreimage, setLookupNone } from "./general/index.js";
 export { read, write, setStorageEntry } from "./general/index.js";
 export { info, setInfoData, setDefaultInfoData } from "./general/index.js";
 export { log } from "./general/index.js";
 
 // Refine ecalli stubs (6-13)
-export { historical_lookup, setHistoricalLookupPreimage } from "./refine/index.js";
+export {
+  historical_lookup, setHistoricalLookupPreimage, setHistoricalPreimage,
+  setHistoricalLookupNone,
+} from "./refine/index.js";
 export { export_ as export } from "./refine/index.js";
 export { machine, peek, poke, pages, invoke, expunge } from "./refine/index.js";
 
@@ -30,7 +33,10 @@ export { bless, assign, designate } from "./accumulate/index.js";
 export { checkpoint } from "./accumulate/index.js";
 export { new_service, upgrade, eject } from "./accumulate/index.js";
 export { transfer } from "./accumulate/index.js";
-export { query, solicit, forget, yield_result, provide } from "./accumulate/index.js";
+export {
+  query, solicit, forget, yield_result, provide,
+  setQueryResult, setSolicitResult, setForgetResult, setProvideResult,
+} from "./accumulate/index.js";
 
 // Reset
 import { resetGeneral } from "./general/index.js";

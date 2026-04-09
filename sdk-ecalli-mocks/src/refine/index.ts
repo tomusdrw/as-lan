@@ -1,6 +1,9 @@
 // Refine ecalli mock stubs (6-13).
 
-export { historical_lookup, setHistoricalLookupPreimage, resetHistoricalLookup } from "./lookup.js";
+export {
+  historical_lookup, setHistoricalLookupPreimage, setHistoricalPreimage,
+  setHistoricalLookupNone, resetHistoricalLookup,
+} from "./lookup.js";
 export { export_, resetSegments } from "./segments.js";
 export { machine, peek, poke, pages, invoke, expunge, resetMachines } from "./machines.js";
 

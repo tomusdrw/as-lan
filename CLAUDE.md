@@ -160,6 +160,24 @@ High-level wrappers for service storage (`read`/`write` ecallis) and account inf
 - Both manage an internal reusable buffer with auto-expansion (same pattern as `FetchBuffer`).
 - `info()` panics on decode failure (host-contract violation). `read()` returns `Optional.none` for missing keys. `write()` returns `WriteError.Full` when storage quota is exceeded.
 
+### Preimages (sdk/jam/preimages.ts, sdk/jam/\*/preimages.ts)
+
+High-level wrappers for preimage ecallis (`lookup`, `historical_lookup`, `query`, `solicit`, `forget`, `provide`).
+Uses composition (not inheritance) following the Fetcher pattern. Each class manages its own internal buffer with auto-expansion.
+
+```text
+Preimages (ecalli 2: lookup)
+  ├── RefinePreimages  (composes Preimages, adds ecalli 6: historicalLookup)
+  └── AccumulatePreimages (composes Preimages, adds ecalli 22-26: query, solicit, forget, provide)
+```
+
+- **Preimages** — `lookup(hash, serviceId?)` → `Optional<BytesBlob>`. Available in all contexts.
+- **RefinePreimages** — adds `historicalLookup(hash, serviceId?)` → `Optional<BytesBlob>`.
+- **AccumulatePreimages** — adds `query(hash, length)` → `Optional<PreimageStatus>`, `solicit(hash, length)` → `ResultN<bool, SolicitError>`, `forget(hash, length)` → `ResultN<bool, ForgetError>`, `provide(preimage, serviceId?)` → `ResultN<bool, ProvideError>`.
+- **PreimageStatus** — tagged union modeled as a class with `kind: PreimageStatusKind` + up to 3 `Slot` fields. Static factories: `requested()`, `available(s0)`, `unavailable(s0, s1)`, `reavailable(s0, s1, s2)`.
+- `serviceId` defaults to `CURRENT_SERVICE` (from `sdk/jam/types.ts`, value `u32.MAX_VALUE`) on all lookup methods.
+- `decodeStatus` decodes query output per GP Appendix B (Ω_Q): r7 low bits = kind, r7 upper 32 = slot0, r8 low 32 = slot1, r8 upper 32 = slot2.
+
 ### Accumulate Flow
 
 1. `accumulate(ptr, len)` receives `AccumulateArgs` (slot, serviceId, argsLength)
@@ -185,4 +203,6 @@ npm test         # Build mocks + run SDK tests + example tests
 - Use `d.varU32()` (not `u32(d.varU64())`) when decoding a varint that must fit in u32 — it validates the range and sets `isError` on overflow.
 - Test helpers for configuring mock state from AS go in `sdk/test/test-ecalli/` using `@external("ecalli", ...)` bridging.
 - All classes must have private constructors and use static builder methods (e.g. `ClassName.create(...)`) — never expose `new ClassName(...)` to callers.
+- **Use `BytesBlob` by default, not raw `Uint8Array`.** Use `BytesBlob.ptr()` and `.length` for ecalli pointer/length args. Use `BytesBlob.zero(n)` for buffers. Raw `Uint8Array` is only acceptable in low-level code (e.g. `load<i64>` on backing memory) and must be commented with justification.
+- **Always update `docs/src/` when adding or modifying SDK features.** Update `sdk-api.md` for new public API, `testing.md` for new mock helpers. Keep docs in sync with code.
 - **Prefer `ByteBuf.strAscii()` / `BytesBlob.encodeAscii()` over `String.UTF8.encode`** for ASCII strings (log targets, storage keys, etc.). It avoids pulling in the full UTF-8 machinery (~520 B WASM / ~1.15 KB PVM). Use `ByteBuf.strUtf8()` / `BytesBlob.encodeUtf8()` when full UTF-8 is needed. Exception: `Logger` keeps `String.UTF8.encode` because code using `Logger` already pulls in string machinery via template literals — switching Logger has zero size benefit and causes AS compiler code-generation issues.
