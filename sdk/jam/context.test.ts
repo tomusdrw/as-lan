@@ -37,6 +37,30 @@ export const TESTS: Test[] = [
     return a;
   }),
 
+  test("RefineContext.exportSegment works with empty segment", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = RefineContext.create();
+
+    const result = ctx.exportSegment(BytesBlob.empty());
+    a.isEqual(result.isOkay, true, "should be ok");
+    a.isEqual(result.okay, 0, "segment index = 0");
+    return a;
+  }),
+
+  test("RefineContext.exportSegment passes through host index", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = RefineContext.create();
+
+    TestExportSegment.setResult(42);
+    const segment = BytesBlob.parseBlob("0xaa").okay!;
+    const result = ctx.exportSegment(segment);
+    a.isEqual(result.isOkay, true, "should be ok");
+    a.isEqual(result.okay, 42, "host-returned index");
+    return a;
+  }),
+
   // ─── AccumulateContext.checkpoint ───────────────────────────────────
 
   test("AccumulateContext.checkpoint returns remaining gas", () => {
@@ -47,6 +71,30 @@ export const TESTS: Test[] = [
     TestGas.set(42_000);
     const gas = ctx.checkpoint();
     a.isEqual(gas, 42_000, "remaining gas");
+    return a;
+  }),
+
+  test("AccumulateContext.checkpoint returns zero gas", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = AccumulateContext.create();
+
+    TestGas.set(0);
+    const gas = ctx.checkpoint();
+    a.isEqual(gas, 0, "zero gas");
+    return a;
+  }),
+
+  test("AccumulateContext.checkpoint reflects updated gas", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = AccumulateContext.create();
+
+    TestGas.set(100_000);
+    a.isEqual(ctx.checkpoint(), 100_000, "first checkpoint");
+
+    TestGas.set(50_000);
+    a.isEqual(ctx.checkpoint(), 50_000, "second checkpoint after gas change");
     return a;
   }),
 
@@ -61,6 +109,19 @@ export const TESTS: Test[] = [
     ctx.yieldResult(hash);
     // If we reach here, the call succeeded (no panic).
     a.isEqual(true, true, "yieldResult completed");
+    return a;
+  }),
+
+  test("AccumulateContext.yieldResult accepts non-zero hash", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = AccumulateContext.create();
+
+    const raw = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) raw[i] = u8(i + 1);
+    const hash = Bytes32.wrapUnchecked(raw);
+    ctx.yieldResult(hash);
+    a.isEqual(true, true, "yieldResult with non-zero hash completed");
     return a;
   }),
 ];
