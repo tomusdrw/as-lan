@@ -14,8 +14,8 @@ Provide a type-safe `Machine` class that enforces correct usage of inner machine
 export class Machine {
   static create(code: BytesBlob, entrypoint: u32): ResultN<Machine, InvalidEntryPoint>
 
-  peek(source: u32, dest: BytesBlob): ResultN<void, OutOfBounds>
-  poke(dest: u32, data: BytesBlob): ResultN<void, OutOfBounds>
+  peek(source: u32, dest: BytesBlob): ResultN<bool, OutOfBounds>
+  poke(dest: u32, data: BytesBlob): ResultN<bool, OutOfBounds>
   pages(startPage: u32, pageCount: u32, access: PageAccess): void
   invoke(io: InvokeIo): InvokeOutcome
   expunge(): i64
