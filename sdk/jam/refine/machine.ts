@@ -59,7 +59,7 @@ export class InvokeOutcome {
   }
 
   private constructor(
-    /** Exit reason (Halt, Panic, Fault, Host, Oog). */
+    /** Exit reason (Halt, Panic, Fault, Host, Oob). */
     public readonly reason: ExitReason,
     /** Secondary result: host call index (if Host), fault address (if Fault). */
     public readonly r8: i64,
@@ -74,7 +74,7 @@ export enum ExitReason {
   Panic = 1,
   Fault = 2,
   Host = 3,
-  Oog = 4,
+  Oob = 4,
 }
 
 /** Page access permission for inner machine memory. */

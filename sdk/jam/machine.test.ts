@@ -182,15 +182,15 @@ export const TESTS: Test[] = [
     return a;
   }),
 
-  test("Machine.invoke returns Oog", () => {
+  test("Machine.invoke returns Oob", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    TestMachine.setInvokeResult(i64(ExitReason.Oog));
+    TestMachine.setInvokeResult(i64(ExitReason.Oob));
     const code = BytesBlob.zero(4);
     const m = Machine.create(code, 0).okay!;
     const io = InvokeIo.create(1);
     const outcome = m.invoke(io);
-    a.isEqual(outcome.reason, ExitReason.Oog, "exit reason");
+    a.isEqual(outcome.reason, ExitReason.Oob, "exit reason");
     return a;
   }),
 

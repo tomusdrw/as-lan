@@ -110,7 +110,7 @@ Typed wrapper for the 112-byte gas+registers I/O structure:
 
 ### ExitReason
 
-`Halt` (0), `Panic` (1), `Fault` (2), `Host` (3), `Oog` (4).
+`Halt` (0), `Panic` (1), `Fault` (2), `Host` (3), `Oob` (4).
 
 ### PageAccess
 
