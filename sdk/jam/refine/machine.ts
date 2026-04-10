@@ -1,4 +1,13 @@
 import { BytesBlob } from "../../core/bytes";
+import { panic } from "../../core/panic";
+import { ResultN } from "../../core/result";
+import { EcalliResult } from "../../ecalli";
+import { expunge as ecalli_expunge } from "../../ecalli/refine/expunge";
+import { invoke as ecalli_invoke } from "../../ecalli/refine/invoke";
+import { machine as ecalli_machine } from "../../ecalli/refine/machine";
+import { pages as ecalli_pages } from "../../ecalli/refine/pages";
+import { peek as ecalli_peek } from "../../ecalli/refine/peek";
+import { poke as ecalli_poke } from "../../ecalli/refine/poke";
 
 const NUM_REGISTERS: u32 = 13;
 const REGISTER_SIZE: u32 = 8; // i64
@@ -85,4 +94,70 @@ export enum InvalidEntryPoint {
 /** Error: peek/poke address out of bounds. */
 export enum OutOfBounds {
   OutOfBounds = 0,
+}
+
+/**
+ * High-level wrapper for inner PVM machine lifecycle (ecalli 8-13).
+ *
+ * Create a machine with {@link Machine.create}, use peek/poke/pages/invoke
+ * to interact with it, and call expunge when done.
+ */
+export class Machine {
+  static create(code: BytesBlob, entrypoint: u32): ResultN<Machine, InvalidEntryPoint> {
+    const result = ecalli_machine(code.ptr(), code.length, entrypoint);
+    if (result === EcalliResult.HUH) {
+      return ResultN.err<Machine, InvalidEntryPoint>(InvalidEntryPoint.InvalidEntryPoint);
+    }
+    return ResultN.ok<Machine, InvalidEntryPoint>(new Machine(u32(result)));
+  }
+
+  private constructor(
+    private readonly id: u32,
+  ) {}
+
+  /** Read data from inner machine memory into the provided buffer. */
+  peek(source: u32, dest: BytesBlob): ResultN<bool, OutOfBounds> {
+    const result = ecalli_peek(this.id, dest.ptr(), source, dest.length);
+    if (result === EcalliResult.WHO) panic("peek: unknown machine ID (WHO)");
+    if (result === EcalliResult.OOB) return ResultN.err<bool, OutOfBounds>(OutOfBounds.OutOfBounds);
+    return ResultN.ok<bool, OutOfBounds>(true);
+  }
+
+  /** Write data into inner machine memory. */
+  poke(dest: u32, data: BytesBlob): ResultN<bool, OutOfBounds> {
+    const result = ecalli_poke(this.id, data.ptr(), dest, data.length);
+    if (result === EcalliResult.WHO) panic("poke: unknown machine ID (WHO)");
+    if (result === EcalliResult.OOB) return ResultN.err<bool, OutOfBounds>(OutOfBounds.OutOfBounds);
+    return ResultN.ok<bool, OutOfBounds>(true);
+  }
+
+  /** Set page access permissions for inner machine memory. */
+  pages(startPage: u32, pageCount: u32, access: PageAccess): void {
+    const result = ecalli_pages(this.id, startPage, pageCount, access);
+    if (result === EcalliResult.WHO) panic("pages: unknown machine ID (WHO)");
+    if (result === EcalliResult.HUH) panic("pages: invalid access type (HUH)");
+  }
+
+  /**
+   * Run the inner PVM machine.
+   *
+   * The InvokeIo structure is read before execution (gas limit + initial registers)
+   * and written after (gas remaining + final registers). The same InvokeIo is
+   * returned inside InvokeOutcome for convenience.
+   */
+  invoke(io: InvokeIo): InvokeOutcome {
+    const outR8 = BytesBlob.zero(8);
+    const result = ecalli_invoke(this.id, io.buf.ptr(), outR8.ptr());
+    if (result === EcalliResult.WHO) panic("invoke: unknown machine ID (WHO)");
+    const r8 = load<i64>(outR8.raw.dataStart);
+    const reason: ExitReason = u32(result);
+    return InvokeOutcome.create(reason, r8, io);
+  }
+
+  /** Destroy the inner machine and return the host result (hash). */
+  expunge(): i64 {
+    const result = ecalli_expunge(this.id);
+    if (result === EcalliResult.WHO) panic("expunge: unknown machine ID (WHO)");
+    return result;
+  }
 }

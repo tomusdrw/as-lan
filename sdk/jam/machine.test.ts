@@ -1,5 +1,8 @@
+import { BytesBlob } from "../core/bytes";
+import { EcalliResult } from "../ecalli";
+import { TestEcalli, TestMachine } from "../test/test-ecalli";
 import { Assert, Test, test } from "../test/utils";
-import { ExitReason, InvokeIo, InvokeOutcome } from "./refine/machine";
+import { ExitReason, InvalidEntryPoint, InvokeIo, InvokeOutcome, Machine, OutOfBounds, PageAccess } from "./refine/machine";
 
 export const TESTS: Test[] = [
   test("InvokeIo.create sets initial gas", () => {
@@ -43,6 +46,143 @@ export const TESTS: Test[] = [
     a.isEqual(outcome.reason, ExitReason.Host, "reason");
     a.isEqual(outcome.r8, 12, "r8 host call index");
     a.isEqual(outcome.io.gas, 1000, "io reference preserved");
+    return a;
+  }),
+  // ─── Machine.create ────────────────────────────────────────────────
+
+  test("Machine.create returns machine on success", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const result = Machine.create(code, 0);
+    a.isEqual(result.isOkay, true, "should succeed");
+    return a;
+  }),
+
+  test("Machine.create returns InvalidEntryPoint on HUH", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    TestMachine.setMachineResult(EcalliResult.HUH);
+    const code = BytesBlob.zero(4);
+    const result = Machine.create(code, 999);
+    a.isEqual(result.isError, true, "should be error");
+    a.isEqual(result.error, InvalidEntryPoint.InvalidEntryPoint, "error type");
+    return a;
+  }),
+
+  // ─── Machine.expunge ──────────────────────────────────────────────
+
+  test("Machine.expunge returns result", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    const hash = m.expunge();
+    a.isEqual(hash, 0, "expunge result");
+    return a;
+  }),
+
+  // ─── Machine.pages ────────────────────────────────────────────────
+
+  test("Machine.pages sets page access", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    m.pages(0, 1, PageAccess.ReadWrite);
+    a.isEqual(true, true, "pages succeeded");
+    return a;
+  }),
+
+  // ─── Machine.poke ─────────────────────────────────────────────────
+
+  test("Machine.poke writes data to inner machine", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    const data = BytesBlob.zero(4);
+    const result = m.poke(0, data);
+    a.isEqual(result.isOkay, true, "poke ok");
+    return a;
+  }),
+
+  test("Machine.poke returns OutOfBounds on OOB", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    TestMachine.setPokeResult(EcalliResult.OOB);
+    const data = BytesBlob.zero(4);
+    const result = m.poke(0, data);
+    a.isEqual(result.isError, true, "poke error");
+    a.isEqual(result.error, OutOfBounds.OutOfBounds, "OOB error");
+    return a;
+  }),
+
+  // ─── Machine.peek ─────────────────────────────────────────────────
+
+  test("Machine.peek reads data from inner machine", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    const buf = BytesBlob.zero(4);
+    const result = m.peek(0, buf);
+    a.isEqual(result.isOkay, true, "peek ok");
+    return a;
+  }),
+
+  test("Machine.peek returns OutOfBounds on OOB", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    TestMachine.setPeekResult(EcalliResult.OOB);
+    const buf = BytesBlob.zero(4);
+    const result = m.peek(0, buf);
+    a.isEqual(result.isError, true, "peek error");
+    a.isEqual(result.error, OutOfBounds.OutOfBounds, "OOB error");
+    return a;
+  }),
+
+  // ─── Machine.invoke ───────────────────────────────────────────────
+
+  test("Machine.invoke returns Halt by default", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    const io = InvokeIo.create(1_000_000);
+    const outcome = m.invoke(io);
+    a.isEqual(outcome.reason, ExitReason.Halt, "exit reason");
+    a.isEqual(outcome.r8, 0, "r8 default");
+    a.isEqual(outcome.io.gas, 1_000_000, "io reference");
+    return a;
+  }),
+
+  test("Machine.invoke returns Host with host call index in r8", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    TestMachine.setInvokeResult(i64(ExitReason.Host), 12);
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    const io = InvokeIo.create(500);
+    const outcome = m.invoke(io);
+    a.isEqual(outcome.reason, ExitReason.Host, "exit reason");
+    a.isEqual(outcome.r8, 12, "host call index");
+    return a;
+  }),
+
+  test("Machine.invoke returns Oog", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    TestMachine.setInvokeResult(i64(ExitReason.Oog));
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    const io = InvokeIo.create(1);
+    const outcome = m.invoke(io);
+    a.isEqual(outcome.reason, ExitReason.Oog, "exit reason");
     return a;
   }),
 ];
