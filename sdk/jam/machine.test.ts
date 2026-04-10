@@ -2,7 +2,15 @@ import { BytesBlob } from "../core/bytes";
 import { EcalliResult } from "../ecalli";
 import { TestEcalli, TestMachine } from "../test/test-ecalli";
 import { Assert, Test, test } from "../test/utils";
-import { ExitReason, InvalidEntryPoint, InvokeIo, InvokeOutcome, Machine, OutOfBounds, PageAccess } from "./refine/machine";
+import {
+  ExitReason,
+  InvalidEntryPoint,
+  InvokeIo,
+  InvokeOutcome,
+  Machine,
+  OutOfBounds,
+  PageAccess,
+} from "./refine/machine";
 
 export const TESTS: Test[] = [
   test("InvokeIo.create sets initial gas", () => {

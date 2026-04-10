@@ -31,9 +31,7 @@ export class InvokeIo {
     return io;
   }
 
-  private constructor(
-    readonly buf: BytesBlob,
-  ) {}
+  private constructor(readonly buf: BytesBlob) {}
 
   get gas(): u64 {
     return load<u64>(this.buf.raw.dataStart);
@@ -111,9 +109,7 @@ export class Machine {
     return ResultN.ok<Machine, InvalidEntryPoint>(new Machine(u32(result)));
   }
 
-  private constructor(
-    private readonly id: u32,
-  ) {}
+  private constructor(private readonly id: u32) {}
 
   /** Read data from inner machine memory into the provided buffer. */
   peek(source: u32, dest: BytesBlob): ResultN<bool, OutOfBounds> {

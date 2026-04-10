@@ -6,9 +6,9 @@ import * as roundtrip from "../core/codec/index.test";
 import * as accountInfo from "../jam/account-info.test";
 import * as accumulateItem from "../jam/accumulate/item.test";
 import * as context from "../jam/context.test";
+import * as machine from "../jam/machine.test";
 import * as preimages from "../jam/preimages.test";
 import * as service from "../jam/service.test";
-import * as machine from "../jam/machine.test";
 import * as workPackage from "../jam/work-package.test";
 
 import { runTestSuites, TestSuite } from "./utils";
