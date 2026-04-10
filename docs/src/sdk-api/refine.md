@@ -82,7 +82,7 @@ let outcome = machine.invoke(io);
 while (outcome.reason == ExitReason.Host) {
   // Handle host call (outcome.r8 = host call index)
   outcome.io.setRegister(7, responseValue);
-  outcome = machine.invoke(io);
+  outcome = machine.invoke(outcome.io);
 }
 
 // Read results and clean up
