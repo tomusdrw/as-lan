@@ -188,6 +188,33 @@ TestExportSegment.setResult(EcalliResult.FULL);
 By default, `export_segment()` returns an auto-incrementing segment index (0, 1, 2, …).
 Use `TestEcalli.reset()` to restore the default behavior.
 
+### TestMachine
+
+Configure machine ecalli stub return values (refine context, ecalli 8-13):
+
+```typescript
+import { TestMachine } from "@fluffylabs/as-lan/test";
+import { EcalliResult } from "@fluffylabs/as-lan";
+
+// Make machine() return HUH (invalid entrypoint)
+TestMachine.setMachineResult(EcalliResult.HUH);
+
+// Make peek() return OOB
+TestMachine.setPeekResult(EcalliResult.OOB);
+
+// Make poke() return OOB
+TestMachine.setPokeResult(EcalliResult.OOB);
+
+// Make invoke() return Host (3) with host call index 12 in r8
+TestMachine.setInvokeResult(3, 12);
+
+// Make expunge() return a specific hash
+TestMachine.setExpungeResult(0x42);
+```
+
+By default, `machine()` returns incrementing IDs, `invoke()` returns HALT, and
+all other operations return OK. Use `TestEcalli.reset()` to restore defaults.
+
 ### TestStorage
 
 Pre-populate or delete entries in the `read()`/`write()` stub storage:
