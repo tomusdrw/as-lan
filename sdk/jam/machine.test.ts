@@ -185,4 +185,43 @@ export const TESTS: Test[] = [
     a.isEqual(outcome.reason, ExitReason.Oog, "exit reason");
     return a;
   }),
+
+  test("Machine.invoke returns Fault with address in r8", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    TestMachine.setInvokeResult(i64(ExitReason.Fault), 0x1234);
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    const io = InvokeIo.create(100);
+    const outcome = m.invoke(io);
+    a.isEqual(outcome.reason, ExitReason.Fault, "exit reason");
+    a.isEqual(outcome.r8, 0x1234, "fault address");
+    return a;
+  }),
+
+  test("Machine.expunge returns configured result", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const code = BytesBlob.zero(4);
+    const m = Machine.create(code, 0).okay!;
+    TestMachine.setExpungeResult(0x42);
+    const hash = m.expunge();
+    a.isEqual(hash, 0x42, "configured expunge result");
+    return a;
+  }),
+
+  test("InvokeIo handles u64 max gas value", () => {
+    const a = Assert.create();
+    const io = InvokeIo.create(u64.MAX_VALUE);
+    a.isEqual(io.gas, u64.MAX_VALUE, "max gas");
+    return a;
+  }),
+
+  test("InvokeIo register stores u64 max value", () => {
+    const a = Assert.create();
+    const io = InvokeIo.create(0);
+    io.setRegister(12, u64.MAX_VALUE);
+    a.isEqual(io.getRegister(12), u64.MAX_VALUE, "max register r12");
+    return a;
+  }),
 ];

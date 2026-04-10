@@ -22,8 +22,9 @@ sdk/                        AssemblyScript SDK library
     accumulate/             Accumulate-context types and fetcher
       item.ts               Operand, PendingTransfer, WorkExecResult, AccumulateItem + codec classes
       fetcher.ts            AccumulateFetcher (entropy, allTransfersAndOperands, oneTransferOrOperand)
-    refine/                 Refine-context fetcher
+    refine/                 Refine-context fetcher and machine wrapper
       fetcher.ts            RefineFetcher (entropy, authorizerTrace, extrinsics, imports + inherits kinds 7-13)
+      machine.ts            Machine (inner PVM lifecycle: create, peek, poke, pages, invoke, expunge)
     authorize/              Authorize-context fetcher
       fetcher.ts            AuthorizeFetcher (inherits constants + kinds 7-13 from WorkPackageFetcher)
   test/                     Test framework (Assert, TestSuite, strBlob, unpackResult)
