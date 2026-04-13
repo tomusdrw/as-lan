@@ -12,6 +12,8 @@ declare function _setDesignateResult(result: i64): void;
 
 /** Configure privileged governance mock stubs from AS test code. */
 export class TestPrivileged {
+  private constructor() {}
+
   static setBlessResult(result: i64): void {
     _setBlessResult(result);
   }

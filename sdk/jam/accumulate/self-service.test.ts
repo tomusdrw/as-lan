@@ -1,42 +1,47 @@
 import { Bytes32 } from "../../core/bytes";
-import { TestEcalli } from "../../test/test-ecalli";
+import { TestEcalli, TestServices } from "../../test/test-ecalli";
 import { Assert, Test, test } from "../../test/utils";
 import { SelfService } from "./self-service";
 
 export const TESTS: Test[] = [
-  test("SelfService.upgradeCode does not panic", () => {
+  test("SelfService.upgradeCode passes correct args to upgrade ecalli", () => {
     TestEcalli.reset();
     const a = Assert.create();
     const svc = SelfService.create();
 
-    svc.upgradeCode(Bytes32.zero(), 10_000, 50_000);
-    a.isEqual(true, true, "upgradeCode completed");
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0xaa;
+    hash.raw[31] = 0xbb;
+    svc.upgradeCode(hash, 10_000, 50_000);
+
+    const ptr = TestServices.getLastUpgradeCodeHashPtr();
+    a.isEqual(load<u8>(ptr), 0xaa, "code hash byte 0");
+    a.isEqual(load<u8>(ptr + 31), 0xbb, "code hash byte 31");
+    a.isEqual(TestServices.getLastUpgradeGas(), 10_000, "gas");
+    a.isEqual(TestServices.getLastUpgradeAllowance(), 50_000, "allowance");
     return a;
   }),
 
-  test("SelfService.requestEjection builds correct ejection hash", () => {
+  test("SelfService.requestEjection sends correct ejection hash", () => {
     TestEcalli.reset();
     const a = Assert.create();
     const svc = SelfService.create();
 
-    // Verify the ejection hash is parentServiceId as LE u32 zero-padded to 32 bytes.
-    // We can't intercept the ecalli call directly, but we can verify the hash
-    // construction logic by building the expected hash manually.
     const parentId: u32 = 0x01020304;
-    const expected = Bytes32.zero();
-    store<u32>(expected.raw.dataStart, parentId);
-    // First 4 bytes should be LE encoding of 0x01020304
-    a.isEqual(expected.raw[0], 0x04, "byte 0 = LE low byte");
-    a.isEqual(expected.raw[1], 0x03, "byte 1");
-    a.isEqual(expected.raw[2], 0x02, "byte 2");
-    a.isEqual(expected.raw[3], 0x01, "byte 3 = LE high byte");
-    // Remaining bytes should be zero
-    a.isEqual(expected.raw[4], 0, "byte 4 = 0");
-    a.isEqual(expected.raw[31], 0, "byte 31 = 0");
-
-    // The actual call should not panic
     svc.requestEjection(parentId);
-    a.isEqual(true, true, "requestEjection completed");
+
+    // Verify the code hash passed to upgrade is parentId as LE u32, zero-padded to 32 bytes
+    const ptr = TestServices.getLastUpgradeCodeHashPtr();
+    a.isEqual(load<u8>(ptr), 0x04, "byte 0 = LE low byte");
+    a.isEqual(load<u8>(ptr + 1), 0x03, "byte 1");
+    a.isEqual(load<u8>(ptr + 2), 0x02, "byte 2");
+    a.isEqual(load<u8>(ptr + 3), 0x01, "byte 3 = LE high byte");
+    a.isEqual(load<u8>(ptr + 4), 0, "byte 4 = 0 (zero-padded)");
+    a.isEqual(load<u8>(ptr + 31), 0, "byte 31 = 0 (zero-padded)");
+
+    // Verify gas and allowance are both 0
+    a.isEqual(TestServices.getLastUpgradeGas(), 0, "gas = 0");
+    a.isEqual(TestServices.getLastUpgradeAllowance(), 0, "allowance = 0");
     return a;
   }),
 
@@ -46,7 +51,12 @@ export const TESTS: Test[] = [
     const svc = SelfService.create();
 
     svc.requestEjection(0);
-    a.isEqual(true, true, "requestEjection with 0 completed");
+
+    const ptr = TestServices.getLastUpgradeCodeHashPtr();
+    // All 32 bytes should be zero
+    a.isEqual(load<u8>(ptr), 0, "byte 0 = 0");
+    a.isEqual(load<u8>(ptr + 3), 0, "byte 3 = 0");
+    a.isEqual(load<u8>(ptr + 31), 0, "byte 31 = 0");
     return a;
   }),
 ];

@@ -102,6 +102,18 @@ export const TESTS: Test[] = [
     return a;
   }),
 
+  test("Admin.blessRegistrar returns Huh on HUH", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const admin = Admin.create();
+
+    TestPrivileged.setBlessResult(EcalliResult.HUH);
+    const result = admin.blessRegistrar(99);
+    a.isEqual(result.isError, true, "should be error");
+    a.isEqual(result.error, BlessError.Huh, "should be Huh");
+    return a;
+  }),
+
   // ─── assign ────────────────────────────────────────────────────────
 
   test("Admin.assign returns ok on success", () => {

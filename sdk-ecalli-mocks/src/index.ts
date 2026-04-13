@@ -40,6 +40,7 @@ export { checkpoint } from "./accumulate/index.js";
 export {
   new_service, upgrade, eject,
   setNewServiceResult, setEjectResult,
+  getLastUpgradeCodeHashPtr, getLastUpgradeGas, getLastUpgradeAllowance,
 } from "./accumulate/index.js";
 export { transfer, setTransferResult } from "./accumulate/index.js";
 export {

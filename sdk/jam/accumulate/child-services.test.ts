@@ -15,7 +15,7 @@ export const TESTS: Test[] = [
     const result = cs.newChild(Bytes32.zero(), 1024, 10_000, 50_000);
     a.isEqual(result.isOkay, true, "should be ok");
     // Default mock returns incrementing IDs starting from 256
-    a.isEqual(result.okay >= 256, true, "service ID >= 256");
+    a.isEqual(result.okay, 256, "first service ID after reset = 256");
     return a;
   }),
 

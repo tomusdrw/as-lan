@@ -21,13 +21,32 @@ export function new_service(
   return BigInt(serviceCounter++);
 }
 
-/** Ecalli 19: Upgrade service code — returns OK. */
+let lastUpgradeCodeHashPtr = -1;
+let lastUpgradeGas = 0n;
+let lastUpgradeAllowance = 0n;
+
+/** Ecalli 19: Upgrade service code — returns OK. Captures args for test assertions. */
 export function upgrade(
   _code_hash_ptr: number,
   _gas: bigint,
   _allowance: bigint,
 ): bigint {
+  lastUpgradeCodeHashPtr = _code_hash_ptr;
+  lastUpgradeGas = _gas;
+  lastUpgradeAllowance = _allowance;
   return 0n; // OK
+}
+
+export function getLastUpgradeCodeHashPtr(): number {
+  return lastUpgradeCodeHashPtr;
+}
+
+export function getLastUpgradeGas(): bigint {
+  return lastUpgradeGas;
+}
+
+export function getLastUpgradeAllowance(): bigint {
+  return lastUpgradeAllowance;
 }
 
 /** Ecalli 21: Eject service — returns OK or error sentinel. */
@@ -50,4 +69,7 @@ export function resetServices(): void {
   serviceCounter = DEFAULT_SERVICE_START;
   newServiceResultOverride = null;
   ejectResult = 0n;
+  lastUpgradeCodeHashPtr = -1;
+  lastUpgradeGas = 0n;
+  lastUpgradeAllowance = 0n;
 }

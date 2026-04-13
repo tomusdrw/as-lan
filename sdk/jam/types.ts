@@ -36,7 +36,8 @@ export const BLS_KEY_SIZE: u32 = 144;
 /** Validator metadata size in bytes. */
 export const VALIDATOR_METADATA_SIZE: u32 = 128;
 /** Total size of a single ValidatorKey entry in bytes. */
-export const VALIDATOR_KEY_SIZE: u32 = 336;
+export const VALIDATOR_KEY_SIZE: u32 =
+  ED25519_KEY_SIZE + BANDERSNATCH_KEY_SIZE + BLS_KEY_SIZE + VALIDATOR_METADATA_SIZE;
 
 /**
  * Validator key: Ed25519(32) + Bandersnatch(32) + BLS(144) + metadata(128) = 336 bytes.

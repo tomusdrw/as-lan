@@ -7,7 +7,9 @@ export {
 export { checkpoint } from "./checkpoint.js";
 export {
   new_service, upgrade, eject,
-  setNewServiceResult, setEjectResult, resetServices,
+  setNewServiceResult, setEjectResult,
+  getLastUpgradeCodeHashPtr, getLastUpgradeGas, getLastUpgradeAllowance,
+  resetServices,
 } from "./services.js";
 export { transfer, setTransferResult, resetTransfer } from "./transfer.js";
 export {
