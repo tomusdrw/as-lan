@@ -32,10 +32,16 @@ export {
 } from "./refine/index.js";
 
 // Accumulate ecalli stubs (14-26)
-export { bless, assign, designate } from "./accumulate/index.js";
+export {
+  bless, assign, designate,
+  setBlessResult, setAssignResult, setDesignateResult,
+} from "./accumulate/index.js";
 export { checkpoint } from "./accumulate/index.js";
-export { new_service, upgrade, eject } from "./accumulate/index.js";
-export { transfer } from "./accumulate/index.js";
+export {
+  new_service, upgrade, eject,
+  setNewServiceResult, setEjectResult,
+} from "./accumulate/index.js";
+export { transfer, setTransferResult } from "./accumulate/index.js";
 export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult,

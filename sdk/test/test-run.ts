@@ -4,7 +4,11 @@ import * as decode from "../core/codec/decode.test";
 import * as encode from "../core/codec/encode.test";
 import * as roundtrip from "../core/codec/index.test";
 import * as accountInfo from "../jam/account-info.test";
+import * as admin from "../jam/accumulate/admin.test";
+import * as childServices from "../jam/accumulate/child-services.test";
 import * as accumulateItem from "../jam/accumulate/item.test";
+import * as selfService from "../jam/accumulate/self-service.test";
+import * as transferTest from "../jam/accumulate/transfer.test";
 import * as context from "../jam/context.test";
 import * as machine from "../jam/machine.test";
 import * as preimages from "../jam/preimages.test";
@@ -22,10 +26,14 @@ export function runAllTests(): void {
     TestSuite.create(roundtrip.TESTS, "roundtrip.ts"),
     TestSuite.create(accountInfo.TESTS, "account-info.ts"),
     TestSuite.create(accumulateItem.TESTS, "accumulate-item.ts"),
+    TestSuite.create(admin.TESTS, "admin.ts"),
+    TestSuite.create(childServices.TESTS, "child-services.ts"),
     TestSuite.create(context.TESTS, "context.ts"),
     TestSuite.create(machine.TESTS, "machine.ts"),
     TestSuite.create(preimages.TESTS, "preimages.ts"),
+    TestSuite.create(selfService.TESTS, "self-service.ts"),
     TestSuite.create(service.TESTS, "service.ts"),
+    TestSuite.create(transferTest.TESTS, "transfer.ts"),
     TestSuite.create(workPackage.TESTS, "work-package.ts"),
   ]);
 }

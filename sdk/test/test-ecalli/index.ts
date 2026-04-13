@@ -17,7 +17,10 @@ export { TestInfo } from "./info";
 export { TestLookup } from "./lookup";
 export { TestPreimages } from "./preimages";
 export { TestMachine } from "./machines";
+export { TestPrivileged } from "./privileged";
+export { TestServices } from "./services";
 export { TestStorage } from "./storage";
+export { TestTransfer } from "./transfer";
 
 // @ts-expect-error: decorator
 @external("ecalli", "resetAll")

@@ -1,0 +1,87 @@
+/**
+ * High-level wrappers for child service lifecycle ecallis (18, 21).
+ *
+ * The current service can create new child services and eject existing ones.
+ */
+
+import { Bytes32 } from "../../core/bytes";
+import { panic } from "../../core/panic";
+import { ResultN } from "../../core/result";
+import { EcalliResult } from "../../ecalli";
+import { eject } from "../../ecalli/accumulate/eject";
+import { new_service } from "../../ecalli/accumulate/new_service";
+import { CodeHash, ServiceId } from "../types";
+
+export enum NewChildError {
+  /** Insufficient funds (CASH sentinel). */
+  Cash = 0,
+  /** Invalid operation (HUH sentinel). */
+  Huh = 1,
+  /** Storage full (FULL sentinel). */
+  Full = 2,
+}
+
+export enum EjectChildError {
+  /** Unknown service (WHO sentinel). */
+  Who = 0,
+  /** Invalid operation (HUH sentinel). */
+  Huh = 1,
+}
+
+export class ChildServices {
+  static create(): ChildServices {
+    return new ChildServices();
+  }
+
+  private constructor() {}
+
+  /**
+   * Create a new child service (ecalli 18).
+   *
+   * @param codeHash - blake2b hash of the service code
+   * @param codeLen - length of the service code
+   * @param gas - minimum accumulate gas for the new service
+   * @param allowance - initial token allowance
+   * @param gratisStorage - free storage bytes (default 0)
+   * @param requestedId - specific service ID to request (default: auto-assign)
+   * @returns the new service ID on success, or NewChildError
+   */
+  newChild(
+    codeHash: CodeHash,
+    codeLen: u32,
+    gas: u64,
+    allowance: u64,
+    gratisStorage: u32 = 0,
+    requestedId: ServiceId = u32.MAX_VALUE,
+  ): ResultN<ServiceId, NewChildError> {
+    const result = new_service(codeHash.ptr(), codeLen, gas, allowance, gratisStorage, requestedId);
+    if (result === EcalliResult.CASH) return ResultN.err<ServiceId, NewChildError>(NewChildError.Cash);
+    if (result === EcalliResult.HUH) return ResultN.err<ServiceId, NewChildError>(NewChildError.Huh);
+    if (result === EcalliResult.FULL) return ResultN.err<ServiceId, NewChildError>(NewChildError.Full);
+    if (result >= 0) return ResultN.ok<ServiceId, NewChildError>(u32(result));
+    panic("ChildServices.newChild: unexpected sentinel");
+    return unreachable();
+  }
+
+  /**
+   * Eject (remove) a child service (ecalli 21).
+   *
+   * The child service must have previously called `requestEjection` to
+   * signal readiness by upgrading its code hash to the ejection hash.
+   *
+   * @param serviceId - service to eject
+   * @param prevCodeHash - the service's current code hash (for host verification)
+   * @returns ok(true) on success, or EjectChildError
+   */
+  ejectChild(
+    serviceId: ServiceId,
+    prevCodeHash: CodeHash,
+  ): ResultN<bool, EjectChildError> {
+    const result = eject(serviceId, prevCodeHash.ptr());
+    if (result === EcalliResult.WHO) return ResultN.err<bool, EjectChildError>(EjectChildError.Who);
+    if (result === EcalliResult.HUH) return ResultN.err<bool, EjectChildError>(EjectChildError.Huh);
+    if (result >= 0) return ResultN.ok<bool, EjectChildError>(true);
+    panic("ChildServices.ejectChild: unexpected sentinel");
+    return unreachable();
+  }
+}
