@@ -42,12 +42,7 @@ export const VALIDATOR_KEY_SIZE: u32 = 336;
  * Validator key: Ed25519(32) + Bandersnatch(32) + BLS(144) + metadata(128) = 336 bytes.
  */
 export class ValidatorKey {
-  static create(
-    ed25519: Bytes32,
-    bandersnatch: Bytes32,
-    bls: BytesBlob,
-    metadata: BytesBlob,
-  ): ValidatorKey {
+  static create(ed25519: Bytes32, bandersnatch: Bytes32, bls: BytesBlob, metadata: BytesBlob): ValidatorKey {
     assert(<u32>bls.length === BLS_KEY_SIZE, `bls must be ${BLS_KEY_SIZE} bytes, got ${bls.length}`);
     assert(
       <u32>metadata.length === VALIDATOR_METADATA_SIZE,

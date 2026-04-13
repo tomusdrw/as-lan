@@ -18,8 +18,8 @@ import { designate as designate_ } from "../../ecalli/accumulate/designate";
 import {
   AUTO_ACCUMULATE_ENTRY_SIZE,
   AutoAccumulateEntry,
-  CURRENT_SERVICE,
   CoreIndex,
+  CURRENT_SERVICE,
   ServiceId,
   VALIDATOR_KEY_SIZE,
   ValidatorKey,
@@ -67,10 +67,10 @@ export class Admin {
    */
   bless(
     manager: ServiceId,
-    assigners: Array<ServiceId>,
+    assigners: ServiceId[],
     delegator: ServiceId,
     registrar: ServiceId,
-    autoAccumulate: Array<AutoAccumulateEntry>,
+    autoAccumulate: AutoAccumulateEntry[],
   ): ResultN<bool, BlessError> {
     const assignersBlob = encodeServiceIds(assigners);
     const autoAccumBlob = encodeAutoAccumulate(autoAccumulate);
@@ -116,11 +116,7 @@ export class Admin {
    * @param authQueue - auth queue entries (code hashes for that core)
    * @param newAssigner - transfer assigner permission (default: keep current service)
    */
-  assign(
-    core: CoreIndex,
-    authQueue: Array<Bytes32>,
-    newAssigner: ServiceId = CURRENT_SERVICE,
-  ): ResultN<bool, AssignError> {
+  assign(core: CoreIndex, authQueue: Bytes32[], newAssigner: ServiceId = CURRENT_SERVICE): ResultN<bool, AssignError> {
     const authQueueBlob = encodeBytes32Array(authQueue);
     const result = assign_(core, authQueueBlob.ptr(), newAssigner);
     if (result === EcalliResult.CORE) return ResultN.err<bool, AssignError>(AssignError.Core);
@@ -136,7 +132,7 @@ export class Admin {
    *
    * @param validators - array of validator keys
    */
-  designate(validators: Array<ValidatorKey>): ResultN<bool, DesignateError> {
+  designate(validators: ValidatorKey[]): ResultN<bool, DesignateError> {
     const blob = encodeValidators(validators);
     const result = designate_(blob.ptr());
     if (result === EcalliResult.HUH) return ResultN.err<bool, DesignateError>(DesignateError.Huh);
@@ -154,7 +150,7 @@ function mapBlessResult(result: i64): ResultN<bool, BlessError> {
   return unreachable();
 }
 
-function encodeServiceIds(ids: Array<ServiceId>): BytesBlob {
+function encodeServiceIds(ids: ServiceId[]): BytesBlob {
   const enc = Encoder.create(ids.length * 4);
   for (let i = 0; i < ids.length; i++) {
     enc.u32(ids[i]);
@@ -162,7 +158,7 @@ function encodeServiceIds(ids: Array<ServiceId>): BytesBlob {
   return enc.finish();
 }
 
-function encodeAutoAccumulate(entries: Array<AutoAccumulateEntry>): BytesBlob {
+function encodeAutoAccumulate(entries: AutoAccumulateEntry[]): BytesBlob {
   const enc = Encoder.create(entries.length * AUTO_ACCUMULATE_ENTRY_SIZE);
   for (let i = 0; i < entries.length; i++) {
     enc.u32(entries[i].serviceId);
@@ -171,7 +167,7 @@ function encodeAutoAccumulate(entries: Array<AutoAccumulateEntry>): BytesBlob {
   return enc.finish();
 }
 
-function encodeBytes32Array(hashes: Array<Bytes32>): BytesBlob {
+function encodeBytes32Array(hashes: Bytes32[]): BytesBlob {
   const enc = Encoder.create(hashes.length * 32);
   for (let i = 0; i < hashes.length; i++) {
     enc.bytes32(hashes[i]);
@@ -179,7 +175,7 @@ function encodeBytes32Array(hashes: Array<Bytes32>): BytesBlob {
   return enc.finish();
 }
 
-function encodeValidators(validators: Array<ValidatorKey>): BytesBlob {
+function encodeValidators(validators: ValidatorKey[]): BytesBlob {
   const enc = Encoder.create(validators.length * VALIDATOR_KEY_SIZE);
   for (let i = 0; i < validators.length; i++) {
     const v = validators[i];

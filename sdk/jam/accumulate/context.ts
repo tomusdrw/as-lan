@@ -110,12 +110,7 @@ export class AccumulateContext {
    * @param memo - optional 128-byte memo (default: all zeros)
    * @returns ok(true) on success, or TransferError
    */
-  scheduleTransfer(
-    dest: ServiceId,
-    amount: u64,
-    gasFee: u64,
-    memo: Memo | null = null,
-  ): ResultN<bool, TransferError> {
+  scheduleTransfer(dest: ServiceId, amount: u64, gasFee: u64, memo: Memo | null = null): ResultN<bool, TransferError> {
     const m = memo !== null ? memo : Memo.empty();
     const result = transfer_(dest, amount, gasFee, m.ptr());
     if (result === EcalliResult.WHO) return ResultN.err<bool, TransferError>(TransferError.Who);

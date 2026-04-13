@@ -4,7 +4,6 @@
  * The current service can create new child services and eject existing ones.
  */
 
-import { Bytes32 } from "../../core/bytes";
 import { panic } from "../../core/panic";
 import { ResultN } from "../../core/result";
 import { EcalliResult } from "../../ecalli";
@@ -73,10 +72,7 @@ export class ChildServices {
    * @param prevCodeHash - the service's current code hash (for host verification)
    * @returns ok(true) on success, or EjectChildError
    */
-  ejectChild(
-    serviceId: ServiceId,
-    prevCodeHash: CodeHash,
-  ): ResultN<bool, EjectChildError> {
+  ejectChild(serviceId: ServiceId, prevCodeHash: CodeHash): ResultN<bool, EjectChildError> {
     const result = eject(serviceId, prevCodeHash.ptr());
     if (result === EcalliResult.WHO) return ResultN.err<bool, EjectChildError>(EjectChildError.Who);
     if (result === EcalliResult.HUH) return ResultN.err<bool, EjectChildError>(EjectChildError.Huh);

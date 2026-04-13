@@ -167,12 +167,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
     const admin = Admin.create();
 
-    const key = ValidatorKey.create(
-      Bytes32.zero(),
-      Bytes32.zero(),
-      BytesBlob.zero(144),
-      BytesBlob.zero(128),
-    );
+    const key = ValidatorKey.create(Bytes32.zero(), Bytes32.zero(), BytesBlob.zero(144), BytesBlob.zero(128));
     const result = admin.designate([key]);
     a.isEqual(result.isOkay, true, "should be ok");
     return a;
