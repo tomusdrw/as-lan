@@ -35,6 +35,8 @@ export {
 export {
   bless, assign, designate,
   setBlessResult, setAssignResult, setDesignateResult,
+  getLastBlessManager, getLastBlessAssignersPtr, getLastBlessDelegator,
+  getLastBlessRegistrar, getLastBlessAutoAccumPtr, getLastBlessAutoAccumCount,
 } from "./accumulate/index.js";
 export { checkpoint } from "./accumulate/index.js";
 export {

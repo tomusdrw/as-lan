@@ -7,7 +7,15 @@ let blessResult = 0n;
 let assignResult = 0n;
 let designateResult = 0n;
 
-/** Ecalli 14: Bless — set privileged service configuration. */
+// Bless call capture
+let lastBlessManager = 0;
+let lastBlessAssignersPtr = 0;
+let lastBlessDelegator = 0;
+let lastBlessRegistrar = 0;
+let lastBlessAutoAccumPtr = 0;
+let lastBlessAutoAccumCount = 0;
+
+/** Ecalli 14: Bless — set privileged service configuration. Captures args. */
 export function bless(
   _manager: number,
   _assigners_ptr: number,
@@ -16,8 +24,21 @@ export function bless(
   _auto_accum_ptr: number,
   _auto_accum_count: number,
 ): bigint {
+  lastBlessManager = _manager;
+  lastBlessAssignersPtr = _assigners_ptr;
+  lastBlessDelegator = _delegator;
+  lastBlessRegistrar = _registrar;
+  lastBlessAutoAccumPtr = _auto_accum_ptr;
+  lastBlessAutoAccumCount = _auto_accum_count;
   return blessResult;
 }
+
+export function getLastBlessManager(): number { return lastBlessManager; }
+export function getLastBlessAssignersPtr(): number { return lastBlessAssignersPtr; }
+export function getLastBlessDelegator(): number { return lastBlessDelegator; }
+export function getLastBlessRegistrar(): number { return lastBlessRegistrar; }
+export function getLastBlessAutoAccumPtr(): number { return lastBlessAutoAccumPtr; }
+export function getLastBlessAutoAccumCount(): number { return lastBlessAutoAccumCount; }
 
 /** Ecalli 15: Assign core auth queue. */
 export function assign(
@@ -51,4 +72,10 @@ export function resetPrivileged(): void {
   blessResult = 0n;
   assignResult = 0n;
   designateResult = 0n;
+  lastBlessManager = 0;
+  lastBlessAssignersPtr = 0;
+  lastBlessDelegator = 0;
+  lastBlessRegistrar = 0;
+  lastBlessAutoAccumPtr = 0;
+  lastBlessAutoAccumCount = 0;
 }

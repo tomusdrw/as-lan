@@ -2,7 +2,10 @@
 
 export {
   bless, assign, designate,
-  setBlessResult, setAssignResult, setDesignateResult, resetPrivileged,
+  setBlessResult, setAssignResult, setDesignateResult,
+  getLastBlessManager, getLastBlessAssignersPtr, getLastBlessDelegator,
+  getLastBlessRegistrar, getLastBlessAutoAccumPtr, getLastBlessAutoAccumCount,
+  resetPrivileged,
 } from "./privileged.js";
 export { checkpoint } from "./checkpoint.js";
 export {

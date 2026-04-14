@@ -8,13 +8,29 @@ import { Admin, AssignError, BlessError, DesignateError } from "./admin";
 export const TESTS: Test[] = [
   // ─── bless ─────────────────────────────────────────────────────────
 
-  test("Admin.bless returns ok on success", () => {
+  test("Admin.bless encodes args and returns ok", () => {
     TestEcalli.reset();
     const a = Assert.create();
     const admin = Admin.create();
 
     const result = admin.bless(1, [2, 3], 4, 5, [AutoAccumulateEntry.create(100, 500)]);
     a.isEqual(result.isOkay, true, "should be ok");
+
+    // Verify scalar args passed through correctly
+    a.isEqual(TestPrivileged.getLastBlessManager(), 1, "manager");
+    a.isEqual(TestPrivileged.getLastBlessDelegator(), 4, "delegator");
+    a.isEqual(TestPrivileged.getLastBlessRegistrar(), 5, "registrar");
+    a.isEqual(TestPrivileged.getLastBlessAutoAccumCount(), 1, "autoAccum count");
+
+    // Verify assigners encoding: [2, 3] → 2 × u32 LE = 8 bytes
+    const aPtr = TestPrivileged.getLastBlessAssignersPtr();
+    a.isEqual(load<u32>(aPtr), 2, "assigners[0] = 2");
+    a.isEqual(load<u32>(aPtr + 4), 3, "assigners[1] = 3");
+
+    // Verify autoAccumulate encoding: [{ serviceId: 100, gas: 500 }] → u32 LE + u64 LE = 12 bytes
+    const aaPtr = TestPrivileged.getLastBlessAutoAccumPtr();
+    a.isEqual(load<u32>(aaPtr), 100, "autoAccum[0].serviceId = 100");
+    a.isEqual(load<u64>(aaPtr + 4), 500, "autoAccum[0].gas = 500");
     return a;
   }),
 
