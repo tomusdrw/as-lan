@@ -34,6 +34,22 @@ declare function _getLastBlessAutoAccumPtr(): u32;
 @external("ecalli", "getLastBlessAutoAccumCount")
 declare function _getLastBlessAutoAccumCount(): u32;
 
+// @ts-expect-error: decorator
+@external("ecalli", "getLastAssignCore")
+declare function _getLastAssignCore(): u32;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getLastAssignAuthQueuePtr")
+declare function _getLastAssignAuthQueuePtr(): u32;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getLastAssignNewAssigner")
+declare function _getLastAssignNewAssigner(): u32;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getLastDesignateValidatorsPtr")
+declare function _getLastDesignateValidatorsPtr(): u32;
+
 /** Configure privileged governance mock stubs from AS test code. */
 export class TestPrivileged {
   private constructor() {}
@@ -72,5 +88,21 @@ export class TestPrivileged {
 
   static getLastBlessAutoAccumCount(): u32 {
     return _getLastBlessAutoAccumCount();
+  }
+
+  static getLastAssignCore(): u32 {
+    return _getLastAssignCore();
+  }
+
+  static getLastAssignAuthQueuePtr(): u32 {
+    return _getLastAssignAuthQueuePtr();
+  }
+
+  static getLastAssignNewAssigner(): u32 {
+    return _getLastAssignNewAssigner();
+  }
+
+  static getLastDesignateValidatorsPtr(): u32 {
+    return _getLastDesignateValidatorsPtr();
   }
 }

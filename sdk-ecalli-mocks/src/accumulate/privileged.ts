@@ -40,21 +40,39 @@ export function getLastBlessRegistrar(): number { return lastBlessRegistrar; }
 export function getLastBlessAutoAccumPtr(): number { return lastBlessAutoAccumPtr; }
 export function getLastBlessAutoAccumCount(): number { return lastBlessAutoAccumCount; }
 
-/** Ecalli 15: Assign core auth queue. */
+// Assign call capture
+let lastAssignCore = 0;
+let lastAssignAuthQueuePtr = 0;
+let lastAssignNewAssigner = 0;
+
+/** Ecalli 15: Assign core auth queue. Captures args. */
 export function assign(
   _core: number,
   _auth_queue_ptr: number,
   _new_assigner: number,
 ): bigint {
+  lastAssignCore = _core;
+  lastAssignAuthQueuePtr = _auth_queue_ptr;
+  lastAssignNewAssigner = _new_assigner;
   return assignResult;
 }
 
-/** Ecalli 16: Designate next epoch validators. */
+export function getLastAssignCore(): number { return lastAssignCore; }
+export function getLastAssignAuthQueuePtr(): number { return lastAssignAuthQueuePtr; }
+export function getLastAssignNewAssigner(): number { return lastAssignNewAssigner; }
+
+// Designate call capture
+let lastDesignateValidatorsPtr = 0;
+
+/** Ecalli 16: Designate next epoch validators. Captures args. */
 export function designate(
   _validators_ptr: number,
 ): bigint {
+  lastDesignateValidatorsPtr = _validators_ptr;
   return designateResult;
 }
+
+export function getLastDesignateValidatorsPtr(): number { return lastDesignateValidatorsPtr; }
 
 export function setBlessResult(result: bigint): void {
   blessResult = result;
@@ -78,4 +96,8 @@ export function resetPrivileged(): void {
   lastBlessRegistrar = 0;
   lastBlessAutoAccumPtr = 0;
   lastBlessAutoAccumCount = 0;
+  lastAssignCore = 0;
+  lastAssignAuthQueuePtr = 0;
+  lastAssignNewAssigner = 0;
+  lastDesignateValidatorsPtr = 0;
 }

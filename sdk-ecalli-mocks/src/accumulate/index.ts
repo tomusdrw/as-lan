@@ -5,6 +5,8 @@ export {
   setBlessResult, setAssignResult, setDesignateResult,
   getLastBlessManager, getLastBlessAssignersPtr, getLastBlessDelegator,
   getLastBlessRegistrar, getLastBlessAutoAccumPtr, getLastBlessAutoAccumCount,
+  getLastAssignCore, getLastAssignAuthQueuePtr, getLastAssignNewAssigner,
+  getLastDesignateValidatorsPtr,
   resetPrivileged,
 } from "./privileged.js";
 export { checkpoint } from "./checkpoint.js";

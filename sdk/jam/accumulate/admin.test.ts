@@ -2,7 +2,7 @@ import { Bytes32, BytesBlob } from "../../core/bytes";
 import { EcalliResult } from "../../ecalli";
 import { TestEcalli, TestPrivileged } from "../../test/test-ecalli";
 import { Assert, Test, test } from "../../test/utils";
-import { AutoAccumulateEntry, ValidatorKey } from "../types";
+import { AutoAccumulateEntry, CURRENT_SERVICE, ValidatorKey } from "../types";
 import { Admin, AssignError, BlessError, DesignateError } from "./admin";
 
 export const TESTS: Test[] = [
@@ -132,23 +132,37 @@ export const TESTS: Test[] = [
 
   // ─── assign ────────────────────────────────────────────────────────
 
-  test("Admin.assign returns ok on success", () => {
+  test("Admin.assign encodes auth queue and uses default newAssigner", () => {
     TestEcalli.reset();
     const a = Assert.create();
     const admin = Admin.create();
 
-    const result = admin.assign(0, [Bytes32.zero()]);
+    const hash1 = Bytes32.zero();
+    hash1.raw[0] = 0xaa;
+    const hash2 = Bytes32.zero();
+    hash2.raw[0] = 0xbb;
+    const result = admin.assign(7, [hash1, hash2]);
     a.isEqual(result.isOkay, true, "should be ok");
+
+    // Verify scalar args
+    a.isEqual(TestPrivileged.getLastAssignCore(), 7, "core = 7");
+    a.isEqual(TestPrivileged.getLastAssignNewAssigner(), CURRENT_SERVICE, "default newAssigner = CURRENT_SERVICE");
+
+    // Verify auth queue encoding: 2 × Bytes32 = 64 bytes, sequential
+    const ptr = TestPrivileged.getLastAssignAuthQueuePtr();
+    a.isEqual(load<u8>(ptr), 0xaa, "hash1[0] = 0xaa");
+    a.isEqual(load<u8>(ptr + 32), 0xbb, "hash2[0] = 0xbb");
     return a;
   }),
 
-  test("Admin.assign with explicit newAssigner returns ok", () => {
+  test("Admin.assign with explicit newAssigner passes it through", () => {
     TestEcalli.reset();
     const a = Assert.create();
     const admin = Admin.create();
 
     const result = admin.assign(0, [Bytes32.zero()], 42);
-    a.isEqual(result.isOkay, true, "should be ok with explicit newAssigner");
+    a.isEqual(result.isOkay, true, "should be ok");
+    a.isEqual(TestPrivileged.getLastAssignNewAssigner(), 42, "newAssigner = 42");
     return a;
   }),
 
@@ -190,14 +204,30 @@ export const TESTS: Test[] = [
 
   // ─── designate ─────────────────────────────────────────────────────
 
-  test("Admin.designate returns ok on success", () => {
+  test("Admin.designate encodes validator keys", () => {
     TestEcalli.reset();
     const a = Assert.create();
     const admin = Admin.create();
 
-    const key = ValidatorKey.create(Bytes32.zero(), Bytes32.zero(), BytesBlob.zero(144), BytesBlob.zero(128));
+    const ed = Bytes32.zero();
+    ed.raw[0] = 0xe0;
+    const band = Bytes32.zero();
+    band.raw[0] = 0xb0;
+    const bls = BytesBlob.zero(144);
+    bls.raw[0] = 0xbb;
+    const meta = BytesBlob.zero(128);
+    meta.raw[0] = 0xaa;
+
+    const key = ValidatorKey.create(ed, band, bls, meta);
     const result = admin.designate([key]);
     a.isEqual(result.isOkay, true, "should be ok");
+
+    // Verify validators encoding: Ed25519(32) + Bandersnatch(32) + BLS(144) + metadata(128) = 336 bytes
+    const ptr = TestPrivileged.getLastDesignateValidatorsPtr();
+    a.isEqual(load<u8>(ptr), 0xe0, "ed25519[0] = 0xe0");
+    a.isEqual(load<u8>(ptr + 32), 0xb0, "bandersnatch[0] = 0xb0");
+    a.isEqual(load<u8>(ptr + 64), 0xbb, "bls[0] = 0xbb");
+    a.isEqual(load<u8>(ptr + 64 + 144), 0xaa, "metadata[0] = 0xaa");
     return a;
   }),
 
