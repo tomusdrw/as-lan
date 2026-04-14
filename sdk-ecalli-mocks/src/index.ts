@@ -46,7 +46,7 @@ export {
   setNewServiceResult, setEjectResult,
   getLastUpgradeCodeHashPtr, getLastUpgradeGas, getLastUpgradeAllowance,
 } from "./accumulate/index.js";
-export { transfer, setTransferResult } from "./accumulate/index.js";
+export { transfer, setTransferResult, resetTransfer } from "./accumulate/index.js";
 export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult,
