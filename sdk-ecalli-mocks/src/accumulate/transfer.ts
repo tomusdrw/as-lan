@@ -1,11 +1,21 @@
-// Ecalli 20: Transfer funds.
+// Ecalli 20: Transfer funds. Configurable result.
 
-/** Ecalli 20: Transfer balance to another service — returns OK. */
+let transferResult = 0n;
+
+/** Ecalli 20: Transfer balance to another service. */
 export function transfer(
   _dest: number,
   _amount: bigint,
   _gas_fee: bigint,
   _memo_ptr: number,
 ): bigint {
-  return 0n; // OK
+  return transferResult;
+}
+
+export function setTransferResult(result: bigint): void {
+  transferResult = result;
+}
+
+export function resetTransfer(): void {
+  transferResult = 0n;
 }

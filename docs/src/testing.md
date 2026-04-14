@@ -232,6 +232,45 @@ TestStorage.set(key, value);
 TestStorage.set(key, null);
 ```
 
+### TestPrivileged
+
+Configure the return values of privileged governance ecallis (bless, assign, designate):
+
+```typescript
+import { TestPrivileged } from "@fluffylabs/as-lan/test";
+import { EcalliResult } from "@fluffylabs/as-lan";
+
+TestPrivileged.setBlessResult(EcalliResult.WHO);
+TestPrivileged.setAssignResult(EcalliResult.CORE);
+TestPrivileged.setDesignateResult(EcalliResult.HUH);
+```
+
+### TestServices
+
+Configure the return values of service lifecycle ecallis (new_service, eject):
+
+```typescript
+import { TestServices } from "@fluffylabs/as-lan/test";
+import { EcalliResult } from "@fluffylabs/as-lan";
+
+TestServices.setNewServiceResult(EcalliResult.CASH);
+TestServices.setEjectResult(EcalliResult.WHO);
+```
+
+By default, `new_service()` returns auto-incrementing service IDs (256, 257, ...).
+Setting a result overrides this behavior until reset.
+
+### TestTransfer
+
+Configure the return value of the `transfer()` ecalli:
+
+```typescript
+import { TestTransfer } from "@fluffylabs/as-lan/test";
+import { EcalliResult } from "@fluffylabs/as-lan";
+
+TestTransfer.setTransferResult(EcalliResult.CASH);
+```
+
 ### TestEcalli
 
 Reset all configuration to defaults and clear storage:

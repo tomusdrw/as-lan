@@ -16,6 +16,14 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
   const gas = ctx.checkpoint();          // i64 — commit state, return remaining gas
   ctx.yieldResult(Bytes32.zero());       // provide accumulation result hash
+
+  // Schedule a transfer (executes after accumulation completes)
+  const r1 = ctx.scheduleTransfer(42, 1000, 100);  // ResultN<bool, TransferError>
+
+  // Transfer with explicit memo
+  const memo = Memo.create(BytesBlob.encodeAscii("hello"));
+  const r2 = ctx.scheduleTransfer(42, 1000, 100, memo);
+
   return ctx.yieldHash(null);
 }
 ```
@@ -74,3 +82,77 @@ up to 3 timeslot fields:
 | `Available` | `slot0` | Currently available (added at slot0) |
 | `Unavailable` | `slot0`, `slot1` | Was available, now removed |
 | `Reavailable` | `slot0`, `slot1`, `slot2` | Removed then re-added |
+
+## Admin (Privileged Governance)
+
+High-level wrappers for ecallis 14-16 (`bless`, `assign`, `designate`). Only
+callable by privileged services (manager, delegator, registrar, core assigners).
+
+```typescript
+import {
+  Admin, AutoAccumulateEntry, ValidatorKey,
+  Bytes32, BytesBlob,
+} from "@fluffylabs/as-lan";
+
+const admin = Admin.create();
+
+// Full bless — only the manager can set all fields
+admin.bless(
+  managerServiceId,
+  [assigner1, assigner2],       // one ServiceId per core
+  delegatorServiceId,
+  registrarServiceId,
+  [AutoAccumulateEntry.create(100, 5000)],
+);  // ResultN<bool, BlessError>
+
+// Partial bless — delegator/registrar can transfer their own role
+admin.blessDelegator(newDelegatorId);   // ResultN<bool, BlessError>
+admin.blessRegistrar(newRegistrarId);   // ResultN<bool, BlessError>
+
+// Assign auth queue for a core (only that core's assigner)
+admin.assign(coreIndex, [codeHash1, codeHash2]);  // ResultN<bool, AssignError>
+
+// Transfer assigner permission to another service
+admin.assign(coreIndex, authQueue, newAssignerServiceId);
+
+// Designate next epoch validators
+const key = ValidatorKey.create(ed25519, bandersnatch, bls, metadata);
+admin.designate([key]);  // ResultN<bool, DesignateError>
+```
+
+## Child Services
+
+Create and eject child services (ecallis 18, 21).
+
+```typescript
+import { ChildServices, Bytes32 } from "@fluffylabs/as-lan";
+
+const cs = ChildServices.create();
+
+// Create a child service
+const result = cs.newChild(codeHash, codeLen, gas, allowance);
+// ResultN<ServiceId, NewChildError>
+if (result.isOkay) {
+  const childId = result.okay;  // the new ServiceId
+}
+
+// Eject a child service (it must have called requestEjection first)
+cs.ejectChild(childServiceId, prevCodeHash);  // ResultN<bool, EjectChildError>
+```
+
+## Self-Service
+
+Upgrade the current service's code or request ejection (ecalli 19).
+
+```typescript
+import { SelfService, Bytes32 } from "@fluffylabs/as-lan";
+
+const self = SelfService.create();
+
+// Upgrade to new code (ensure preimage is available first!)
+self.upgradeCode(newCodeHash, minGas, allowance);
+
+// Request ejection by a parent service
+// WARNING: clear all storage before calling this!
+self.requestEjection(parentServiceId);
+```

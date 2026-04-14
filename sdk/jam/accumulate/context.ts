@@ -13,9 +13,23 @@ import { Encoder } from "../../core/codec/encode";
 import { readFromMemory } from "../../core/mem";
 import { ptrAndLen } from "../../core/pack";
 import { panic } from "../../core/panic";
+import { ResultN } from "../../core/result";
+import { EcalliResult } from "../../ecalli";
 import { checkpoint as checkpoint_, yield_result } from "../../ecalli/accumulate";
+import { transfer as transfer_ } from "../../ecalli/accumulate/transfer";
 import { AccumulateArgs, AccumulateArgsCodec, OptionalCodeHashCodec, Response, ResponseCodec } from "../service";
+import { ServiceId } from "../types";
 import { AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
+import { Memo } from "./memo";
+
+export enum TransferError {
+  /** Unknown destination service (WHO sentinel). */
+  Who = 0,
+  /** Gas limit too low (LOW sentinel). */
+  Low = 1,
+  /** Insufficient funds (CASH sentinel). */
+  Cash = 2,
+}
 
 export class AccumulateContext {
   static create(): AccumulateContext {
@@ -83,6 +97,28 @@ export class AccumulateContext {
    */
   yieldResult(hash: Bytes32): void {
     yield_result(hash.ptr());
+  }
+
+  /**
+   * Schedule a balance transfer to another service (ecalli 20).
+   *
+   * The transfer is not instant — it is executed after accumulation completes.
+   *
+   * @param dest - destination service ID
+   * @param amount - transfer amount
+   * @param gasFee - gas fee limit for the transfer
+   * @param memo - optional 128-byte memo (default: all zeros)
+   * @returns ok(true) on success, or TransferError
+   */
+  scheduleTransfer(dest: ServiceId, amount: u64, gasFee: u64, memo: Memo | null = null): ResultN<bool, TransferError> {
+    const m = memo !== null ? memo : Memo.empty();
+    const result = transfer_(dest, amount, gasFee, m.ptr());
+    if (result === EcalliResult.WHO) return ResultN.err<bool, TransferError>(TransferError.Who);
+    if (result === EcalliResult.LOW) return ResultN.err<bool, TransferError>(TransferError.Low);
+    if (result === EcalliResult.CASH) return ResultN.err<bool, TransferError>(TransferError.Cash);
+    if (result >= 0) return ResultN.ok<bool, TransferError>(true);
+    panic("AccumulateContext.scheduleTransfer: unexpected sentinel");
+    return unreachable();
   }
 
   /** Parse raw accumulate arguments from (ptr, len). Panics on invalid data. */

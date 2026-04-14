@@ -12,16 +12,20 @@ sdk/                        AssemblyScript SDK library
     refine/                 Ecalli 6-13 (historical_lookup, export, machine, peek, poke, pages, invoke, expunge)
     accumulate/             Ecalli 14-26 (bless, assign, designate, checkpoint, new_service, upgrade, transfer, eject, query, solicit, forget, yield_result, provide)
   jam/                      JAM protocol types
-    types.ts                Core type aliases (ServiceId, Slot, CodeHash, etc.)
+    types.ts                Core type aliases (ServiceId, Slot, CodeHash, etc.) + ValidatorKey, AutoAccumulateEntry
     service.ts              Service ABI: RefineArgs, AccumulateArgs, Response + codec classes
     account-info.ts         AccountInfo (96-byte service info from ecalli 5) + AccountInfoCodec
     service-data.ts         ServiceData (info, read) + CurrentServiceData (adds write) — high-level storage wrappers
     fetcher.ts              Base Fetcher class with buffer management (constants only)
     work-package-fetcher.ts Intermediate fetcher adding typed kinds 7-13 (WorkPackage, etc.)
     work-package.ts         WorkPackage, WorkItem, WorkItemInfo, RefinementContext, ImportRef, ExtrinsicRef + codec classes
-    accumulate/             Accumulate-context types and fetcher
+    accumulate/             Accumulate-context types, fetcher, and high-level wrappers
       item.ts               Operand, PendingTransfer, WorkExecResult, AccumulateItem + codec classes
       fetcher.ts            AccumulateFetcher (entropy, allTransfersAndOperands, oneTransferOrOperand)
+      admin.ts              Admin (bless, blessDelegator, blessRegistrar, assign, designate) — privileged governance
+      child-services.ts     ChildServices (newChild, ejectChild) — child service lifecycle
+      self-service.ts       SelfService (upgradeCode, requestEjection) — self-management
+      memo.ts               Memo — fixed 128-byte transfer memo with auto-pad/truncate
     refine/                 Refine-context fetcher and machine wrapper
       fetcher.ts            RefineFetcher (entropy, authorizerTrace, extrinsics, imports + inherits kinds 7-13)
       machine.ts            Machine (inner PVM lifecycle: create, peek, poke, pages, invoke, expunge)
@@ -117,7 +121,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
 ```
 
 Contexts:
-- **AccumulateContext** — `parseArgs()` (panics on invalid data), `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, accumulate codecs
+- **AccumulateContext** — `parseArgs()` (panics on invalid data), `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, `scheduleTransfer()`, accumulate codecs
 - **RefineContext** (extends WorkPackageContext) — `parseArgs()` (panics on invalid data), `respond()`, `exportSegment()`, refine + work-package codecs
 - **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16). No codec state.
 - **WorkPackageContext** — base with bytes32, protocolConstants, workPackage, etc.
