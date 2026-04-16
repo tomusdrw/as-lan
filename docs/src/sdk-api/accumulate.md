@@ -109,12 +109,7 @@ High-level wrappers for ecallis 14-16 (`bless`, `assign`, `designate`). Only
 callable by privileged services (manager, delegator, registrar, core assigners).
 
 ```typescript
-import {
-  Admin, AutoAccumulateEntry, ValidatorKey,
-  Bytes32, BytesBlob,
-} from "@fluffylabs/as-lan";
-
-const admin = Admin.create();
+const admin = ctx.admin();
 
 // Full bless — only the manager can set all fields
 admin.bless(
@@ -145,9 +140,7 @@ admin.designate([key]);  // ResultN<bool, DesignateError>
 Create and eject child services (ecallis 18, 21).
 
 ```typescript
-import { ChildServices, Bytes32 } from "@fluffylabs/as-lan";
-
-const cs = ChildServices.create();
+const cs = ctx.childServices();
 
 // Create a child service
 const result = cs.newChild(codeHash, codeLen, gas, allowance);
@@ -165,9 +158,7 @@ cs.ejectChild(childServiceId, prevCodeHash);  // ResultN<bool, EjectChildError>
 Upgrade the current service's code or request ejection (ecalli 19).
 
 ```typescript
-import { SelfService, Bytes32 } from "@fluffylabs/as-lan";
-
-const self = SelfService.create();
+const self = ctx.selfService();
 
 // Upgrade to new code (ensure preimage is available first!)
 self.upgradeCode(newCodeHash, minGas, allowance);
