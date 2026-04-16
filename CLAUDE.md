@@ -113,21 +113,22 @@ Contexts group all codec instances + convenience methods for a specific invocati
 ```ts
 export function accumulate(ptr: u32, len: u32): u64 {
   const ctx = AccumulateContext.create();
-  const fetcher = AccumulateFetcher.create(ctx);
   const args = ctx.parseArgs(ptr, len);
-  // ... use fetcher and ctx ...
+  const fetcher = ctx.fetcher();       // AccumulateFetcher
+  const preimages = ctx.preimages();   // AccumulatePreimages
+  const storage = ctx.serviceData();   // CurrentServiceData
+  // ... use fetcher, preimages, storage, and ctx ...
   return ctx.respond(result, data);
 }
 ```
 
-Contexts:
-- **AccumulateContext** — `parseArgs()` (panics on invalid data), `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, `scheduleTransfer()`, accumulate codecs
-- **RefineContext** (extends WorkPackageContext) — `parseArgs()` (panics on invalid data), `respond()`, `exportSegment()`, refine + work-package codecs
-- **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16). No codec state.
-- **WorkPackageContext** — base with bytes32, protocolConstants, workPackage, etc.
+All contexts expose `remainingGas(): i64` (ecalli 0) and factory methods for creating
+context-appropriate helpers. **Prefer `ctx.*()` over standalone `*.create()`.**
 
-Fetchers receive their context via constructor: `AccumulateFetcher.create(ctx)`, `RefineFetcher.create(ctx)`.
-`AuthorizeFetcher.create()` takes no context (authorize context is stateless).
+Contexts:
+- **AccumulateContext** — `parseArgs()`, `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, `scheduleTransfer()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `admin()`, `childServices()`, `selfService()`, accumulate codecs
+- **RefineContext** — `parseArgs()`, `respond()`, `exportSegment()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `machine(code, entrypoint)`, refine codecs
+- **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16), `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`. No codec state.
 
 ### Service ABI Types (sdk/jam/service.ts)
 
@@ -137,7 +138,7 @@ Fetchers receive their context via constructor: `AccumulateFetcher.create(ctx)`,
 ### Fetcher Hierarchy (sdk/jam/)
 
 High-level wrappers around the raw `fetch` ecalli (Ω_Y, GP Appendix B.5).
-Each fetcher receives its context via constructor and exposes typed fetch methods.
+Create fetchers via `ctx.fetcher()` on the appropriate context, or directly via `*.create(bufSize?)`.
 
 Methods that fetch **non-indexed, always-present** data return `T` directly and
 panic if the host returns NONE (host-contract violation). Methods that fetch
@@ -145,10 +146,10 @@ panic if the host returns NONE (host-contract violation). Methods that fetch
 
 ```text
 Fetcher primitives (fetchRaw, fetchRawOrPanic, fetchBlob, fetchBlobOrPanic, fetchAndDecode, fetchAndDecodeOptional)
-  ├── WorkPackageFetcher(ctx) (kinds 0, 7-13: constants, WorkPackage, etc.)
-  │     ├── AuthorizeFetcher(ctx) (kinds 0, 7-13)
-  │     └── RefineFetcher(ctx) (adds entropy, trace, extrinsics, imports — kinds 0-13)
-  └── AccumulateFetcher(ctx) (kinds 0-1, 14-15: constants, entropy, accumulate items)
+  ├── WorkPackageFetcher (kinds 0, 7-13: constants, WorkPackage, etc.)
+  │     ├── AuthorizeFetcher (kinds 0, 7-13) — ctx.fetcher() on AuthorizeContext
+  │     └── RefineFetcher (adds entropy, trace, extrinsics, imports — kinds 0-13) — ctx.fetcher() on RefineContext
+  └── AccumulateFetcher (kinds 0-1, 14-15: constants, entropy, accumulate items) — ctx.fetcher() on AccumulateContext
 ```
 
 GP fetch parameter mapping per context (eq B.1, B.6, B.11):

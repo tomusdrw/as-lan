@@ -5,17 +5,28 @@ Wrappers available during the `accumulate` entry point.
 ## AccumulateContext
 
 Parses arguments and provides accumulate-specific convenience methods.
+It also serves as the entry point for creating all accumulate-context helpers
+via factory methods — **prefer `ctx.*()` over standalone `*.create()`**.
 
 ```typescript
-import { AccumulateContext, Bytes32 } from "@fluffylabs/as-lan";
+import { AccumulateContext, Bytes32, BytesBlob, Memo } from "@fluffylabs/as-lan";
 
 export function accumulate(ptr: u32, len: u32): u64 {
   const ctx = AccumulateContext.create();
   const args = ctx.parseArgs(ptr, len);
   // args.slot, args.serviceId, args.argsLength
 
+  const gasLeft = ctx.remainingGas();    // i64 — ecalli 0
   const gas = ctx.checkpoint();          // i64 — commit state, return remaining gas
   ctx.yieldResult(Bytes32.zero());       // provide accumulation result hash
+
+  // Create helpers via the context
+  const fetcher = ctx.fetcher();         // AccumulateFetcher
+  const preimages = ctx.preimages();     // AccumulatePreimages
+  const storage = ctx.serviceData();     // CurrentServiceData
+  const admin = ctx.admin();             // Admin
+  const cs = ctx.childServices();        // ChildServices
+  const self = ctx.selfService();        // SelfService
 
   // Schedule a transfer (executes after accumulation completes)
   const r1 = ctx.scheduleTransfer(42, 1000, 100);  // ResultN<bool, TransferError>
@@ -28,15 +39,27 @@ export function accumulate(ptr: u32, len: u32): u64 {
 }
 ```
 
+**`ctx.remainingGas()`** — return the remaining gas (ecalli 0).
+
+**`ctx.fetcher(bufSize?)`** — create an `AccumulateFetcher` (fetch kinds 0-1, 14-15).
+
+**`ctx.preimages(bufSize?)`** — create an `AccumulatePreimages` helper (lookup + lifecycle).
+
+**`ctx.serviceData(bufSize?)`** — create a `CurrentServiceData` helper for storage read/write.
+
+**`ctx.admin()`** — create an `Admin` helper for privileged governance.
+
+**`ctx.childServices()`** — create a `ChildServices` helper for child service lifecycle.
+
+**`ctx.selfService()`** — create a `SelfService` helper for self-management.
+
 ## AccumulateFetcher
 
 Fetches context data (fetch kinds 0-1, 14-15): protocol constants, entropy,
 and accumulate items (operands and transfers).
 
 ```typescript
-import { AccumulateFetcher } from "@fluffylabs/as-lan";
-
-const fetcher = AccumulateFetcher.create();
+const fetcher = ctx.fetcher();
 const items = fetcher.allTransfersAndOperands();
 const one = fetcher.oneTransferOrOperand(0);  // Optional<AccumulateItem>
 ```
@@ -46,10 +69,7 @@ const one = fetcher.oneTransferOrOperand(0);  // Optional<AccumulateItem>
 Extends base `Preimages` with preimage lifecycle management (ecalli 22-26).
 
 ```typescript
-import { AccumulatePreimages, Bytes32, BytesBlob } from "@fluffylabs/as-lan";
-import { PreimageStatusKind } from "@fluffylabs/as-lan";
-
-const preimages = AccumulatePreimages.create();
+const preimages = ctx.preimages();
 
 // Look up
 const data = preimages.lookup(hash);  // Optional<BytesBlob>

@@ -2,6 +2,15 @@
 
 These wrappers are available in all invocation contexts (refine, accumulate, authorize).
 
+## Gas
+
+All context classes expose `remainingGas()` which returns the gas remaining
+after the call (ecalli 0):
+
+```typescript
+const gasLeft = ctx.remainingGas();  // i64
+```
+
 ## Service Data
 
 High-level wrappers for service storage (`read`/`write`) and account info (`info`).

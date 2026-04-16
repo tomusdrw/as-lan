@@ -12,8 +12,13 @@ import { ptrAndLen } from "../../core/pack";
 import { panic } from "../../core/panic";
 import { ResultN } from "../../core/result";
 import { EcalliResult } from "../../ecalli";
+import { gas } from "../../ecalli/general/gas";
 import { export_segment } from "../../ecalli/refine";
 import { RefineArgs, RefineArgsCodec, Response, ResponseCodec } from "../service";
+import { CurrentServiceData } from "../service-data";
+import { RefineFetcher } from "./fetcher";
+import { InvalidEntryPoint, Machine } from "./machine";
+import { RefinePreimages } from "./preimages";
 
 export class RefineContext {
   static create(): RefineContext {
@@ -26,6 +31,33 @@ export class RefineContext {
   private constructor() {
     this.refineArgs = RefineArgsCodec.create();
     this.response = ResponseCodec.create();
+  }
+
+  /** Return the remaining gas after this call (ecalli 0). */
+  remainingGas(): i64 {
+    return gas();
+  }
+
+  // ── Helper factories ────────────────────────────────────────────────
+
+  /** Create a RefineFetcher for this context (fetch kinds 0-13). */
+  fetcher(bufSize: u32 = 1024): RefineFetcher {
+    return RefineFetcher.create(bufSize);
+  }
+
+  /** Create a RefinePreimages helper (lookup + historicalLookup). */
+  preimages(bufSize: u32 = 1024): RefinePreimages {
+    return RefinePreimages.create(bufSize);
+  }
+
+  /** Create a CurrentServiceData helper for storage read/write and account info. */
+  serviceData(bufSize: u32 = 1024): CurrentServiceData {
+    return CurrentServiceData.create(bufSize);
+  }
+
+  /** Create an inner PVM machine (ecalli 8). Delegates to Machine.create(). */
+  machine(code: BytesBlob, entrypoint: u32): ResultN<Machine, InvalidEntryPoint> {
+    return Machine.create(code, entrypoint);
   }
 
   /** Parse raw refine arguments from (ptr, len). Panics on invalid data. */
