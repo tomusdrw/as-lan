@@ -3,9 +3,42 @@ import { EcalliResult } from "../ecalli";
 import { TestEcalli, TestExportSegment, TestGas } from "../test/test-ecalli";
 import { Assert, Test, test } from "../test/utils";
 import { AccumulateContext } from "./accumulate/context";
+import { AuthorizeContext } from "./authorize/context";
 import { ExportSegmentError, RefineContext } from "./refine/context";
 
 export const TESTS: Test[] = [
+  // ─── remainingGas (all contexts) ──────────────────────────────────
+
+  test("RefineContext.remainingGas returns gas value", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = RefineContext.create();
+
+    TestGas.set(500_000);
+    a.isEqual(ctx.remainingGas(), 500_000, "remaining gas");
+    return a;
+  }),
+
+  test("AccumulateContext.remainingGas returns gas value", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = AccumulateContext.create();
+
+    TestGas.set(750_000);
+    a.isEqual(ctx.remainingGas(), 750_000, "remaining gas");
+    return a;
+  }),
+
+  test("AuthorizeContext.remainingGas returns gas value", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = AuthorizeContext.create();
+
+    TestGas.set(300_000);
+    a.isEqual(ctx.remainingGas(), 300_000, "remaining gas");
+    return a;
+  }),
+
   // ─── RefineContext.exportSegment ────────────────────────────────────
 
   test("RefineContext.exportSegment returns segment index", () => {

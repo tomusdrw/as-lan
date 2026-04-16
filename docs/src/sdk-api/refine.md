@@ -5,6 +5,8 @@ Wrappers available during the `refine` entry point.
 ## RefineContext
 
 Parses arguments and provides refine-specific convenience methods.
+It also serves as the entry point for creating all refine-context helpers
+via factory methods — **prefer `ctx.*()` over standalone `*.create()`**.
 
 ```typescript
 import { RefineContext } from "@fluffylabs/as-lan";
@@ -13,17 +15,32 @@ export function refine(ptr: u32, len: u32): u64 {
   const ctx = RefineContext.create();
   const args = ctx.parseArgs(ptr, len);
   // args.coreIndex, args.itemIndex, args.serviceId, args.payload, args.workPackageHash
+
+  const gasLeft = ctx.remainingGas();  // i64 — ecalli 0
+
+  const fetcher = ctx.fetcher();       // RefineFetcher
+  const preimages = ctx.preimages();   // RefinePreimages
+  const storage = ctx.serviceData();   // CurrentServiceData
+
   return args.payload.toPtrAndLen();
 }
 ```
 
-**`RefineContext.exportSegment`** — export a data segment (ecalli 7). Returns
+**`ctx.remainingGas()`** — return the remaining gas (ecalli 0).
+
+**`ctx.fetcher(bufSize?)`** — create a `RefineFetcher` (fetch kinds 0-13).
+
+**`ctx.preimages(bufSize?)`** — create a `RefinePreimages` helper (lookup + historicalLookup).
+
+**`ctx.serviceData(bufSize?)`** — create a `CurrentServiceData` helper for storage read/write.
+
+**`ctx.machine(code, entrypoint)`** — create an inner PVM `Machine` (ecalli 8).
+Returns `ResultN<Machine, InvalidEntryPoint>`.
+
+**`ctx.exportSegment(segment)`** — export a data segment (ecalli 7). Returns
 the segment index on success, or `ExportSegmentError.Full` when the limit is reached.
 
 ```typescript
-import { RefineContext, ExportSegmentError, BytesBlob } from "@fluffylabs/as-lan";
-
-const ctx = RefineContext.create();
 const segment = BytesBlob.wrap(data);
 const result = ctx.exportSegment(segment);  // ResultN<u32, ExportSegmentError>
 if (result.isOkay) {
@@ -37,9 +54,7 @@ Fetches context data (fetch kinds 0-13): protocol constants, work package,
 entropy, authorizer trace, extrinsics, imports, and work item payloads.
 
 ```typescript
-import { RefineFetcher } from "@fluffylabs/as-lan";
-
-const fetcher = RefineFetcher.create();
+const fetcher = ctx.fetcher();
 const wp = fetcher.workPackage();
 const entropy = fetcher.entropy();
 const payload = fetcher.workItemPayload(0);  // Optional<BytesBlob>
@@ -51,9 +66,7 @@ Extends base `Preimages` with `historicalLookup` (ecalli 6) for querying
 historical state during refinement.
 
 ```typescript
-import { RefinePreimages, Bytes32 } from "@fluffylabs/as-lan";
-
-const preimages = RefinePreimages.create();
+const preimages = ctx.preimages();
 const current = preimages.lookup(hash);              // Optional<BytesBlob>
 const historical = preimages.historicalLookup(hash);  // Optional<BytesBlob>
 ```

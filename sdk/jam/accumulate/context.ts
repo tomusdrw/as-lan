@@ -17,10 +17,17 @@ import { ResultN } from "../../core/result";
 import { EcalliResult } from "../../ecalli";
 import { checkpoint as checkpoint_, yield_result } from "../../ecalli/accumulate";
 import { transfer as transfer_ } from "../../ecalli/accumulate/transfer";
+import { gas } from "../../ecalli/general/gas";
 import { AccumulateArgs, AccumulateArgsCodec, OptionalCodeHashCodec, Response, ResponseCodec } from "../service";
+import { CurrentServiceData } from "../service-data";
 import { ServiceId } from "../types";
+import { Admin } from "./admin";
+import { ChildServices } from "./child-services";
+import { AccumulateFetcher } from "./fetcher";
 import { AccumulateItemCodec, OperandCodec, PendingTransferCodec, WorkExecResultCodec } from "./item";
 import { Memo } from "./memo";
+import { AccumulatePreimages } from "./preimages";
+import { SelfService } from "./self-service";
 
 export enum TransferError {
   /** Unknown destination service (WHO sentinel). */
@@ -81,6 +88,43 @@ export class AccumulateContext {
     if (this._accumulateItem === null)
       this._accumulateItem = AccumulateItemCodec.create(this.operand, this.pendingTransfer);
     return this._accumulateItem!;
+  }
+
+  /** Return the remaining gas after this call (ecalli 0). */
+  remainingGas(): i64 {
+    return gas();
+  }
+
+  // ── Helper factories ────────────────────────────────────────────────
+
+  /** Create an AccumulateFetcher for this context (fetch kinds 0-1, 14-15). */
+  fetcher(bufSize: u32 = 1024): AccumulateFetcher {
+    return AccumulateFetcher.create(bufSize);
+  }
+
+  /** Create an AccumulatePreimages helper (lookup + query/solicit/forget/provide). */
+  preimages(bufSize: u32 = 1024): AccumulatePreimages {
+    return AccumulatePreimages.create(bufSize);
+  }
+
+  /** Create a CurrentServiceData helper for storage read/write and account info. */
+  serviceData(bufSize: u32 = 1024): CurrentServiceData {
+    return CurrentServiceData.create(bufSize);
+  }
+
+  /** Create an Admin helper for privileged governance (bless, assign, designate). */
+  admin(): Admin {
+    return Admin.create();
+  }
+
+  /** Create a ChildServices helper for child service lifecycle (newChild, ejectChild). */
+  childServices(): ChildServices {
+    return ChildServices.create();
+  }
+
+  /** Create a SelfService helper for self-management (upgradeCode, requestEjection). */
+  selfService(): SelfService {
+    return SelfService.create();
   }
 
   /**
