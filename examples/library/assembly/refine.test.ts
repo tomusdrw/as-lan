@@ -147,6 +147,36 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
+  test("refine: admin path round-trips SetMapping canonically", () => {
+    const assert = Assert.create();
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0xaa;
+    const cmd = AdminCommand.setMapping(BytesBlob.encodeAscii("ed25519"), hash, 4096);
+    const codec = AdminCommandCodec.create();
+    const body = Encoder.create();
+    codec.encode(cmd, body);
+    const bodyBytes = body.finishRaw();
+
+    const input = Encoder.create();
+    input.u8(1); // admin tag
+    input.bytesFixLen(BytesBlob.wrap(bodyBytes));
+
+    const resp = callRefine(input.finishRaw());
+    assert.isEqual(resp.result, 0, "ok");
+    assert.isEqualBytes(resp.data, BytesBlob.wrap(bodyBytes), "canonical body");
+    return assert;
+  }),
+
+  test("refine: admin path rejects malformed bytes with -6", () => {
+    const assert = Assert.create();
+    const input = Encoder.create();
+    input.u8(1); // admin tag
+    input.u8(0x99); // unknown AdminCommand tag
+    const resp = callRefine(input.finishRaw());
+    assert.isEqual(resp.result, -6, "malformed");
+    return assert;
+  }),
+
   test("mock: setPeekData writes configured bytes to dest", () => {
     const assert = Assert.create();
     const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
