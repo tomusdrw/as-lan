@@ -7,6 +7,13 @@ import {
   PREFIX_RECENT,
 } from "./constants";
 
+@inline export function writeU32LE(dst: Uint8Array, offset: i32, value: u32): void {
+  dst[offset] = u8(value);
+  dst[offset + 1] = u8(value >> 8);
+  dst[offset + 2] = u8(value >> 16);
+  dst[offset + 3] = u8(value >> 24);
+}
+
 function concatBytes(a: BytesBlob, b: BytesBlob): BytesBlob {
   const out = BytesBlob.zero(a.length + b.length);
   for (let i = 0; i < a.length; i += 1) out.raw[i] = a.raw[i];
@@ -16,10 +23,7 @@ function concatBytes(a: BytesBlob, b: BytesBlob): BytesBlob {
 
 function u32LE(value: u32): BytesBlob {
   const out = BytesBlob.zero(4);
-  out.raw[0] = u8(value & 0xff);
-  out.raw[1] = u8((value >> 8) & 0xff);
-  out.raw[2] = u8((value >> 16) & 0xff);
-  out.raw[3] = u8((value >> 24) & 0xff);
+  writeU32LE(out.raw, 0, value);
   return out;
 }
 
@@ -49,14 +53,8 @@ export class PasteEntry {
 
   encode(): BytesBlob {
     const out = BytesBlob.zero(8);
-    out.raw[0] = u8(this.slot & 0xff);
-    out.raw[1] = u8((this.slot >> 8) & 0xff);
-    out.raw[2] = u8((this.slot >> 16) & 0xff);
-    out.raw[3] = u8((this.slot >> 24) & 0xff);
-    out.raw[4] = u8(this.length & 0xff);
-    out.raw[5] = u8((this.length >> 8) & 0xff);
-    out.raw[6] = u8((this.length >> 16) & 0xff);
-    out.raw[7] = u8((this.length >> 24) & 0xff);
+    writeU32LE(out.raw, 0, this.slot);
+    writeU32LE(out.raw, 4, this.length);
     return out;
   }
 

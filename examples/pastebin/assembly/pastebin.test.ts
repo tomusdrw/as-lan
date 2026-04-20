@@ -2,6 +2,7 @@ import { Bytes32, BytesBlob, Decoder, Encoder, RefineArgs, RefineContext, Respon
 import { Assert, Test, test, unpackResult } from "@fluffylabs/as-lan/test";
 import { blake2b256 } from "./crypto/blake2b";
 import { refine } from "./refine";
+import { assertBytes } from "./test-helpers";
 
 function callRefine(payload: Uint8Array): Response {
   const ctx = RefineContext.create();
@@ -21,12 +22,21 @@ function callRefine(payload: Uint8Array): Response {
   return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
 }
 
-function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, msg: string): void {
-  assert.isEqual(actual.length, expected.length, `${msg}.length`);
-  if (actual.length !== expected.length) return;
-  for (let i = 0; i < actual.length; i += 1) {
-    assert.isEqual(actual[i], expected[i], `${msg}[${i}]`);
+class DecodedOperand {
+  static create(hash: Uint8Array, length: u32): DecodedOperand {
+    return new DecodedOperand(hash, length);
   }
+  private constructor(public readonly hash: Uint8Array, public readonly length: u32) {}
+}
+
+function decodeOperand(data: BytesBlob): DecodedOperand {
+  const hash = new Uint8Array(32);
+  for (let i = 0; i < 32; i += 1) hash[i] = data.raw[i];
+  const length: u32 = u32(data.raw[32])
+    | (u32(data.raw[33]) << 8)
+    | (u32(data.raw[34]) << 16)
+    | (u32(data.raw[35]) << 24);
+  return DecodedOperand.create(hash, length);
 }
 
 export const TESTS: Test[] = [
@@ -40,18 +50,10 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "result");
     assert.isEqual(resp.data.length, 36, "data.length");
-    if (resp.data.length === 36) {
-      const hash = blake2b256(payload);
-      const actualHash = new Uint8Array(32);
-      for (let i = 0; i < 32; i += 1) actualHash[i] = resp.data.raw[i];
-      assertBytes(assert, actualHash, hash, "hash");
-      const b0 = u32(resp.data.raw[32]);
-      const b1 = u32(resp.data.raw[33]);
-      const b2 = u32(resp.data.raw[34]);
-      const b3 = u32(resp.data.raw[35]);
-      const length = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
-      assert.isEqual(length, <u32>4, "length_LE");
-    }
+    if (resp.data.length !== 36) return assert;
+    const op = decodeOperand(resp.data);
+    assertBytes(assert, op.hash, blake2b256(payload), "hash");
+    assert.isEqual(op.length, <u32>4, "length_LE");
     return assert;
   }),
   test("refine handles empty payload", () => {
@@ -59,18 +61,10 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "result");
     assert.isEqual(resp.data.length, 36, "data.length");
-    if (resp.data.length === 36) {
-      const hash = blake2b256(new Uint8Array(0));
-      const actualHash = new Uint8Array(32);
-      for (let i = 0; i < 32; i += 1) actualHash[i] = resp.data.raw[i];
-      assertBytes(assert, actualHash, hash, "hash");
-      const b0 = u32(resp.data.raw[32]);
-      const b1 = u32(resp.data.raw[33]);
-      const b2 = u32(resp.data.raw[34]);
-      const b3 = u32(resp.data.raw[35]);
-      const length = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
-      assert.isEqual(length, <u32>0, "length_LE");
-    }
+    if (resp.data.length !== 36) return assert;
+    const op = decodeOperand(resp.data);
+    assertBytes(assert, op.hash, blake2b256(new Uint8Array(0)), "hash");
+    assert.isEqual(op.length, <u32>0, "length_LE");
     return assert;
   }),
 ];

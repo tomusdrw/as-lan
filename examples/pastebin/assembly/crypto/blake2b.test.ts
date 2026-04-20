@@ -1,17 +1,10 @@
 import { BytesBlob } from "@fluffylabs/as-lan";
 import { Assert, Test, test } from "@fluffylabs/as-lan/test";
+import { assertBytes } from "../test-helpers";
 import { blake2b256 } from "./blake2b";
 
 function fromHex(hex: string): Uint8Array {
   return BytesBlob.parseBlob(hex).okay!.raw;
-}
-
-function assertBytes(assert: Assert, actual: Uint8Array, expected: Uint8Array, msg: string): void {
-  assert.isEqual(actual.length, expected.length, `${msg}.length`);
-  if (actual.length !== expected.length) return;
-  for (let i = 0; i < actual.length; i += 1) {
-    assert.isEqual(actual[i], expected[i], `${msg}[${i}]`);
-  }
 }
 
 export const TESTS: Test[] = [
