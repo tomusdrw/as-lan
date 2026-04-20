@@ -18,7 +18,15 @@ import {
   writeU32LE,
 } from "./storage";
 
-/** Append a 32-byte hash to an `expiry:<slot>` bucket (read-modify-write). */
+/**
+ * Append a 32-byte hash to an `expiry:<slot>` bucket (read-modify-write).
+ *
+ * If `storage.write` fails (e.g. FULL), the paste won't be scheduled for
+ * expiry and will persist indefinitely after the metadata + ring writes
+ * above have already succeeded. Acceptable for v1 — a production-hardened
+ * service would want to either roll back the prior writes or surface the
+ * failure in the accumulate Response.
+ */
 function appendHashToExpiryBucket(storage: CurrentServiceData, bucketKey: Uint8Array, hash: Bytes32): void {
   const existing = storage.read(bucketKey);
   const prev: Uint8Array = existing.isSome ? existing.val! : new Uint8Array(0);

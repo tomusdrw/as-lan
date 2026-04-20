@@ -40,9 +40,13 @@ npm run build      # debug + release + PVM
 npm test
 ```
 
-`npm test` runs the AS test harness: 3 Blake2b RFC vectors + 6 pastebin
-integration tests (refine output, accumulate insertion, idempotent
-re-submission, TTL cleanup, end-to-end solicit→attach→lookup).
+`npm test` runs the AS test harness against 9 pastebin integration tests
+covering refine output (non-empty + empty payload), accumulate insertion,
+idempotent re-submission, TTL cleanup, multi-hash shared-bucket cleanup,
+solicit-failure gating, self-authorizing dispatch routing, and the
+end-to-end solicit → extrinsic-delivery → lookup flow. Blake2b-256 RFC
+test vectors live with the implementation under `sdk/core/crypto/` and
+run as part of the SDK suite.
 
 ## Customizing for your service
 

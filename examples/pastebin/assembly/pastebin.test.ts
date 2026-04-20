@@ -31,7 +31,6 @@ import { accumulate } from "./accumulate";
 import { refine as dispatch } from "./index";
 import { refine } from "./refine";
 import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey, readU32LE, writeU32LE } from "./storage";
-import { assertBytes } from "./test-helpers";
 
 function callRefine(payload: Uint8Array): Response {
   const ctx = RefineContext.create();
@@ -123,7 +122,7 @@ export const TESTS: Test[] = [
     assert.isEqual(resp.data.length, 36, "data.length");
     if (resp.data.length !== 36) return assert;
     const op = decodeOperand(resp.data);
-    assertBytes(assert, op.hash, blake2b256(payload), "hash");
+    assert.isEqualBytes(BytesBlob.wrap(op.hash), BytesBlob.wrap(blake2b256(payload)), "hash");
     assert.isEqual(op.length, <u32>4, "length_LE");
     return assert;
   }),
@@ -134,7 +133,7 @@ export const TESTS: Test[] = [
     assert.isEqual(resp.data.length, 36, "data.length");
     if (resp.data.length !== 36) return assert;
     const op = decodeOperand(resp.data);
-    assertBytes(assert, op.hash, blake2b256(new Uint8Array(0)), "hash");
+    assert.isEqualBytes(BytesBlob.wrap(op.hash), BytesBlob.wrap(blake2b256(new Uint8Array(0))), "hash");
     assert.isEqual(op.length, <u32>0, "length_LE");
     return assert;
   }),
@@ -253,7 +252,7 @@ export const TESTS: Test[] = [
     const looked = preimages.lookup(Bytes32.wrapUnchecked(hashBytes));
     assert.isEqual(looked.isSome, true, "preimage looked up");
     if (!looked.isSome) return assert;
-    assertBytes(assert, looked.val!.raw, payload, "looked-up blob");
+    assert.isEqualBytes(looked.val!, BytesBlob.wrap(payload), "looked-up blob");
     return assert;
   }),
   test("index.ts dispatch routes len==2 to is_authorized, else to refine", () => {
@@ -288,7 +287,7 @@ export const TESTS: Test[] = [
 
     assert.isEqual(dispResp.result, refResp.result, "dispatch result matches direct refine");
     assert.isEqual(dispResp.data.length, refResp.data.length, "dispatch data length matches");
-    assertBytes(assert, dispResp.data.raw, refResp.data.raw, "dispatch data matches refine");
+    assert.isEqualBytes(dispResp.data, refResp.data, "dispatch data matches refine");
     return assert;
   }),
   test("accumulate skips insertion when solicit returns FULL", () => {
