@@ -14,6 +14,22 @@ declare function _setForgetResult(result: i64): void;
 @external("ecalli", "setProvideResult")
 declare function _setProvideResult(result: i64): void;
 
+// @ts-expect-error: decorator
+@external("ecalli", "getSolicitCount")
+declare function _getSolicitCount(): i64;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getForgetCount")
+declare function _getForgetCount(): i64;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getProvideCount")
+declare function _getProvideCount(): i64;
+
+// @ts-expect-error: decorator
+@external("ecalli", "resetPreimageCounters")
+declare function _resetPreimageCounters(): void;
+
 /** Configure accumulate preimage ecalli stubs. */
 export class TestPreimages {
   /**
@@ -39,5 +55,21 @@ export class TestPreimages {
   /** Configure provide() return value (0 = OK, -4 = WHO, -9 = HUH). */
   static setProvideResult(result: i64): void {
     _setProvideResult(result);
+  }
+
+  static getSolicitCount(): i64 {
+    return _getSolicitCount();
+  }
+
+  static getForgetCount(): i64 {
+    return _getForgetCount();
+  }
+
+  static getProvideCount(): i64 {
+    return _getProvideCount();
+  }
+
+  static resetCounters(): void {
+    _resetPreimageCounters();
   }
 }

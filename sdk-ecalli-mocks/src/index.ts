@@ -51,6 +51,7 @@ export { transfer, setTransferResult, resetTransfer } from "./accumulate/index.j
 export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult,
+  getSolicitCount, getForgetCount, getProvideCount, resetPreimageCounters,
 } from "./accumulate/index.js";
 
 // Reset
