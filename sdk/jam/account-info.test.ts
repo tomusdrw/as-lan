@@ -193,7 +193,7 @@ export const TESTS: Test[] = [
     const svc = CurrentServiceData.create();
     const key = ByteBuf.create(32).strAscii("newkey").finish();
     const val = BytesBlob.parseBlob("0x010203").okay!;
-    const result = svc.write(key, val.raw);
+    const result = svc.write(key, val);
     a.isEqual(result.isOkay, true, "should be ok");
     a.isEqual(result.okay!.isSome, false, "no previous value");
     return a;
@@ -211,11 +211,11 @@ export const TESTS: Test[] = [
     val2.raw.fill(0xbb);
 
     // First write — no previous value
-    svc.write(key, val1.raw);
+    svc.write(key, val1);
 
     // Second write — should return previous length (5)
     const key2 = ByteBuf.create(32).strAscii("overkey").finish();
-    const result = svc.write(key2, val2.raw);
+    const result = svc.write(key2, val2);
     a.isEqual(result.isOkay, true, "should be ok");
     a.isEqual(result.okay!.isSome, true, "has previous value");
     a.isEqual(result.okay!.val, 5, "previous length");
@@ -230,7 +230,7 @@ export const TESTS: Test[] = [
     const key = ByteBuf.create(32).strAscii("rtkey").finish();
     const val = BytesBlob.parseBlob("0xcafebabe").okay!;
 
-    svc.write(key, val.raw);
+    svc.write(key, val);
 
     const key2 = ByteBuf.create(32).strAscii("rtkey").finish();
     const result = svc.read(key2);

@@ -65,6 +65,20 @@ examples/
       accumulate.test.ts    Tests for accumulate ecallis via operand/transfer flow (14 tests)
       authorize.test.ts     Tests for general ecallis via authorize dispatch (7 tests)
       test-helpers.ts       Shared test utilities (callRefine, callAccumulate, builders)
+  library/                  Library service — hosts reusable PVM verification blobs
+                            (ed25519, blake2b, …) as preimages, resolved by name via
+                            storage. Refine demo invokes them via the Machine interface.
+    fixtures/
+      halt.pvm              Placeholder preimage bytes (real code lands later)
+    assembly/
+      index.ts              Exports refine + accumulate
+      refine.ts             Tag dispatch (0=demo, 1=admin) + inner-PVM lifecycle
+      accumulate.ts         Operand loop + admin command dispatch
+      admin.ts              AdminCommand tagged union + codec (Set/Remove/Solicit/Forget/Provide)
+      storage.ts            LibraryEntry + codec + "lib:<name>" key helper
+      test-helpers.ts       Shared test utilities (callRefine, callAccumulate, builders)
+      refine.test.ts
+      accumulate.test.ts
 docs/                       Documentation (mdbook)
 ```
 

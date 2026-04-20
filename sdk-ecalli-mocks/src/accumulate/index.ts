@@ -20,6 +20,7 @@ export { transfer, setTransferResult, resetTransfer } from "./transfer.js";
 export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult, resetPreimages,
+  getSolicitCount, getForgetCount, getProvideCount, resetPreimageCounters,
 } from "./preimages.js";
 
 import { resetPrivileged } from "./privileged.js";

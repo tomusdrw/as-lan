@@ -7,6 +7,10 @@ declare function _setMachineResult(result: i64): void;
 declare function _setPeekResult(result: i64): void;
 
 // @ts-expect-error: decorator
+@external("ecalli", "setPeekData")
+declare function _setPeekData(ptr: u32, len: u32): void;
+
+// @ts-expect-error: decorator
 @external("ecalli", "setPokeResult")
 declare function _setPokeResult(result: i64): void;
 
@@ -17,6 +21,10 @@ declare function _setPagesResult(result: i64): void;
 // @ts-expect-error: decorator
 @external("ecalli", "setInvokeResult")
 declare function _setInvokeResult(result: i64, r8: i64): void;
+
+// @ts-expect-error: decorator
+@external("ecalli", "setInvokeIoR7")
+declare function _setInvokeIoR7(value: i64): void;
 
 // @ts-expect-error: decorator
 @external("ecalli", "setExpungeResult")
@@ -32,6 +40,10 @@ export class TestMachine {
     _setPeekResult(result);
   }
 
+  static setPeekData(data: Uint8Array): void {
+    _setPeekData(u32(data.dataStart), data.length);
+  }
+
   static setPokeResult(result: i64): void {
     _setPokeResult(result);
   }
@@ -42,6 +54,10 @@ export class TestMachine {
 
   static setInvokeResult(result: i64, r8: i64 = 0): void {
     _setInvokeResult(result, r8);
+  }
+
+  static setInvokeIoR7(value: i64): void {
+    _setInvokeIoR7(value);
   }
 
   static setExpungeResult(result: i64): void {

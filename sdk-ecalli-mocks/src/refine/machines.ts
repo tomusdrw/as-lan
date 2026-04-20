@@ -3,15 +3,17 @@
 // machine (8), peek (9), poke (10), pages (11), invoke (12), expunge (13)
 // are tightly coupled — all operate on inner machines created via machine().
 
-import { writeI64 } from "../memory.js";
+import { readBytes, writeI64, writeToMem } from "../memory.js";
 
 let machineCounter = 0;
 let machineResult: bigint | null = null;
 let peekResult: bigint | null = null;
+let peekData: Uint8Array | null = null;
 let pokeResult: bigint | null = null;
 let pagesResult: bigint | null = null;
 let invokeResult: bigint | null = null;
 let invokeR8: bigint = 0n;
+let invokeIoR7: bigint | null = null;
 let expungeResult: bigint | null = null;
 
 /** Ecalli 8: Create inner PVM machine. */
@@ -27,10 +29,16 @@ export function machine(
 /** Ecalli 9: Peek inner machine memory — returns OK. */
 export function peek(
   _machine_id: number,
-  _dest_ptr: number,
+  dest_ptr: number,
   _source: number,
-  _length: number,
+  length: number,
 ): bigint {
+  // Skip memory write when the mock is configured with an error sentinel —
+  // a real host returning OOB/WHO would not touch the destination buffer.
+  if (peekResult !== null && peekResult < 0n) return peekResult;
+  if (peekData !== null) {
+    writeToMem(dest_ptr, peekData, 0, length);
+  }
   if (peekResult !== null) return peekResult;
   return 0n; // OK
 }
@@ -60,10 +68,14 @@ export function pages(
 /** Ecalli 12: Invoke inner machine — returns HALT (0), writes r8. */
 export function invoke(
   _machine_id: number,
-  _io_ptr: number,
+  io_ptr: number,
   out_r8: number,
 ): bigint {
   writeI64(out_r8, invokeR8);
+  if (invokeIoR7 !== null) {
+    // InvokeIo layout: [gas(8), r0(8), r1(8), ..., r12(8)]. r7 is at offset 8 + 7*8 = 64.
+    writeI64(io_ptr + 64, invokeIoR7);
+  }
   if (invokeResult !== null) return invokeResult;
   return 0n; // HALT
 }
@@ -86,6 +98,11 @@ export function setPeekResult(result: bigint): void {
   peekResult = result;
 }
 
+/** Configure peek() to copy these bytes into dest_ptr. AS calls via (ptr, len). */
+export function setPeekData(ptr: number, len: number): void {
+  peekData = readBytes(ptr, len);
+}
+
 export function setPokeResult(result: bigint): void {
   pokeResult = result;
 }
@@ -99,6 +116,10 @@ export function setInvokeResult(result: bigint, r8: bigint = 0n): void {
   invokeR8 = r8;
 }
 
+export function setInvokeIoR7(value: bigint): void {
+  invokeIoR7 = value;
+}
+
 export function setExpungeResult(result: bigint): void {
   expungeResult = result;
 }
@@ -107,9 +128,11 @@ export function resetMachines(): void {
   machineCounter = 0;
   machineResult = null;
   peekResult = null;
+  peekData = null;
   pokeResult = null;
   pagesResult = null;
   invokeResult = null;
   invokeR8 = 0n;
+  invokeIoR7 = null;
   expungeResult = null;
 }

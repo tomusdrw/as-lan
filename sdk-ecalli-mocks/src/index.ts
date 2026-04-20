@@ -28,7 +28,8 @@ export {
 export { export_segment as export, setExportSegmentResult } from "./refine/index.js";
 export {
   machine, peek, poke, pages, invoke, expunge,
-  setMachineResult, setPeekResult, setPokeResult, setPagesResult, setInvokeResult, setExpungeResult,
+  setMachineResult, setPeekResult, setPeekData, setPokeResult, setPagesResult, setInvokeResult,
+  setInvokeIoR7, setExpungeResult,
 } from "./refine/index.js";
 
 // Accumulate ecalli stubs (14-26)
@@ -50,6 +51,7 @@ export { transfer, setTransferResult, resetTransfer } from "./accumulate/index.j
 export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult,
+  getSolicitCount, getForgetCount, getProvideCount, resetPreimageCounters,
 } from "./accumulate/index.js";
 
 // Reset

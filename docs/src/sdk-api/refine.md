@@ -128,3 +128,35 @@ Typed wrapper for the 112-byte gas+registers I/O structure:
 ### PageAccess
 
 `Inaccessible` (0), `Read` (1), `ReadWrite` (2).
+
+### Calling convention for library-style inner PVMs
+
+The `Machine` API is general — you can set up any memory layout and register
+state you like. For the common case of invoking a *library* PVM (an inner
+blob that takes some input, returns some output, and halts), `examples/library/`
+uses a fixed convention mirroring the outer JAM service ABI:
+
+**On entry (before `invoke`):**
+
+- Caller maps a RW page region at `INPUT_ADDR = 0xFEFF0000` via
+  `machine.pages(startPage, pageCount, PageAccess.ReadWrite)` sized to fit
+  the payload (`pageCount = ceil(payload.length / 4096)`).
+- Caller copies the payload into inner memory with `machine.poke(INPUT_ADDR, payload)`.
+- Caller sets `io.setRegister(7, INPUT_ADDR)` and `io.setRegister(8, payload.length)`
+  — the same `(ptr, len)` convention every JAM service entry point receives.
+
+**On halt:**
+
+- Inner PVM places its output anywhere in its memory and returns a packed
+  `ptrAndLen` in `r7` — low 32 bits = address, high 32 bits = length, matching
+  the SDK's `ptrAndLen(Uint8Array)` helper.
+- Caller unpacks `r7`, calls `machine.peek(outAddr, buf)` for `outLen` bytes,
+  then `machine.expunge()`.
+
+**Why this matters:** writing a library PVM to a different convention means
+consumers have to special-case your library. Following this convention lets
+authors of ed25519, blake2b, and similar verification primitives all be
+invoked identically.
+
+See `examples/library/assembly/refine.ts` for the full reference
+implementation (error handling, page sizing, peek unwind on failure).

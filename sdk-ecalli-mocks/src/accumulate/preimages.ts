@@ -13,6 +13,10 @@ let solicitResult: bigint = 0n; // OK
 let forgetResult: bigint = 0n; // OK
 let provideResult: bigint = 0n; // OK
 
+let solicitCount = 0;
+let forgetCount = 0;
+let provideCount = 0;
+
 /** Configure the query ecalli return values (r7, r8). */
 export function setQueryResult(r7: bigint, r8: bigint): void {
   queryR7 = r7;
@@ -34,12 +38,33 @@ export function setProvideResult(result: bigint): void {
   provideResult = result;
 }
 
+export function getSolicitCount(): bigint {
+  return BigInt(solicitCount);
+}
+
+export function getForgetCount(): bigint {
+  return BigInt(forgetCount);
+}
+
+export function getProvideCount(): bigint {
+  return BigInt(provideCount);
+}
+
+export function resetPreimageCounters(): void {
+  solicitCount = 0;
+  forgetCount = 0;
+  provideCount = 0;
+}
+
 export function resetPreimages(): void {
   queryR7 = -1n;
   queryR8 = 0n;
   solicitResult = 0n;
   forgetResult = 0n;
   provideResult = 0n;
+  solicitCount = 0;
+  forgetCount = 0;
+  provideCount = 0;
 }
 
 // ─── Ecalli stubs ────────────────────────────────────────────────────────
@@ -59,6 +84,7 @@ export function solicit(
   _hash_ptr: number,
   _length: number,
 ): bigint {
+  solicitCount++;
   return solicitResult;
 }
 
@@ -67,6 +93,7 @@ export function forget(
   _hash_ptr: number,
   _length: number,
 ): bigint {
+  forgetCount++;
   return forgetResult;
 }
 
@@ -83,5 +110,6 @@ export function provide(
   _preimage_ptr: number,
   _preimage_len: number,
 ): bigint {
+  provideCount++;
   return provideResult;
 }
