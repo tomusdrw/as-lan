@@ -2,6 +2,7 @@ import { Bytes32, BytesBlob, Decoder, Encoder, InvokeIo, Machine } from "@fluffy
 import { Assert, Test, TestMachine, test } from "@fluffylabs/as-lan/test";
 import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKey } from "./storage";
+import { callRefine } from "./test-helpers";
 
 export const TESTS: Test[] = [
   test("mock: setInvokeIoR7 writes r7 into InvokeIo after invoke", () => {
@@ -129,6 +130,20 @@ export const TESTS: Test[] = [
     const bytes = BytesBlob.parseBlob("0x99").okay!.raw;
     const r = codec.decode(Decoder.fromBlob(bytes));
     assert.isEqual(r.isError, true, "should error");
+    return assert;
+  }),
+
+  test("refine: unknown tag returns -7", () => {
+    const assert = Assert.create();
+    const resp = callRefine(BytesBlob.parseBlob("0x99").okay!.raw); // tag=0x99 unknown
+    assert.isEqual(resp.result, -7, "result");
+    return assert;
+  }),
+
+  test("refine: empty payload returns -7", () => {
+    const assert = Assert.create();
+    const resp = callRefine(new Uint8Array(0));
+    assert.isEqual(resp.result, -7, "result");
     return assert;
   }),
 
