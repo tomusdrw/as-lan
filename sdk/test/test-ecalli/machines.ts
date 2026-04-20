@@ -7,6 +7,10 @@ declare function _setMachineResult(result: i64): void;
 declare function _setPeekResult(result: i64): void;
 
 // @ts-expect-error: decorator
+@external("ecalli", "setPeekData")
+declare function _setPeekData(ptr: u32, len: u32): void;
+
+// @ts-expect-error: decorator
 @external("ecalli", "setPokeResult")
 declare function _setPokeResult(result: i64): void;
 
@@ -34,6 +38,10 @@ export class TestMachine {
 
   static setPeekResult(result: i64): void {
     _setPeekResult(result);
+  }
+
+  static setPeekData(data: Uint8Array): void {
+    _setPeekData(u32(data.dataStart), data.length);
   }
 
   static setPokeResult(result: i64): void {

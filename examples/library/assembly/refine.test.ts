@@ -18,4 +18,21 @@ export const TESTS: Test[] = [
     assert.isEqual(io.getRegister(7), 0x0000000500000100, "r7 written");
     return assert;
   }),
+
+  test("mock: setPeekData writes configured bytes to dest", () => {
+    const assert = Assert.create();
+    const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
+    TestMachine.setPeekData(payload.raw);
+
+    const r = Machine.create(BytesBlob.zero(4), 0);
+    if (r.isError) {
+      assert.fail("machine create failed");
+      return assert;
+    }
+    const m = r.okay;
+    const buf = BytesBlob.zero(4);
+    m.peek(0, buf);
+    assert.isEqualBytes(buf, payload, "peek data");
+    return assert;
+  }),
 ];
