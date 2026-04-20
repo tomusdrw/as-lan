@@ -83,6 +83,3 @@ points:
 - **No rate limit**: a flood can fill the recent-ring buffer in 32 slots.
 - **First-writer-wins idempotency**: re-submitting the same hash silently
   preserves the original slot rather than refreshing the TTL.
-
-See `docs/superpowers/specs/2026-04-19-token-and-pastebin-examples-design.md`
-(Section C) for full design rationale.
