@@ -1,5 +1,6 @@
 import { Bytes32, BytesBlob, Decoder, Encoder, InvokeIo, Machine } from "@fluffylabs/as-lan";
 import { Assert, Test, TestMachine, test } from "@fluffylabs/as-lan/test";
+import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKey } from "./storage";
 
 export const TESTS: Test[] = [
@@ -43,6 +44,91 @@ export const TESTS: Test[] = [
     const key = libraryKey("ed25519");
     const expected = BytesBlob.encodeAscii("lib:ed25519");
     assert.isEqualBytes(BytesBlob.wrap(key), expected, "key");
+    return assert;
+  }),
+
+  test("admin: SetMapping round-trip", () => {
+    const assert = Assert.create();
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0xaa;
+    const cmd = AdminCommand.setMapping(BytesBlob.encodeAscii("ed25519"), hash, 4096);
+    const codec = AdminCommandCodec.create();
+
+    const enc = Encoder.create();
+    codec.encode(cmd, enc);
+    const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
+    assert.isEqual<u32>(decoded.kind, AdminCommandKind.SetMapping, "kind");
+    assert.isEqualBytes(decoded.name!, BytesBlob.encodeAscii("ed25519"), "name");
+    assert.isEqual(decoded.hash!.raw[0], 0xaa, "hash");
+    assert.isEqual(decoded.length, 4096, "length");
+    return assert;
+  }),
+
+  test("admin: RemoveMapping round-trip", () => {
+    const assert = Assert.create();
+    const cmd = AdminCommand.removeMapping(BytesBlob.encodeAscii("blake2b"));
+    const codec = AdminCommandCodec.create();
+
+    const enc = Encoder.create();
+    codec.encode(cmd, enc);
+    const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
+    assert.isEqual<u32>(decoded.kind, AdminCommandKind.RemoveMapping, "kind");
+    assert.isEqualBytes(decoded.name!, BytesBlob.encodeAscii("blake2b"), "name");
+    return assert;
+  }),
+
+  test("admin: Solicit round-trip", () => {
+    const assert = Assert.create();
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0xbb;
+    const cmd = AdminCommand.solicit(hash, 2048);
+    const codec = AdminCommandCodec.create();
+
+    const enc = Encoder.create();
+    codec.encode(cmd, enc);
+    const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
+    assert.isEqual<u32>(decoded.kind, AdminCommandKind.Solicit, "kind");
+    assert.isEqual(decoded.hash!.raw[0], 0xbb, "hash");
+    assert.isEqual(decoded.length, 2048, "length");
+    return assert;
+  }),
+
+  test("admin: Forget round-trip", () => {
+    const assert = Assert.create();
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0xcc;
+    const cmd = AdminCommand.forget(hash, 512);
+    const codec = AdminCommandCodec.create();
+
+    const enc = Encoder.create();
+    codec.encode(cmd, enc);
+    const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
+    assert.isEqual<u32>(decoded.kind, AdminCommandKind.Forget, "kind");
+    assert.isEqual(decoded.hash!.raw[0], 0xcc, "hash");
+    assert.isEqual(decoded.length, 512, "length");
+    return assert;
+  }),
+
+  test("admin: Provide round-trip", () => {
+    const assert = Assert.create();
+    const preimage = BytesBlob.parseBlob("0x01020304").okay!;
+    const cmd = AdminCommand.provide(preimage);
+    const codec = AdminCommandCodec.create();
+
+    const enc = Encoder.create();
+    codec.encode(cmd, enc);
+    const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
+    assert.isEqual<u32>(decoded.kind, AdminCommandKind.Provide, "kind");
+    assert.isEqualBytes(decoded.preimage!, preimage, "preimage");
+    return assert;
+  }),
+
+  test("admin: decode rejects unknown tag", () => {
+    const assert = Assert.create();
+    const codec = AdminCommandCodec.create();
+    const bytes = BytesBlob.parseBlob("0x99").okay!.raw;
+    const r = codec.decode(Decoder.fromBlob(bytes));
+    assert.isEqual(r.isError, true, "should error");
     return assert;
   }),
 
