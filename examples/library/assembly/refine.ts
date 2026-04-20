@@ -2,16 +2,22 @@ import { BytesBlob, Decoder, Encoder, ExitReason, InvokeIo, PageAccess, RefineCo
 import { AdminCommandCodec } from "./admin";
 import { LibraryEntryCodec, libraryKeyFromBlob } from "./storage";
 
-// Error codes use the -100..-106 range to avoid overlap with EcalliResult
-// sentinels (NONE=-1, OOB=-3, WHO=-4, FULL=-5, HUH=-9) that may appear in
-// the same `ecalliResult` field when raw ecalli results leak through.
-const ERR_UNKNOWN_LIB: i64 = -100;
-const ERR_PREIMAGE_MISS: i64 = -101;
-const ERR_INVALID_ENTRYPOINT: i64 = -102;
-const ERR_INVOKE_FAILURE: i64 = -103;
-const ERR_OOB: i64 = -104;
-const ERR_ADMIN_MALFORMED: i64 = -105;
-const ERR_PARSE: i64 = -106;
+/**
+ * Error codes returned in `Response.result` (decoded by the caller).
+ *
+ * Values live in the `-100..-106` range to avoid overlap with `EcalliResult`
+ * sentinels (NONE=-1, OOB=-3, WHO=-4, FULL=-5, HUH=-9) that may appear in the
+ * same field when raw ecalli results leak through.
+ */
+export enum LibraryError {
+  UnknownLib = -100,
+  PreimageMiss = -101,
+  InvalidEntryPoint = -102,
+  InvokeFailure = -103,
+  Oob = -104,
+  AdminMalformed = -105,
+  Parse = -106,
+}
 
 const INPUT_ADDR: u32 = 0xfeff0000;
 const PAGE_SIZE: u32 = 4096;
@@ -25,14 +31,14 @@ export function refine(ptr: u32, len: u32): u64 {
   const args = ctx.parseArgs(ptr, len);
   const payload = args.payload;
 
-  if (payload.length < 1) return ctx.respond(ERR_PARSE);
+  if (payload.length < 1) return ctx.respond(i64(LibraryError.Parse));
 
   const tag = payload.raw[0];
   const rest = BytesBlob.wrap(payload.raw.subarray(1));
 
   if (tag === 0) return handleDemo(ctx, rest);
   if (tag === 1) return handleAdmin(ctx, rest);
-  return ctx.respond(ERR_PARSE);
+  return ctx.respond(i64(LibraryError.Parse));
 }
 
 function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
@@ -41,26 +47,28 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
   const entrypoint = d.u32();
   const gas = d.u64();
   const callPayload = d.bytesVarLen();
-  if (d.isError) return ctx.respond(ERR_PARSE);
-  if (!d.isFinished()) return ctx.respond(ERR_PARSE);
+  if (d.isError) return ctx.respond(i64(LibraryError.Parse));
+  if (!d.isFinished()) return ctx.respond(i64(LibraryError.Parse));
 
   // Resolve name → LibraryEntry via storage
   const storage = ctx.serviceData();
   const stored = storage.read(libraryKeyFromBlob(name));
-  if (!stored.isSome) return ctx.respond(ERR_UNKNOWN_LIB);
+  if (!stored.isSome) return ctx.respond(i64(LibraryError.UnknownLib));
   const entryDecoder = Decoder.fromBlob(stored.val!);
   const entryR = LibraryEntryCodec.create().decode(entryDecoder);
-  if (entryR.isError || !entryDecoder.isFinished()) return ctx.respond(ERR_UNKNOWN_LIB);
+  if (entryR.isError || !entryDecoder.isFinished()) return ctx.respond(i64(LibraryError.UnknownLib));
   const entry = entryR.okay!;
 
-  // Fetch preimage (historical lookup — required in refine context)
-  const preimageOpt = ctx.preimages().historicalLookup(entry.hash);
-  if (!preimageOpt.isSome) return ctx.respond(ERR_PREIMAGE_MISS);
+  // Fetch preimage (historical lookup — required in refine context).
+  // Pre-size the helper's buffer to the known preimage length to avoid
+  // an initial short-read + auto-expand round trip.
+  const preimageOpt = ctx.preimages(entry.length).historicalLookup(entry.hash);
+  if (!preimageOpt.isSome) return ctx.respond(i64(LibraryError.PreimageMiss));
   const code = preimageOpt.val!;
 
   // Spawn inner machine
   const machineR = ctx.machine(code, entrypoint);
-  if (machineR.isError) return ctx.respond(ERR_INVALID_ENTRYPOINT);
+  if (machineR.isError) return ctx.respond(i64(LibraryError.InvalidEntryPoint));
   const m = machineR.okay;
 
   // Allocate RW pages at INPUT_ADDR to fit the payload (at least one page).
@@ -72,7 +80,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
   const pokeR = m.poke(INPUT_ADDR, callPayload);
   if (pokeR.isError) {
     m.expunge();
-    return ctx.respond(ERR_OOB);
+    return ctx.respond(i64(LibraryError.Oob));
   }
 
   // Build IO (SPI convention: r7 = input ptr, r8 = input len) and invoke.
@@ -86,7 +94,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
     const errEnc = Encoder.create();
     errEnc.u8(u8(outcome.reason));
     errEnc.u64(u64(outcome.r8));
-    return ctx.respond(ERR_INVOKE_FAILURE, errEnc.finishRaw());
+    return ctx.respond(i64(LibraryError.InvokeFailure), errEnc.finishRaw());
   }
 
   // Unpack r7 = ptrAndLen (low 32 = ptr, high 32 = len).
@@ -95,7 +103,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
   const outLen: u32 = u32(r7 >> 32);
   if (outLen > MAX_OUTPUT_LEN) {
     m.expunge();
-    return ctx.respond(ERR_OOB);
+    return ctx.respond(i64(LibraryError.Oob));
   }
 
   const outBuf = BytesBlob.zero(outLen);
@@ -103,7 +111,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
     const peekR = m.peek(outAddr, outBuf);
     if (peekR.isError) {
       m.expunge();
-      return ctx.respond(ERR_OOB);
+      return ctx.respond(i64(LibraryError.Oob));
     }
   }
   m.expunge();
@@ -114,8 +122,8 @@ function handleAdmin(ctx: RefineContext, rest: BytesBlob): u64 {
   const codec = AdminCommandCodec.create();
   const d = Decoder.fromBlob(rest.raw);
   const r = codec.decode(d);
-  if (r.isError) return ctx.respond(ERR_ADMIN_MALFORMED);
-  if (!d.isFinished()) return ctx.respond(ERR_ADMIN_MALFORMED);
+  if (r.isError) return ctx.respond(i64(LibraryError.AdminMalformed));
+  if (!d.isFinished()) return ctx.respond(i64(LibraryError.AdminMalformed));
 
   const enc = Encoder.create();
   codec.encode(r.okay!, enc);
