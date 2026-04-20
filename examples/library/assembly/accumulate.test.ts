@@ -31,6 +31,57 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
+  test("accumulate: RemoveMapping deletes storage entry", () => {
+    const assert = Assert.create();
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0x11;
+    const entryEnc = Encoder.create();
+    LibraryEntryCodec.create().encode(LibraryEntry.create(hash, 32), entryEnc);
+    TestStorage.set(BytesBlob.wrap(libraryKey("blake2b")), BytesBlob.wrap(entryEnc.finishRaw()));
+
+    const cmd = AdminCommand.removeMapping(BytesBlob.encodeAscii("blake2b"));
+    TestAccumulate.setItem(0, buildAdminOperand(encodeAdmin(cmd)));
+    callAccumulate(1);
+
+    const got = CurrentServiceData.create().read(libraryKey("blake2b"));
+    assert.isEqual(got.isSome, false, "entry removed");
+    return assert;
+  }),
+
+  test("accumulate: Solicit calls solicit ecalli", () => {
+    const assert = Assert.create();
+    TestPreimages.resetCounters();
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0x22;
+    const cmd = AdminCommand.solicit(hash, 1024);
+    TestAccumulate.setItem(0, buildAdminOperand(encodeAdmin(cmd)));
+    callAccumulate(1);
+    assert.isEqual(TestPreimages.getSolicitCount(), 1, "solicit count");
+    return assert;
+  }),
+
+  test("accumulate: Forget calls forget ecalli", () => {
+    const assert = Assert.create();
+    TestPreimages.resetCounters();
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0x33;
+    const cmd = AdminCommand.forget(hash, 512);
+    TestAccumulate.setItem(0, buildAdminOperand(encodeAdmin(cmd)));
+    callAccumulate(1);
+    assert.isEqual(TestPreimages.getForgetCount(), 1, "forget count");
+    return assert;
+  }),
+
+  test("accumulate: Provide calls provide ecalli", () => {
+    const assert = Assert.create();
+    TestPreimages.resetCounters();
+    const cmd = AdminCommand.provide(BytesBlob.parseBlob("0xdeadbeef").okay!);
+    TestAccumulate.setItem(0, buildAdminOperand(encodeAdmin(cmd)));
+    callAccumulate(1);
+    assert.isEqual(TestPreimages.getProvideCount(), 1, "provide count");
+    return assert;
+  }),
+
   test("accumulate: SetMapping writes LibraryEntry to storage", () => {
     const assert = Assert.create();
     TestStorage.set(BytesBlob.wrap(libraryKey("ed25519")), null);

@@ -37,5 +37,13 @@ function dispatch(ctx: AccumulateContext, cmd: AdminCommand): void {
     const entryEnc = Encoder.create();
     LibraryEntryCodec.create().encode(LibraryEntry.create(cmd.hash!, cmd.length), entryEnc);
     ctx.serviceData().write(libraryKeyFromBlob(cmd.name!), entryEnc.finishRaw());
+  } else if (cmd.kind === AdminCommandKind.RemoveMapping) {
+    ctx.serviceData().write(libraryKeyFromBlob(cmd.name!), new Uint8Array(0));
+  } else if (cmd.kind === AdminCommandKind.Solicit) {
+    ctx.preimages().solicit(cmd.hash!, cmd.length);
+  } else if (cmd.kind === AdminCommandKind.Forget) {
+    ctx.preimages().forget(cmd.hash!, cmd.length);
+  } else if (cmd.kind === AdminCommandKind.Provide) {
+    ctx.preimages().provide(cmd.preimage!);
   }
 }
