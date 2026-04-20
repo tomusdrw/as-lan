@@ -15,6 +15,10 @@ const ERR_PARSE: i64 = -106;
 
 const INPUT_ADDR: u32 = 0xfeff0000;
 const PAGE_SIZE: u32 = 4096;
+// Cap on the output length the inner PVM may report in r7. Bounds the
+// response-buffer allocation so a buggy or malicious library cannot force
+// a multi-GB allocation before peek() gets a chance to surface the error.
+const MAX_OUTPUT_LEN: u32 = 64 * 1024;
 
 export function refine(ptr: u32, len: u32): u64 {
   const ctx = RefineContext.create();
@@ -44,8 +48,9 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
   const storage = ctx.serviceData();
   const stored = storage.read(libraryKeyFromBlob(name));
   if (!stored.isSome) return ctx.respond(ERR_UNKNOWN_LIB);
-  const entryR = LibraryEntryCodec.create().decode(Decoder.fromBlob(stored.val!));
-  if (entryR.isError) return ctx.respond(ERR_UNKNOWN_LIB);
+  const entryDecoder = Decoder.fromBlob(stored.val!);
+  const entryR = LibraryEntryCodec.create().decode(entryDecoder);
+  if (entryR.isError || !entryDecoder.isFinished()) return ctx.respond(ERR_UNKNOWN_LIB);
   const entry = entryR.okay!;
 
   // Fetch preimage (historical lookup — required in refine context)
@@ -88,6 +93,10 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
   const r7 = io.getRegister(7);
   const outAddr: u32 = u32(r7 & 0xffffffff);
   const outLen: u32 = u32(r7 >> 32);
+  if (outLen > MAX_OUTPUT_LEN) {
+    m.expunge();
+    return ctx.respond(ERR_OOB);
+  }
 
   const outBuf = BytesBlob.zero(outLen);
   if (outLen > 0) {

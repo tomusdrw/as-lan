@@ -308,6 +308,39 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
+  test("refine demo: oversized output length returns -104 without allocating", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("huge", 0xdd, 16);
+    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestMachine.setMachineResult(0);
+    TestMachine.setPagesResult(0);
+    TestMachine.setPokeResult(0);
+    TestMachine.setInvokeResult(0, 0); // Halt
+    // r7 = ptrAndLen(ptr=0, len=0xFFFFFFFF) — wildly larger than MAX_OUTPUT_LEN.
+    TestMachine.setInvokeIoR7((i64(0xffffffff) << 32) | i64(0));
+    TestMachine.setExpungeResult(0);
+
+    const resp = callRefine(buildDemoInput("huge", 0, 1000, BytesBlob.empty()));
+    assert.isEqual(resp.result, -104, "oversized outLen capped before alloc");
+    return assert;
+  }),
+
+  test("refine demo: trailing bytes in stored entry return -100", () => {
+    const assert = Assert.create();
+    // Valid 36-byte LibraryEntry + 1 trailing junk byte.
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0x77;
+    const entry = LibraryEntry.create(hash, 32);
+    const enc = Encoder.create();
+    LibraryEntryCodec.create().encode(entry, enc);
+    enc.u8(0xff); // trailing junk
+    TestStorage.set(BytesBlob.wrap(libraryKey("trail")), BytesBlob.wrap(enc.finishRaw()));
+
+    const resp = callRefine(buildDemoInput("trail", 0, 1000, BytesBlob.empty()));
+    assert.isEqual(resp.result, -100, "trailing bytes in stored entry rejected");
+    return assert;
+  }),
+
   test("refine demo: peek OOB returns -104", () => {
     const assert = Assert.create();
     seedLibraryMapping("oob", 0xcc, 16);
