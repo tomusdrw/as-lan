@@ -1,13 +1,4 @@
-import {
-  Bytes32,
-  BytesBlob,
-  DecodeError,
-  Decoder,
-  Encoder,
-  Result,
-  TryDecode,
-  TryEncode,
-} from "@fluffylabs/as-lan";
+import { Bytes32, BytesBlob, DecodeError, Decoder, Encoder, Result, TryDecode, TryEncode } from "@fluffylabs/as-lan";
 
 export enum AdminCommandKind {
   SetMapping = 0,
@@ -102,17 +93,13 @@ export class AdminCommandCodec implements TryDecode<AdminCommand>, TryEncode<Adm
       const hashBytes = d.bytesFixLen(32);
       const length = d.u32();
       if (d.isError) return Result.err<AdminCommand, DecodeError>(DecodeError.MissingBytes);
-      return Result.ok<AdminCommand, DecodeError>(
-        AdminCommand.solicit(Bytes32.wrapUnchecked(hashBytes.raw), length),
-      );
+      return Result.ok<AdminCommand, DecodeError>(AdminCommand.solicit(Bytes32.wrapUnchecked(hashBytes.raw), length));
     }
     if (tag === u8(AdminCommandKind.Forget)) {
       const hashBytes = d.bytesFixLen(32);
       const length = d.u32();
       if (d.isError) return Result.err<AdminCommand, DecodeError>(DecodeError.MissingBytes);
-      return Result.ok<AdminCommand, DecodeError>(
-        AdminCommand.forget(Bytes32.wrapUnchecked(hashBytes.raw), length),
-      );
+      return Result.ok<AdminCommand, DecodeError>(AdminCommand.forget(Bytes32.wrapUnchecked(hashBytes.raw), length));
     }
     if (tag === u8(AdminCommandKind.Provide)) {
       const preimage = d.bytesVarLen();

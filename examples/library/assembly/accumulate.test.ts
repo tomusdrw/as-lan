@@ -1,11 +1,4 @@
-import {
-  AccumulateContext,
-  Bytes32,
-  BytesBlob,
-  CurrentServiceData,
-  Decoder,
-  Encoder,
-} from "@fluffylabs/as-lan";
+import { AccumulateContext, Bytes32, BytesBlob, CurrentServiceData, Decoder, Encoder } from "@fluffylabs/as-lan";
 import { Assert, Test, TestAccumulate, TestPreimages, TestStorage, test } from "@fluffylabs/as-lan/test";
 import { AdminCommand, AdminCommandCodec } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKey } from "./storage";

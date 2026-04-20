@@ -1,13 +1,4 @@
-import {
-  Bytes32,
-  BytesBlob,
-  DecodeError,
-  Decoder,
-  Encoder,
-  Result,
-  TryDecode,
-  TryEncode,
-} from "@fluffylabs/as-lan";
+import { Bytes32, BytesBlob, DecodeError, Decoder, Encoder, Result, TryDecode, TryEncode } from "@fluffylabs/as-lan";
 
 /** Storage value for a library mapping: preimage hash + its length. */
 export class LibraryEntry {

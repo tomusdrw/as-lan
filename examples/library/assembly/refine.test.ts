@@ -1,6 +1,5 @@
 import { Bytes32, BytesBlob, Decoder, Encoder, InvokeIo, Machine } from "@fluffylabs/as-lan";
-import { Assert, Test, TestMachine, test } from "@fluffylabs/as-lan/test";
-import { TestHistoricalLookup, TestStorage } from "@fluffylabs/as-lan/test";
+import { Assert, Test, TestHistoricalLookup, TestMachine, TestStorage, test } from "@fluffylabs/as-lan/test";
 import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKey } from "./storage";
 import { callRefine } from "./test-helpers";
@@ -228,7 +227,7 @@ export const TESTS: Test[] = [
     TestMachine.setPagesResult(0);
     // invoke returns Halt (0); r7 post-invoke = packed ptrAndLen(ptr=0xFEFF2000, len=3)
     TestMachine.setInvokeResult(0, 0);
-    TestMachine.setInvokeIoR7((i64(3) << 32) | i64(0xFEFF2000));
+    TestMachine.setInvokeIoR7((i64(3) << 32) | i64(0xfeff2000));
     const expected = BytesBlob.parseBlob("0x010203").okay!;
     TestMachine.setPeekData(expected.raw);
     TestMachine.setExpungeResult(0);

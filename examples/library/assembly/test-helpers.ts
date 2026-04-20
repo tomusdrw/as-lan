@@ -13,7 +13,7 @@ import {
   WorkExecResult,
   WorkExecResultKind,
 } from "@fluffylabs/as-lan";
-import { TestAccumulate, unpackResult } from "@fluffylabs/as-lan/test";
+import { unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
 import { refine } from "./refine";
 
@@ -22,13 +22,7 @@ const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
 /** Call refine with the given payload and decode the Response. */
 export function callRefine(payload: Uint8Array): Response {
   const ctx = RefineContext.create();
-  const args = RefineArgs.create(
-    0,
-    0,
-    42,
-    BytesBlob.wrap(payload),
-    Bytes32.wrapUnchecked(new Uint8Array(32)),
-  );
+  const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
   const enc = Encoder.create();
   ctx.refineArgs.encode(args, enc);
   const encoded = enc.finishRaw();

@@ -1,12 +1,4 @@
-import {
-  BytesBlob,
-  Decoder,
-  Encoder,
-  ExitReason,
-  InvokeIo,
-  PageAccess,
-  RefineContext,
-} from "@fluffylabs/as-lan";
+import { BytesBlob, Decoder, Encoder, ExitReason, InvokeIo, PageAccess, RefineContext } from "@fluffylabs/as-lan";
 import { AdminCommandCodec } from "./admin";
 import { LibraryEntryCodec, libraryKeyFromBlob } from "./storage";
 
@@ -64,8 +56,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
 
   // Allocate RW pages at INPUT_ADDR to fit the payload (at least one page).
   const startPage: u32 = INPUT_ADDR / PAGE_SIZE;
-  const pageCount: u32 =
-    callPayload.length === 0 ? 1 : (u32(callPayload.length) + PAGE_SIZE - 1) / PAGE_SIZE;
+  const pageCount: u32 = callPayload.length === 0 ? 1 : (u32(callPayload.length) + PAGE_SIZE - 1) / PAGE_SIZE;
   m.pages(startPage, pageCount, PageAccess.ReadWrite);
 
   // Poke payload into inner PVM memory.

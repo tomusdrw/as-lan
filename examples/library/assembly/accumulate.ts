@@ -1,10 +1,4 @@
-import {
-  AccumulateContext,
-  Bytes32,
-  Decoder,
-  Encoder,
-  WorkExecResultKind,
-} from "@fluffylabs/as-lan";
+import { AccumulateContext, Bytes32, Decoder, Encoder, WorkExecResultKind } from "@fluffylabs/as-lan";
 import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKeyFromBlob } from "./storage";
 
