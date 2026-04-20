@@ -82,6 +82,32 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
+  test("accumulate: malformed operand bytes are skipped silently", () => {
+    const assert = Assert.create();
+    TestPreimages.resetCounters();
+    TestAccumulate.setItem(0, buildAdminOperand(BytesBlob.parseBlob("0x99ff").okay!.raw));
+    const hash = Bytes32.zero();
+    const good = encodeAdmin(AdminCommand.solicit(hash, 1));
+    TestAccumulate.setItem(1, buildAdminOperand(good));
+    callAccumulate(2);
+    assert.isEqual(TestPreimages.getSolicitCount(), 1, "good operand still dispatched");
+    return assert;
+  }),
+
+  test("accumulate: multiple operands processed in order", () => {
+    const assert = Assert.create();
+    TestPreimages.resetCounters();
+    const h1 = Bytes32.zero();
+    h1.raw[0] = 0xaa;
+    const h2 = Bytes32.zero();
+    h2.raw[0] = 0xbb;
+    TestAccumulate.setItem(0, buildAdminOperand(encodeAdmin(AdminCommand.solicit(h1, 1))));
+    TestAccumulate.setItem(1, buildAdminOperand(encodeAdmin(AdminCommand.solicit(h2, 2))));
+    callAccumulate(2);
+    assert.isEqual(TestPreimages.getSolicitCount(), 2, "both dispatched");
+    return assert;
+  }),
+
   test("accumulate: SetMapping writes LibraryEntry to storage", () => {
     const assert = Assert.create();
     TestStorage.set(BytesBlob.wrap(libraryKey("ed25519")), null);
