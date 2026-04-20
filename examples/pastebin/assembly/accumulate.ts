@@ -2,6 +2,7 @@ import {
   AccumulateContext,
   AccumulatePreimages,
   Bytes32,
+  BytesBlob,
   CurrentServiceData,
   panic,
   Response,
@@ -33,7 +34,7 @@ function appendHashToExpiryBucket(storage: CurrentServiceData, bucketKey: Uint8A
   const out = new Uint8Array(prev.length + 32);
   out.set(prev, 0);
   out.set(hash.raw, prev.length);
-  storage.write(bucketKey, out);
+  storage.write(bucketKey, BytesBlob.wrap(out));
 }
 
 /**
@@ -79,7 +80,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
       const solicitRes = preimages.solicit(hash, length);
       if (!solicitRes.isError) {
         // Metadata.
-        storage.write(pasteKey(hash).raw, PasteEntry.create(currentSlot, length).encode().raw);
+        storage.write(pasteKey(hash).raw, PasteEntry.create(currentSlot, length).encode());
 
         // Ring buffer of recent pastes: write hash ‖ slot at recent:<head % N>,
         // then bump the head counter.
@@ -88,11 +89,11 @@ export function accumulate(ptr: u32, len: u32): u64 {
         const entry = new Uint8Array(36);
         entry.set(hash.raw, 0);
         writeU32LE(entry, 32, currentSlot);
-        storage.write(recentKey(head % RECENT_N).raw, entry);
+        storage.write(recentKey(head % RECENT_N).raw, BytesBlob.wrap(entry));
 
         const newHead = new Uint8Array(4);
         writeU32LE(newHead, 0, head + 1);
-        storage.write(recentHeadKey().raw, newHead);
+        storage.write(recentHeadKey().raw, BytesBlob.wrap(newHead));
 
         // Expiry bucket.
         const expireAt: u32 = currentSlot + TTL_SLOTS;
@@ -151,18 +152,18 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
         const entry = PasteEntry.decodeOrPanic(entryBlob.val!);
         // forget result ignored: the paste metadata is being deleted either way.
         preimages.forget(hash, entry.length);
-        storage.write(pasteKey(hash).raw, new Uint8Array(0));
+        storage.write(pasteKey(hash).raw, BytesBlob.empty());
       }
       off += 32;
     }
     // Delete the bucket itself.
-    storage.write(bucketKeyBytes, new Uint8Array(0));
+    storage.write(bucketKeyBytes, BytesBlob.empty());
   }
 
   // Persist new cursor only if it advanced.
   if (target > cursor) {
     const out = new Uint8Array(4);
     writeU32LE(out, 0, target);
-    storage.write(cleanupCursorKey().raw, out);
+    storage.write(cleanupCursorKey().raw, BytesBlob.wrap(out));
   }
 }
