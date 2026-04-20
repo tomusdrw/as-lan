@@ -5,7 +5,7 @@ const DEFAULT_PREIMAGE = new TextEncoder().encode("test-preimage");
 let lookupPreimage: Uint8Array | null = DEFAULT_PREIMAGE;
 
 // Attached preimages map: hex-encoded 32-byte hash → blob bytes.
-// Populated by the AS-side TestPreimages.setAttachedPreimage helper.
+// Populated by the AS-side TestLookup.setAttachedPreimage helper.
 // Simulates preimages arriving via the xtpreimages block extrinsic.
 const attached: Map<string, Uint8Array> = new Map();
 
@@ -30,7 +30,7 @@ function toHex(bytes: Uint8Array): string {
 /**
  * Simulate a preimage arriving via the `xtpreimages` block extrinsic.
  *
- * Called from AS tests via the `TestPreimages.setAttachedPreimage` wrapper.
+ * Called from AS tests via the `TestLookup.setAttachedPreimage` wrapper.
  * After this call, any `lookup(hash)` ecalli for the given hash returns
  * `preimage`, regardless of the service id. The default single-preimage
  * fallback (configured by setLookupPreimage / setLookupNone) still applies

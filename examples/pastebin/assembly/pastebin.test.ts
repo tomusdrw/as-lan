@@ -16,7 +16,7 @@ import {
   WorkExecResult,
   WorkExecResultKind,
 } from "@fluffylabs/as-lan";
-import { Assert, Test, test, TestAccumulate, TestEcalli, TestPreimages, unpackResult } from "@fluffylabs/as-lan/test";
+import { Assert, Test, test, TestAccumulate, TestEcalli, TestLookup, unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
 import { refine } from "./refine";
 import { cleanupCursorKey, pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
@@ -238,7 +238,7 @@ export const TESTS: Test[] = [
     callAccumulateSingle(50, okBlob);
 
     // Simulate extrinsic delivery (CE 142 gossip + xtpreimages inclusion).
-    TestPreimages.setAttachedPreimage(Bytes32.wrapUnchecked(hashBytes), BytesBlob.wrap(payload));
+    TestLookup.setAttachedPreimage(Bytes32.wrapUnchecked(hashBytes), BytesBlob.wrap(payload));
 
     // Service-visible lookup via the lookup ecalli.
     const preimages = Preimages.create();

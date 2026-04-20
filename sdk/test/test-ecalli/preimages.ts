@@ -1,5 +1,3 @@
-import { Bytes32, BytesBlob } from "../../core/bytes";
-
 // @ts-expect-error: decorator
 @external("ecalli", "setQueryResult")
 declare function _setQueryResult(r7: i64, r8: i64): void;
@@ -32,15 +30,7 @@ declare function _getProvideCount(): i64;
 @external("ecalli", "resetPreimageCounters")
 declare function _resetPreimageCounters(): void;
 
-// @ts-expect-error: decorator
-@external("ecalli", "setPreimageAttached")
-declare function _setPreimageAttached(hash_ptr: u32, preimage_ptr: u32, preimage_len: u32): void;
-
-// @ts-expect-error: decorator
-@external("ecalli", "clearPreimageAttachments")
-declare function _clearPreimageAttachments(): void;
-
-/** Configure accumulate preimage ecalli stubs. */
+/** Configure accumulate preimage ecalli stubs (query, solicit, forget, provide). */
 export class TestPreimages {
   /**
    * Configure query() return values.
@@ -81,22 +71,5 @@ export class TestPreimages {
 
   static resetCounters(): void {
     _resetPreimageCounters();
-  }
-
-  /**
-   * Simulate a preimage arriving via the `xtpreimages` block extrinsic.
-   *
-   * Subsequent `lookup(hash)` ecalli calls will return `preimage`,
-   * regardless of service id. Use this to emulate the out-of-band
-   * preimage delivery path (CE 142 gossip + xtpreimages inclusion)
-   * in tests without calling `provide` from the service.
-   */
-  static setAttachedPreimage(hash: Bytes32, preimage: BytesBlob): void {
-    _setPreimageAttached(hash.ptr(), preimage.ptr(), preimage.length);
-  }
-
-  /** Clear all attached preimages. */
-  static clearAttachedPreimages(): void {
-    _clearPreimageAttachments();
   }
 }
