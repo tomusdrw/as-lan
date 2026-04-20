@@ -79,9 +79,6 @@ points:
 - **No rate limit**: a flood can fill the recent-ring buffer in 32 slots.
 - **First-writer-wins idempotency**: re-submitting the same hash silently
   preserves the original slot rather than refreshing the TTL.
-- **Blake2b is a pure-AS reference implementation**: tuned for wasm size
-  but not runtime cost. If a second service also consumes it, graduate into
-  `sdk/core/crypto/blake2b.ts`.
 
 See `docs/superpowers/specs/2026-04-19-token-and-pastebin-examples-design.md`
 (Section C) for full design rationale.

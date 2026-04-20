@@ -2,6 +2,7 @@ import {
   AccumulateArgs,
   AccumulateContext,
   AccumulateItem,
+  blake2b256,
   Bytes32,
   BytesBlob,
   CurrentServiceData,
@@ -17,7 +18,6 @@ import {
 } from "@fluffylabs/as-lan";
 import { Assert, Test, test, TestAccumulate, TestEcalli, TestPreimages, unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
-import { blake2b256 } from "./crypto/blake2b";
 import { refine } from "./refine";
 import { cleanupCursorKey, pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
 import { assertBytes } from "./test-helpers";

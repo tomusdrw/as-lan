@@ -6,7 +6,8 @@ AssemblyScript SDK for writing JAM (Join-Accumulate Machine) services.
 
 ```text
 sdk/                        AssemblyScript SDK library
-  core/                     Core types: bytes, byte-buf, codec (Encoder/Decoder), mem, pack, panic, result
+  core/                     Core types: bytes, byte-buf, codec (Encoder/Decoder), crypto, mem, pack, panic, result
+    crypto/blake2b.ts       Pure-AS Blake2b-256 (RFC 7693, unkeyed, 32-byte output)
   ecalli/                   Host call declarations (@external decorators)
     general/                Ecalli 0-5, 100 (gas, fetch, lookup, read, write, info, log)
     refine/                 Ecalli 6-13 (historical_lookup, export, machine, peek, poke, pages, invoke, expunge)
@@ -81,8 +82,7 @@ examples/
       accumulate.test.ts
   pastebin/                 Open-submission paste service (solicit-only preimage lifecycle, slot-bucketed TTL cleanup)
     assembly/
-      crypto/blake2b.ts     Pure-AS Blake2b-256 (RFC 7693, unkeyed, 32-byte output) — candidate for SDK graduation
-      refine.ts             Refine entry point — Blake2b-256 the payload, emit `hash ‖ length_LE` (36 B okBlob)
+      refine.ts             Refine entry point — Blake2b-256 (from sdk/core/crypto) the payload, emit `hash ‖ length_LE` (36 B okBlob)
       accumulate.ts         Accumulate — idempotent insert (solicit + metadata + ring) + slot-bucket cursor cleanup
       authorize.ts          is_authorized — accepts any payload (pastebin is open to all)
       index.ts              Self-authorizing dispatch

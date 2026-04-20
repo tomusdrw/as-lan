@@ -47,3 +47,22 @@ const other = preimages.lookup(hash, 42);
 
 Context-specific extensions (`RefinePreimages`, `AccumulatePreimages`) are
 documented under their respective context pages.
+
+## Cryptography
+
+Pure-AssemblyScript crypto primitives. These compile to the PVM target with
+no host-call dependencies.
+
+### Blake2b-256
+
+RFC 7693 Blake2b, unkeyed, 32-byte output — the JAM preimage hash.
+
+```typescript
+import { blake2b256 } from "@fluffylabs/as-lan";
+
+const digest = blake2b256(payload);  // Uint8Array(32)
+```
+
+The implementation supports a single input up to 2⁶⁴ − 1 bytes (the high 64
+bits of the RFC 7693 counter are hardcoded to zero). Chained hashing of
+arbitrarily long streams is out of scope.

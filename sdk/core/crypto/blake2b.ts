@@ -7,9 +7,12 @@
 //     inner-array boxing.
 //   - Final block is read directly into `block[]` via bit-packing, skipping
 //     the 128-byte Uint8Array copy the reference impl used.
+//   - readLE64 / writeLE64 use native `load<u64>` / `store<u64>` (wasm is
+//     little-endian; alignment is a hint, unaligned access permitted).
 //
-// If pastebin + token-UTXO both consume this, graduate it into
-// `sdk/core/crypto/blake2b.ts` in the token-UTXO plan.
+// The high 64 bits of the RFC 7693 counter (`t[1]`) are hardcoded 0. Any
+// single input up to 2^64 - 1 bytes fits; this does NOT support chained
+// hashing of arbitrarily long streams.
 
 const IV: StaticArray<u64> = [
   0x6a09e667f3bcc908, 0xbb67ae8584caa73b,
@@ -56,7 +59,7 @@ function compress(h: StaticArray<u64>, block: StaticArray<u64>, t: u64, last: bo
   for (let i = 0; i < 8; i += 1) v[i] = h[i];
   for (let i = 0; i < 8; i += 1) v[8 + i] = IV[i];
   v[12] ^= t;
-  // v[13] ^= 0 — high 64 bits of counter, always 0 for pastebin-sized inputs.
+  // v[13] ^= 0 — high 64 bits of counter, hardcoded per module-level caveat.
   if (last) v[14] ^= 0xffffffffffffffff;
 
   for (let r = 0; r < 12; r += 1) {
@@ -74,10 +77,9 @@ function compress(h: StaticArray<u64>, block: StaticArray<u64>, t: u64, last: bo
   for (let i = 0; i < 8; i += 1) h[i] ^= v[i] ^ v[i + 8];
 }
 
-// Little-endian u64 load/store via native wasm instructions. Wasm is
-// little-endian, so `load<u64>` already returns LE bytes as a u64 value.
-// Alignment is a hint; wasm permits unaligned access on all runtimes we care
-// about (PVM conforms here), so no alignment constraint on the buffer.
+// Native little-endian u64 load/store. Wasm is little-endian, so a direct
+// `load<u64>` returns LE bytes as a u64 value. Alignment is a hint only —
+// wasm (and PVM) permit unaligned access — so no constraint on the buffer.
 @inline
 function readLE64(buf: Uint8Array, offset: i32): u64 {
   return load<u64>(buf.dataStart + offset);

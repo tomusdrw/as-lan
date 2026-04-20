@@ -3,6 +3,7 @@ import * as bytes from "../core/bytes.test";
 import * as decode from "../core/codec/decode.test";
 import * as encode from "../core/codec/encode.test";
 import * as roundtrip from "../core/codec/index.test";
+import * as blake2b from "../core/crypto/blake2b.test";
 import * as accountInfo from "../jam/account-info.test";
 import * as admin from "../jam/accumulate/admin.test";
 import * as childServices from "../jam/accumulate/child-services.test";
@@ -24,6 +25,7 @@ export function runAllTests(): void {
     TestSuite.create(decode.TESTS, "decode.ts"),
     TestSuite.create(encode.TESTS, "encode.ts"),
     TestSuite.create(roundtrip.TESTS, "roundtrip.ts"),
+    TestSuite.create(blake2b.TESTS, "blake2b.ts"),
     TestSuite.create(accountInfo.TESTS, "account-info.ts"),
     TestSuite.create(accumulateItem.TESTS, "accumulate-item.ts"),
     TestSuite.create(admin.TESTS, "admin.ts"),
