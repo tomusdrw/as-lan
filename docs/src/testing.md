@@ -366,7 +366,7 @@ examples for usage examples.
 Sometimes a test needs to reach past the stub ecalli surface — for example,
 to simulate a block extrinsic (like `TestLookup.setAttachedPreimage`), seed
 state that's not reachable via any host call, or configure mock behavior
-that spans multiple ecallis. The pattern used across this repo has three
+that spans multiple ecallis. The pattern used across this repo has four
 layers.
 
 ### Layer 1 — JS-side mock state
