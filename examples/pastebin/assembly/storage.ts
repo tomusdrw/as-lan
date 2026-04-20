@@ -14,6 +14,13 @@ import {
   dst[offset + 3] = u8(value >> 24);
 }
 
+@inline export function readU32LE(src: Uint8Array, offset: i32): u32 {
+  return u32(src[offset])
+    | (u32(src[offset + 1]) << 8)
+    | (u32(src[offset + 2]) << 16)
+    | (u32(src[offset + 3]) << 24);
+}
+
 function concatBytes(a: BytesBlob, b: BytesBlob): BytesBlob {
   const out = BytesBlob.zero(a.length + b.length);
   for (let i = 0; i < a.length; i += 1) out.raw[i] = a.raw[i];
@@ -63,8 +70,8 @@ export class PasteEntry {
     // in the release target (asconfig.json), which would turn a wrong-length
     // buffer into a silent zero-filled PasteEntry instead of a trap.
     if (raw.length != 8) panic("PasteEntry: expected 8 bytes");
-    const slot = u32(raw[0]) | (u32(raw[1]) << 8) | (u32(raw[2]) << 16) | (u32(raw[3]) << 24);
-    const length = u32(raw[4]) | (u32(raw[5]) << 8) | (u32(raw[6]) << 16) | (u32(raw[7]) << 24);
+    const slot = readU32LE(raw, 0);
+    const length = readU32LE(raw, 4);
     return new PasteEntry(slot, length);
   }
 }

@@ -18,7 +18,7 @@ import { Assert, Test, test, TestAccumulate, TestEcalli, unpackResult } from "@f
 import { accumulate } from "./accumulate";
 import { blake2b256 } from "./crypto/blake2b";
 import { refine } from "./refine";
-import { pasteKey, PasteEntry } from "./storage";
+import { pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
 import { assertBytes } from "./test-helpers";
 
 function callRefine(payload: Uint8Array): Response {
@@ -48,11 +48,8 @@ class DecodedOperand {
 
 function decodeOperand(data: BytesBlob): DecodedOperand {
   const hash = new Uint8Array(32);
-  for (let i = 0; i < 32; i += 1) hash[i] = data.raw[i];
-  const length: u32 = u32(data.raw[32])
-    | (u32(data.raw[33]) << 8)
-    | (u32(data.raw[34]) << 16)
-    | (u32(data.raw[35]) << 24);
+  hash.set(data.raw.subarray(0, 32), 0);
+  const length: u32 = readU32LE(data.raw, 32);
   return DecodedOperand.create(hash, length);
 }
 
@@ -88,11 +85,8 @@ function callAccumulateSingle(slot: u32, okBlob: Uint8Array): void {
 
 function buildOkBlob(hash: Uint8Array, length: u32): Uint8Array {
   const out = new Uint8Array(36);
-  for (let i = 0; i < 32; i += 1) out[i] = hash[i];
-  out[32] = u8(length);
-  out[33] = u8(length >> 8);
-  out[34] = u8(length >> 16);
-  out[35] = u8(length >> 24);
+  out.set(hash, 0);
+  writeU32LE(out, 32, length);
   return out;
 }
 

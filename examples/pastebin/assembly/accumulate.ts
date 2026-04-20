@@ -10,19 +10,11 @@ import {
   expiryKey,
   pasteKey,
   PasteEntry,
+  readU32LE,
   recentHeadKey,
   recentKey,
   writeU32LE,
 } from "./storage";
-
-/** Decode a little-endian u32 from `raw` starting at `offset`. */
-function readU32LE(raw: Uint8Array, offset: i32): u32 {
-  if (raw.length < offset + 4) return 0;
-  return u32(raw[offset])
-    | (u32(raw[offset + 1]) << 8)
-    | (u32(raw[offset + 2]) << 16)
-    | (u32(raw[offset + 3]) << 24);
-}
 
 /** Append a 32-byte hash to an `expiry:<slot>` bucket (read-modify-write). */
 function appendHashToExpiryBucket(
@@ -33,8 +25,8 @@ function appendHashToExpiryBucket(
   const existing = storage.read(bucketKey);
   const prev: Uint8Array = existing.isSome ? existing.val! : new Uint8Array(0);
   const out = new Uint8Array(prev.length + 32);
-  for (let i = 0; i < prev.length; i += 1) out[i] = prev[i];
-  for (let i = 0; i < 32; i += 1) out[prev.length + i] = hash.raw[i];
+  out.set(prev, 0);
+  out.set(hash.raw, prev.length);
   storage.write(bucketKey, out);
 }
 
@@ -71,7 +63,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
     // Extract (hash, length_LE) from refine output.
     const hashBytes = new Uint8Array(32);
-    for (let k = 0; k < 32; k += 1) hashBytes[k] = okBlob.raw[k];
+    hashBytes.set(okBlob.raw.subarray(0, 32), 0);
     const hash = Bytes32.wrapUnchecked(hashBytes);
     const length: u32 = readU32LE(okBlob.raw, 32);
 
@@ -88,7 +80,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
         const headBlob = storage.read(recentHeadKey().raw);
         const head: u32 = headBlob.isSome ? readU32LE(headBlob.val!, 0) : 0;
         const entry = new Uint8Array(36);
-        for (let k = 0; k < 32; k += 1) entry[k] = hash.raw[k];
+        entry.set(hash.raw, 0);
         writeU32LE(entry, 32, currentSlot);
         storage.write(recentKey(head % RECENT_N).raw, entry);
 
@@ -102,9 +94,9 @@ export function accumulate(ptr: u32, len: u32): u64 {
       }
       // On solicit failure, skip the insertion entirely.
     }
-
-    runCleanup(storage, preimages, currentSlot);
   }
+
+  runCleanup(storage, preimages, currentSlot);
 
   return Response.with(0);
 }
@@ -115,5 +107,5 @@ function runCleanup(
   _preimages: AccumulatePreimages,
   _currentSlot: u32,
 ): void {
-  // Task 6 implements this. Accumulate calls it unconditionally per operand.
+  // Task 6 implements this. Accumulate calls it once per invocation.
 }
