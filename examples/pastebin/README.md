@@ -44,6 +44,34 @@ npm test
 integration tests (refine output, accumulate insertion, idempotent
 re-submission, TTL cleanup, end-to-end solicit→attach→lookup).
 
+## Customizing for your service
+
+This example is a template for any service that follows the "hash in refine,
+solicit in accumulate, age out via TTL" pattern. Three natural customization
+points:
+
+1. **`assembly/constants.ts`** — TTL, recent-ring size, and cursor step:
+   - `TTL_SLOTS` controls how long a paste lives before cleanup reclaims it.
+   - `RECENT_N` controls the ring-buffer window for "N most recent" reads.
+   - `CLEANUP_SLOTS_PER_CALL` bounds per-call cleanup work; lower = smoother
+     gas usage per call but slower catch-up on large backlogs.
+
+2. **`assembly/refine.ts`** — payload shape and hash algorithm:
+   - Change `blake2b256(args.payload.raw)` if you need a different hash.
+   - Add payload validation (max size, format check) before hashing and
+     return a non-zero `Response.with(error)` to signal rejection. Refine
+     output shape (`hash ‖ length_LE`, 36 B) is the contract accumulate
+     reads — keep it stable or update both sides together.
+
+3. **`assembly/authorize.ts`** — gating policy:
+   - Currently `is_authorized` accepts every payload. To gate by core index,
+     use the returned `CoreIndex` from `ctx.parseCoreIndex` and return
+     `Response.with(nonZero)` for rejected cores.
+   - To add rate-limiting, pair this with an `authorize:<coreIndex>` storage
+     key tracking recent submission counts. Note: `is_authorized` runs
+     pre-refine and has restricted SDK access (see
+     `docs/src/sdk-api/authorize.md`).
+
 ## Limitations (v1)
 
 - **No authentication**: anyone can submit. The service pays all storage
