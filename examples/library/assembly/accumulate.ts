@@ -1,4 +1,4 @@
-import { AccumulateContext, Bytes32, Decoder, Encoder, WorkExecResultKind } from "@fluffylabs/as-lan";
+import { AccumulateContext, Bytes32, BytesBlob, Decoder, Encoder, WorkExecResultKind } from "@fluffylabs/as-lan";
 import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKeyFromBlob } from "./storage";
 
@@ -35,9 +35,9 @@ function dispatch(ctx: AccumulateContext, cmd: AdminCommand): void {
   if (cmd.kind === AdminCommandKind.SetMapping) {
     const entryEnc = Encoder.create();
     LibraryEntryCodec.create().encode(LibraryEntry.create(cmd.hash!, cmd.length), entryEnc);
-    ctx.serviceData().write(libraryKeyFromBlob(cmd.name!), entryEnc.finishRaw());
+    ctx.serviceData().write(libraryKeyFromBlob(cmd.name!), entryEnc.finish());
   } else if (cmd.kind === AdminCommandKind.RemoveMapping) {
-    ctx.serviceData().write(libraryKeyFromBlob(cmd.name!), new Uint8Array(0));
+    ctx.serviceData().write(libraryKeyFromBlob(cmd.name!), BytesBlob.empty());
   } else if (cmd.kind === AdminCommandKind.Solicit) {
     ctx.preimages().solicit(cmd.hash!, cmd.length);
   } else if (cmd.kind === AdminCommandKind.Forget) {

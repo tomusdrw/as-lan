@@ -5,6 +5,7 @@
  * - {@link CurrentServiceData} — adds write access for the current service.
  */
 
+import { BytesBlob } from "../core/bytes";
 import { Decoder } from "../core/codec/decode";
 import { panic } from "../core/panic";
 import { Optional, OptionalN, Result } from "../core/result";
@@ -88,10 +89,10 @@ export class CurrentServiceData extends ServiceData {
    *
    * Returns the previous value's length wrapped in Optional (None if no prior value existed).
    * Fails with WriteError.Full if the storage quota is exceeded.
-   * Pass an empty value (length 0) to delete the entry.
+   * Pass `BytesBlob.empty()` to delete the entry.
    */
-  write(key: Uint8Array, value: Uint8Array): Result<OptionalN<u64>, WriteError> {
-    const result = write(u32(key.dataStart), key.length, u32(value.dataStart), value.length);
+  write(key: Uint8Array, value: BytesBlob): Result<OptionalN<u64>, WriteError> {
+    const result = write(u32(key.dataStart), key.length, value.ptr(), value.length);
     if (result === EcalliResult.FULL) return Result.err<OptionalN<u64>, WriteError>(WriteError.Full);
     if (result === EcalliResult.NONE) return Result.ok<OptionalN<u64>, WriteError>(OptionalN.none<u64>());
     return Result.ok<OptionalN<u64>, WriteError>(OptionalN.some<u64>(u64(result)));
