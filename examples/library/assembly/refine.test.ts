@@ -240,6 +240,51 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
+  test("refine demo: invalid entrypoint returns -3", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("bad", 0xaa, 16);
+    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestMachine.setMachineResult(-9); // HUH sentinel (InvalidEntryPoint)
+
+    const resp = callRefine(buildDemoInput("bad", 0, 1000, BytesBlob.empty()));
+    assert.isEqual(resp.result, -3, "invalid entrypoint");
+    return assert;
+  }),
+
+  test("refine demo: invoke Panic returns -4 with reason+r8", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("panic", 0xbb, 16);
+    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestMachine.setMachineResult(0);
+    TestMachine.setPagesResult(0);
+    TestMachine.setPokeResult(0);
+    TestMachine.setInvokeResult(1, 42); // Panic, r8=42
+    TestMachine.setExpungeResult(0);
+
+    const resp = callRefine(buildDemoInput("panic", 0, 1000, BytesBlob.empty()));
+    assert.isEqual(resp.result, -4, "invoke failure");
+    assert.isEqual(resp.data.raw.length, 9, "body length = u8 + u64");
+    assert.isEqual(resp.data.raw[0], 1, "reason = Panic");
+    return assert;
+  }),
+
+  test("refine demo: peek OOB returns -5", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("oob", 0xcc, 16);
+    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestMachine.setMachineResult(0);
+    TestMachine.setPagesResult(0);
+    TestMachine.setPokeResult(0);
+    TestMachine.setInvokeResult(0, 0); // Halt
+    TestMachine.setInvokeIoR7((i64(3) << 32) | i64(0xfeff9000));
+    TestMachine.setPeekResult(-3); // OOB sentinel
+    TestMachine.setExpungeResult(0);
+
+    const resp = callRefine(buildDemoInput("oob", 0, 1000, BytesBlob.empty()));
+    assert.isEqual(resp.result, -5, "peek OOB");
+    return assert;
+  }),
+
   test("mock: setPeekData writes configured bytes to dest", () => {
     const assert = Assert.create();
     const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
