@@ -1,14 +1,11 @@
-// Pastebin service placeholder
-// Service logic (refine, accumulate) to be implemented in subsequent tasks.
+export { accumulate } from "./accumulate";
 
-export function refine(_ptr: u32, _len: u32): u64 {
-  return 0;
-}
+import { is_authorized } from "./authorize";
+import { refine as refine_ } from "./refine";
 
-export function accumulate(_ptr: u32, _len: u32): u64 {
-  return 0;
-}
-
-export function is_authorized(_ptr: u32, _len: u32): u32 {
-  return 0;
+export function refine(ptr: u32, len: u32): u64 {
+  if (len === 2) {
+    return is_authorized(ptr, len);
+  }
+  return refine_(ptr, len);
 }
