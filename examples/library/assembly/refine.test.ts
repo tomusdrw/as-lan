@@ -186,6 +186,22 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
+  test("refine: admin path rejects trailing bytes with -105", () => {
+    const assert = Assert.create();
+    const hash = Bytes32.zero();
+    const codec = AdminCommandCodec.create();
+    const body = Encoder.create();
+    codec.encode(AdminCommand.solicit(hash, 1), body);
+
+    const input = Encoder.create();
+    input.u8(1); // admin tag
+    input.bytesFixLen(BytesBlob.wrap(body.finishRaw()));
+    input.u8(0xff); // trailing junk
+    const resp = callRefine(input.finishRaw());
+    assert.isEqual(resp.result, -105, "trailing bytes rejected");
+    return assert;
+  }),
+
   test("refine: admin path rejects malformed bytes with -105", () => {
     const assert = Assert.create();
     const input = Encoder.create();
@@ -193,6 +209,18 @@ export const TESTS: Test[] = [
     input.u8(0x99); // unknown AdminCommand tag
     const resp = callRefine(input.finishRaw());
     assert.isEqual(resp.result, -105, "malformed");
+    return assert;
+  }),
+
+  test("refine demo: trailing bytes after payload return -106", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("ok", 0x01, 16);
+    const valid = buildDemoInput("ok", 0, 1000, BytesBlob.empty());
+    const withTrail = new Uint8Array(valid.length + 1);
+    withTrail.set(valid, 0);
+    withTrail[valid.length] = 0xff;
+    const resp = callRefine(withTrail);
+    assert.isEqual(resp.result, -106, "trailing bytes after demo payload rejected");
     return assert;
   }),
 

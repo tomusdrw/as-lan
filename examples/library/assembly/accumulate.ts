@@ -17,8 +17,10 @@ export function accumulate(ptr: u32, len: u32): u64 {
     if (op.result.kind !== WorkExecResultKind.Ok) continue;
     const body = op.result.okBlob;
 
-    const r = adminCodec.decode(Decoder.fromBlob(body.raw));
+    const d = Decoder.fromBlob(body.raw);
+    const r = adminCodec.decode(d);
     if (r.isError) continue; // defensive — refine already validates
+    if (!d.isFinished()) continue; // reject trailing bytes (defensive)
 
     dispatch(ctx, r.okay!);
   }

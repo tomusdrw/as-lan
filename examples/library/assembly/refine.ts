@@ -38,6 +38,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
   const gas = d.u64();
   const callPayload = d.bytesVarLen();
   if (d.isError) return ctx.respond(ERR_PARSE);
+  if (!d.isFinished()) return ctx.respond(ERR_PARSE);
 
   // Resolve name → LibraryEntry via storage
   const storage = ctx.serviceData();
@@ -102,8 +103,10 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
 
 function handleAdmin(ctx: RefineContext, rest: BytesBlob): u64 {
   const codec = AdminCommandCodec.create();
-  const r = codec.decode(Decoder.fromBlob(rest.raw));
+  const d = Decoder.fromBlob(rest.raw);
+  const r = codec.decode(d);
   if (r.isError) return ctx.respond(ERR_ADMIN_MALFORMED);
+  if (!d.isFinished()) return ctx.respond(ERR_ADMIN_MALFORMED);
 
   const enc = Encoder.create();
   codec.encode(r.okay!, enc);
