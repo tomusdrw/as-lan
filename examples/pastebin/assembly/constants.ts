@@ -14,4 +14,5 @@ export const PREFIX_EXPIRY: BytesBlob = BytesBlob.encodeAscii("expiry:");
 // keeps scalar keys structurally disjoint from indexed families (`paste:<hash>`,
 // `recent:<u32 LE>`, `expiry:<u32 LE>`) regardless of future RECENT_N changes.
 export const KEY_RECENT_HEAD: BytesBlob = BytesBlob.encodeAscii("meta:recent_head");
+// Value format: u32 LE — the highest slot whose expiry bucket has been swept.
 export const KEY_CLEANUP_CURSOR: BytesBlob = BytesBlob.encodeAscii("meta:cleanup_cursor");

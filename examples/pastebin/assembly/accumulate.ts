@@ -3,6 +3,7 @@ import {
   AccumulatePreimages,
   Bytes32,
   CurrentServiceData,
+  panic,
   Response,
 } from "@fluffylabs/as-lan";
 import { CLEANUP_SLOTS_PER_CALL, RECENT_N, TTL_SLOTS } from "./constants";
@@ -115,12 +116,16 @@ function runCleanup(
   preimages: AccumulatePreimages,
   currentSlot: u32,
 ): void {
-  // Read current cursor (u32 LE). Missing or malformed → start at 0.
+  // Read current cursor (u32 LE). Absent on the first sweep → start at 0.
+  // A wrong-length blob is host-contract corruption (the only writer is this
+  // function, which always writes exactly 4 bytes) — panic, matching
+  // PasteEntry.decodeOrPanic's posture on malformed internal records.
   const cursorBlob = storage.read(cleanupCursorKey().raw);
   let cursor: u32 = 0;
   if (cursorBlob.isSome) {
     const raw = cursorBlob.val!;
-    if (raw.length >= 4) cursor = readU32LE(raw, 0);
+    if (raw.length != 4) panic("cleanup cursor: expected 4 bytes");
+    cursor = readU32LE(raw, 0);
   }
 
   // Walk at most CLEANUP_SLOTS_PER_CALL slots forward, bounded by currentSlot.

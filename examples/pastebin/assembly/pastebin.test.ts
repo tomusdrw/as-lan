@@ -18,7 +18,7 @@ import { Assert, Test, test, TestAccumulate, TestEcalli, unpackResult } from "@f
 import { accumulate } from "./accumulate";
 import { blake2b256 } from "./crypto/blake2b";
 import { refine } from "./refine";
-import { pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
+import { cleanupCursorKey, pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
 import { assertBytes } from "./test-helpers";
 
 function callRefine(payload: Uint8Array): Response {
@@ -54,6 +54,7 @@ function decodeOperand(data: BytesBlob): DecodedOperand {
 }
 
 const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
+const SERVICE_ID: u32 = 42;
 
 function buildOperandItem(okBlob: Uint8Array): Uint8Array {
   const ctx = AccumulateContext.create();
@@ -75,7 +76,7 @@ function callAccumulateSingle(slot: u32, okBlob: Uint8Array): void {
   TestAccumulate.setItem(0, buildOperandItem(okBlob));
 
   const ctx = AccumulateContext.create();
-  const args = AccumulateArgs.create(slot, 42, 1);
+  const args = AccumulateArgs.create(slot, SERVICE_ID, 1);
   const enc = Encoder.create();
   ctx.accumulateArgs.encode(args, enc);
   const encoded = enc.finishRaw();
@@ -85,7 +86,7 @@ function callAccumulateSingle(slot: u32, okBlob: Uint8Array): void {
 
 function callAccumulateEmpty(slot: u32): void {
   const ctx = AccumulateContext.create();
-  const args = AccumulateArgs.create(slot, 42, 0);
+  const args = AccumulateArgs.create(slot, SERVICE_ID, 0);
   const enc = Encoder.create();
   ctx.accumulateArgs.encode(args, enc);
   const encoded = enc.finishRaw();
@@ -205,6 +206,20 @@ export const TESTS: Test[] = [
     const hash = Bytes32.wrapUnchecked(hashBytes);
     const pasteStored = storage.read(pasteKey(hash).raw);
     assert.isEqual(pasteStored.isSome, false, "paste entry deleted after expiry");
+
+    // Cursor advances by CLEANUP_SLOTS_PER_CALL (=8) on every accumulate
+    // invocation: the initial insert + 130 empty calls = 131 × 8 = 1048.
+    // Direct-observes the cursor persistence path so a future bug that
+    // silently stops writing it can't hide behind the deletion assertion.
+    const cursorStored = storage.read(cleanupCursorKey().raw);
+    assert.isEqual(cursorStored.isSome, true, "cursor persisted");
+    if (cursorStored.isSome) {
+      const cursorVal = cursorStored.val!;
+      assert.isEqual(<u32>cursorVal.length, <u32>4, "cursor blob length");
+      if (cursorVal.length === 4) {
+        assert.isEqual(readU32LE(cursorVal, 0), <u32>1048, "cursor value");
+      }
+    }
 
     return assert;
   }),
