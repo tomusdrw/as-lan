@@ -5,8 +5,9 @@ import {
   CurrentServiceData,
   Response,
 } from "@fluffylabs/as-lan";
-import { RECENT_N, TTL_SLOTS } from "./constants";
+import { CLEANUP_SLOTS_PER_CALL, RECENT_N, TTL_SLOTS } from "./constants";
 import {
+  cleanupCursorKey,
   expiryKey,
   pasteKey,
   PasteEntry,
@@ -101,11 +102,62 @@ export function accumulate(ptr: u32, len: u32): u64 {
   return Response.with(0);
 }
 
-/** Reclaim expired pastes. Implemented in Task 6. */
+/**
+ * Reclaim expired pastes. Walks at most CLEANUP_SLOTS_PER_CALL expiry buckets
+ * forward from the persisted cursor, bounded by `currentSlot`. For each paste
+ * hash in a swept bucket: forget the preimage (ignoring failure — the record
+ * is being deleted either way) and delete the metadata entry. The bucket key
+ * itself is also deleted. The cursor advances monotonically and is persisted
+ * only when it moves forward.
+ */
 function runCleanup(
-  _storage: CurrentServiceData,
-  _preimages: AccumulatePreimages,
-  _currentSlot: u32,
+  storage: CurrentServiceData,
+  preimages: AccumulatePreimages,
+  currentSlot: u32,
 ): void {
-  // Task 6 implements this. Accumulate calls it once per invocation.
+  // Read current cursor (u32 LE). Missing or malformed → start at 0.
+  const cursorBlob = storage.read(cleanupCursorKey().raw);
+  let cursor: u32 = 0;
+  if (cursorBlob.isSome) {
+    const raw = cursorBlob.val!;
+    if (raw.length >= 4) cursor = readU32LE(raw, 0);
+  }
+
+  // Walk at most CLEANUP_SLOTS_PER_CALL slots forward, bounded by currentSlot.
+  const limit: u32 = cursor + CLEANUP_SLOTS_PER_CALL;
+  const target: u32 = limit < currentSlot ? limit : currentSlot;
+
+  for (let s: u32 = cursor + 1; s <= target; s += 1) {
+    const bucketKeyBytes = expiryKey(s).raw;
+    const bucket = storage.read(bucketKeyBytes);
+    if (!bucket.isSome) continue;
+
+    // Bucket holds a packed list of 32-byte hashes.
+    const raw = bucket.val!;
+    const bucketLen = u32(raw.length);
+    let off: u32 = 0;
+    while (off + 32 <= bucketLen) {
+      const hashBytes = new Uint8Array(32);
+      hashBytes.set(raw.subarray(i32(off), i32(off + 32)), 0);
+      const hash = Bytes32.wrapUnchecked(hashBytes);
+
+      const entryBlob = storage.read(pasteKey(hash).raw);
+      if (entryBlob.isSome) {
+        const entry = PasteEntry.decodeOrPanic(entryBlob.val!);
+        // forget result ignored: the paste metadata is being deleted either way.
+        preimages.forget(hash, entry.length);
+        storage.write(pasteKey(hash).raw, new Uint8Array(0));
+      }
+      off += 32;
+    }
+    // Delete the bucket itself.
+    storage.write(bucketKeyBytes, new Uint8Array(0));
+  }
+
+  // Persist new cursor only if it advanced.
+  if (target > cursor) {
+    const out = new Uint8Array(4);
+    writeU32LE(out, 0, target);
+    storage.write(cleanupCursorKey().raw, out);
+  }
 }

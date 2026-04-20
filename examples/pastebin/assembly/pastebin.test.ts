@@ -83,6 +83,16 @@ function callAccumulateSingle(slot: u32, okBlob: Uint8Array): void {
   unpackResult(accumulate(buf.ptr(), buf.length));
 }
 
+function callAccumulateEmpty(slot: u32): void {
+  const ctx = AccumulateContext.create();
+  const args = AccumulateArgs.create(slot, 42, 0);
+  const enc = Encoder.create();
+  ctx.accumulateArgs.encode(args, enc);
+  const encoded = enc.finishRaw();
+  const buf = BytesBlob.wrap(encoded);
+  unpackResult(accumulate(buf.ptr(), buf.length));
+}
+
 function buildOkBlob(hash: Uint8Array, length: u32): Uint8Array {
   const out = new Uint8Array(36);
   out.set(hash, 0);
@@ -169,6 +179,33 @@ export const TESTS: Test[] = [
     // First insertion's slot must be preserved — second call is a no-op.
     assert.isEqual(entry.slot, <u32>100, "paste entry slot preserved");
     assert.isEqual(entry.length, <u32>4, "paste entry payload length");
+    return assert;
+  }),
+  test("accumulate forgets expired pastes once TTL passes", () => {
+    TestEcalli.reset();
+    const assert = Assert.create();
+
+    const payload = new Uint8Array(2);
+    payload[0] = 0xaa;
+    payload[1] = 0xbb;
+    const hashBytes = blake2b256(payload);
+    const okBlob = buildOkBlob(hashBytes, 2);
+
+    // Insert at slot 10 → scheduled to expire at slot 10 + TTL_SLOTS = 1010.
+    callAccumulateSingle(10, okBlob);
+
+    // Advance cleanup cursor past slot 1010 using empty accumulate calls.
+    // Each call advances cursor by CLEANUP_SLOTS_PER_CALL = 8. Need ≥ 127 calls.
+    for (let i: u32 = 0; i < 130; i += 1) {
+      callAccumulateEmpty(1010 + i);
+    }
+
+    // Paste entry should be gone.
+    const storage = CurrentServiceData.create();
+    const hash = Bytes32.wrapUnchecked(hashBytes);
+    const pasteStored = storage.read(pasteKey(hash).raw);
+    assert.isEqual(pasteStored.isSome, false, "paste entry deleted after expiry");
+
     return assert;
   }),
 ];
