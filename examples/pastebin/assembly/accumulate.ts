@@ -10,8 +10,8 @@ import { CLEANUP_SLOTS_PER_CALL, RECENT_N, TTL_SLOTS } from "./constants";
 import {
   cleanupCursorKey,
   expiryKey,
-  pasteKey,
   PasteEntry,
+  pasteKey,
   readU32LE,
   recentHeadKey,
   recentKey,
@@ -19,11 +19,7 @@ import {
 } from "./storage";
 
 /** Append a 32-byte hash to an `expiry:<slot>` bucket (read-modify-write). */
-function appendHashToExpiryBucket(
-  storage: CurrentServiceData,
-  bucketKey: Uint8Array,
-  hash: Bytes32,
-): void {
+function appendHashToExpiryBucket(storage: CurrentServiceData, bucketKey: Uint8Array, hash: Bytes32): void {
   const existing = storage.read(bucketKey);
   const prev: Uint8Array = existing.isSome ? existing.val! : new Uint8Array(0);
   const out = new Uint8Array(prev.length + 32);
@@ -111,11 +107,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
  * itself is also deleted. The cursor advances monotonically and is persisted
  * only when it moves forward.
  */
-function runCleanup(
-  storage: CurrentServiceData,
-  preimages: AccumulatePreimages,
-  currentSlot: u32,
-): void {
+function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages, currentSlot: u32): void {
   // Read current cursor (u32 LE). Absent on the first sweep → start at 0.
   // A wrong-length blob is host-contract corruption (the only writer is this
   // function, which always writes exactly 4 bytes) — panic, matching
@@ -124,7 +116,7 @@ function runCleanup(
   let cursor: u32 = 0;
   if (cursorBlob.isSome) {
     const raw = cursorBlob.val!;
-    if (raw.length != 4) panic("cleanup cursor: expected 4 bytes");
+    if (raw.length !== 4) panic("cleanup cursor: expected 4 bytes");
     cursor = readU32LE(raw, 0);
   }
 

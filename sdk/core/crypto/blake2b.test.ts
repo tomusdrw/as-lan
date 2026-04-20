@@ -1,5 +1,5 @@
-import { BytesBlob } from "../bytes";
 import { Assert, Test, test } from "../../test/utils";
+import { BytesBlob } from "../bytes";
 import { blake2b256 } from "./blake2b";
 
 function fromHex(hex: string): Uint8Array {

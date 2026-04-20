@@ -1,4 +1,4 @@
-import { blake2b256, BytesBlob, RefineContext, Response } from "@fluffylabs/as-lan";
+import { BytesBlob, blake2b256, RefineContext, Response } from "@fluffylabs/as-lan";
 import { writeU32LE } from "./storage";
 
 /**

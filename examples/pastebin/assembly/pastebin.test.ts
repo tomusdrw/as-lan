@@ -2,9 +2,9 @@ import {
   AccumulateArgs,
   AccumulateContext,
   AccumulateItem,
-  blake2b256,
   Bytes32,
   BytesBlob,
+  blake2b256,
   CurrentServiceData,
   Decoder,
   EcalliResult,
@@ -17,22 +17,25 @@ import {
   WorkExecResult,
   WorkExecResultKind,
 } from "@fluffylabs/as-lan";
-import { Assert, Test, test, TestAccumulate, TestEcalli, TestLookup, TestPreimages, unpackResult } from "@fluffylabs/as-lan/test";
+import {
+  Assert,
+  Test,
+  TestAccumulate,
+  TestEcalli,
+  TestLookup,
+  TestPreimages,
+  test,
+  unpackResult,
+} from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
 import { refine as dispatch } from "./index";
 import { refine } from "./refine";
-import { cleanupCursorKey, expiryKey, pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
+import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey, readU32LE, writeU32LE } from "./storage";
 import { assertBytes } from "./test-helpers";
 
 function callRefine(payload: Uint8Array): Response {
   const ctx = RefineContext.create();
-  const args = RefineArgs.create(
-    0,
-    0,
-    42,
-    BytesBlob.wrap(payload),
-    Bytes32.wrapUnchecked(new Uint8Array(32)),
-  );
+  const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
   const enc = Encoder.create();
   ctx.refineArgs.encode(args, enc);
   const encoded = enc.finishRaw();
@@ -46,7 +49,10 @@ class DecodedOperand {
   static create(hash: Uint8Array, length: u32): DecodedOperand {
     return new DecodedOperand(hash, length);
   }
-  private constructor(public readonly hash: Uint8Array, public readonly length: u32) {}
+  private constructor(
+    public readonly hash: Uint8Array,
+    public readonly length: u32,
+  ) {}
 }
 
 function decodeOperand(data: BytesBlob): DecodedOperand {
@@ -264,8 +270,11 @@ export const TESTS: Test[] = [
     // len > 2: the refine path. Build a proper RefineArgs encoding and verify
     // the dispatch returns the same 36-byte okBlob that calling refine directly would.
     const payload = new Uint8Array(4);
-    payload[0] = 0xde; payload[1] = 0xad; payload[2] = 0xbe; payload[3] = 0xef;
-    const refResp = callRefine(payload);  // goes via refine() directly
+    payload[0] = 0xde;
+    payload[1] = 0xad;
+    payload[2] = 0xbe;
+    payload[3] = 0xef;
+    const refResp = callRefine(payload); // goes via refine() directly
 
     // Now call the same bytes via the dispatch function.
     const refArgs = RefineArgs.create(0, 0, SERVICE_ID, BytesBlob.wrap(payload), ZERO_HASH);
@@ -288,7 +297,10 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
 
     const payload = new Uint8Array(4);
-    payload[0] = 1; payload[1] = 2; payload[2] = 3; payload[3] = 4;
+    payload[0] = 1;
+    payload[1] = 2;
+    payload[2] = 3;
+    payload[3] = 4;
     const hashBytes = blake2b256(payload);
     const okBlob = buildOkBlob(hashBytes, 4);
 
@@ -306,8 +318,14 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
 
     // Two distinct payloads inserted at the same slot share an expiry bucket.
-    const a = new Uint8Array(3); a[0] = 1; a[1] = 2; a[2] = 3;
-    const b = new Uint8Array(3); b[0] = 9; b[1] = 8; b[2] = 7;
+    const a = new Uint8Array(3);
+    a[0] = 1;
+    a[1] = 2;
+    a[2] = 3;
+    const b = new Uint8Array(3);
+    b[0] = 9;
+    b[1] = 8;
+    b[2] = 7;
     const hashA = blake2b256(a);
     const hashB = blake2b256(b);
     const okA = buildOkBlob(hashA, 3);
