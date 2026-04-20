@@ -18,15 +18,6 @@ export function setLookupNone(): void {
   lookupPreimage = null;
 }
 
-function toHex(bytes: Uint8Array): string {
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 1) {
-    const b = bytes[i];
-    s += (b < 16 ? "0" : "") + b.toString(16);
-  }
-  return s;
-}
-
 /**
  * Simulate a preimage arriving via the `xtpreimages` block extrinsic.
  *
@@ -44,7 +35,7 @@ export function setPreimageAttached(
   const hashBytes = readBytes(hash_ptr, 32);
   if (hashBytes.length !== 32) throw new Error("setPreimageAttached: hash must be 32 bytes");
   const preimage = readBytes(preimage_ptr, preimage_len);
-  attached.set(toHex(hashBytes), preimage);
+  attached.set(Array.from(hashBytes, (b) => b.toString(16).padStart(2, "0")).join(""), preimage);
 }
 
 /** Clear all attached preimages (but not the default single-preimage fallback). */
@@ -61,7 +52,7 @@ export function lookup(
 ): bigint {
   // Preferred path: check attached map first (simulates extrinsic delivery).
   if (attached.size > 0) {
-    const hit = attached.get(toHex(readBytes(hash_ptr, 32)));
+    const hit = attached.get(Array.from(readBytes(hash_ptr, 32), (b) => b.toString(16).padStart(2, "0")).join(""));
     if (hit !== undefined) {
       writeToMem(out_ptr, hit, offset, length);
       return BigInt(hit.length);
