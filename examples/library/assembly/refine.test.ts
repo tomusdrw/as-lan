@@ -273,8 +273,10 @@ export const TESTS: Test[] = [
 
     const resp = callRefine(buildDemoInput("panic", 0, 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -103, "invoke failure");
-    assert.isEqual(resp.data.raw.length, 9, "body length = u8 + u64");
-    assert.isEqual(resp.data.raw[0], 1, "reason = Panic");
+    const dec = Decoder.fromBlob(resp.data.raw);
+    assert.isEqual(dec.u8(), u8(1), "reason = Panic");
+    assert.isEqual(dec.u64(), u64(42), "r8 value preserved");
+    assert.isEqual(dec.isError, false, "body decodes cleanly");
     return assert;
   }),
 
@@ -297,6 +299,9 @@ export const TESTS: Test[] = [
 
   test("mock: setPeekData writes configured bytes to dest", () => {
     const assert = Assert.create();
+    // Clear any error sentinel a prior test may have left in peekResult;
+    // the mock now skips the memory write when peekResult is a negative sentinel.
+    TestMachine.setPeekResult(0);
     const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
     TestMachine.setPeekData(payload.raw);
 

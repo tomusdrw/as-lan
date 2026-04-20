@@ -87,17 +87,25 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
-  test("accumulate: multiple operands processed in order", () => {
+  test("accumulate: operands dispatched in index order", () => {
     const assert = Assert.create();
-    TestPreimages.resetCounters();
-    const h1 = Bytes32.zero();
-    h1.raw[0] = 0xaa;
-    const h2 = Bytes32.zero();
-    h2.raw[0] = 0xbb;
-    TestAccumulate.setItem(0, buildAdminOperand(encodeAdmin(AdminCommand.solicit(h1, 1))));
-    TestAccumulate.setItem(1, buildAdminOperand(encodeAdmin(AdminCommand.solicit(h2, 2))));
+    // Set then Remove → storage ends empty. Reversed order would leave the
+    // entry present. Observable side-effect therefore depends on ordering.
+    TestStorage.set(BytesBlob.wrap(libraryKey("ordered")), null);
+    const hash = Bytes32.zero();
+    hash.raw[0] = 0x55;
+    TestAccumulate.setItem(
+      0,
+      buildAdminOperand(encodeAdmin(AdminCommand.setMapping(BytesBlob.encodeAscii("ordered"), hash, 16))),
+    );
+    TestAccumulate.setItem(
+      1,
+      buildAdminOperand(encodeAdmin(AdminCommand.removeMapping(BytesBlob.encodeAscii("ordered")))),
+    );
     callAccumulate(2);
-    assert.isEqual(TestPreimages.getSolicitCount(), 2, "both dispatched");
+
+    const got = CurrentServiceData.create().read(libraryKey("ordered"));
+    assert.isEqual(got.isSome, false, "Remove ran after Set");
     return assert;
   }),
 

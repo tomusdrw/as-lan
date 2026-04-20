@@ -26,6 +26,11 @@ export function accumulate(ptr: u32, len: u32): u64 {
   return ctx.yieldHash(Bytes32.zero());
 }
 
+// Admin side-effect calls intentionally ignore their return values: in
+// accumulate there is no caller to surface errors to, and every failure mode
+// (WriteError.Full, SolicitError.Full/Huh, ForgetError.Huh, ProvideError.Huh/Who)
+// is either transient or operator-misconfiguration — both of which are better
+// diagnosed from host logs than encoded into the service response.
 function dispatch(ctx: AccumulateContext, cmd: AdminCommand): void {
   if (cmd.kind === AdminCommandKind.SetMapping) {
     const entryEnc = Encoder.create();

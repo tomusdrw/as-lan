@@ -33,6 +33,9 @@ export function peek(
   _source: number,
   length: number,
 ): bigint {
+  // Skip memory write when the mock is configured with an error sentinel —
+  // a real host returning OOB/WHO would not touch the destination buffer.
+  if (peekResult !== null && peekResult < 0n) return peekResult;
   if (peekData !== null) {
     writeToMem(dest_ptr, peekData, 0, length);
   }
