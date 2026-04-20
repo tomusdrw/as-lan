@@ -3,8 +3,8 @@
 // query (22), solicit (23), forget (24), yield_result (25), provide (26)
 // — manage preimage availability and solicitation.
 
-import { _clearAttached, _setAttached } from "../general/lookup.js";
-import { readBytes, writeI64 } from "../memory.js";
+import { clearPreimageAttachments } from "../general/lookup.js";
+import { writeI64 } from "../memory.js";
 
 // ─── Configurable state ──────────────────────────────────────────────────
 
@@ -57,33 +57,6 @@ export function resetPreimageCounters(): void {
   provideCount = 0;
 }
 
-/**
- * Simulate a preimage arriving via the `xtpreimages` block extrinsic.
- *
- * Called from AS tests. After this call, any `lookup(hash)` ecalli for the
- * given hash returns `preimage`, regardless of the service id. The default
- * test-preimage fallback still applies for unattached hashes.
- */
-export function setPreimageAttached(
-  hash_ptr: number,
-  preimage_ptr: number,
-  preimage_len: number,
-): void {
-  const hashBytes = readBytes(hash_ptr, 32);
-  const preimage = readBytes(preimage_ptr, preimage_len);
-  let hex = "";
-  for (let i = 0; i < 32; i += 1) {
-    const b = hashBytes[i];
-    hex += (b < 16 ? "0" : "") + b.toString(16);
-  }
-  _setAttached(hex, preimage);
-}
-
-/** Clear all attached preimages (but not the default test-preimage fallback). */
-export function clearPreimageAttachments(): void {
-  _clearAttached();
-}
-
 export function resetPreimages(): void {
   queryR7 = -1n;
   queryR8 = 0n;
@@ -93,7 +66,10 @@ export function resetPreimages(): void {
   solicitCount = 0;
   forgetCount = 0;
   provideCount = 0;
-  _clearAttached();
+  // Attached preimages are a lookup-mock concern, but we also clear them
+  // here so that resetAccumulate() (which calls resetPreimages without
+  // resetLookup) leaves no cross-test leakage.
+  clearPreimageAttachments();
 }
 
 // ─── Ecalli stubs ────────────────────────────────────────────────────────

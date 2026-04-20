@@ -9,16 +9,6 @@ let lookupPreimage: Uint8Array | null = DEFAULT_PREIMAGE;
 // Simulates preimages arriving via the xtpreimages block extrinsic.
 const attached: Map<string, Uint8Array> = new Map();
 
-/** Internal: store an attached preimage keyed by hex hash. Not a public API. */
-export function _setAttached(hashHex: string, bytes: Uint8Array): void {
-  attached.set(hashHex, bytes);
-}
-
-/** Internal: clear all attached preimages. Not a public API. */
-export function _clearAttached(): void {
-  attached.clear();
-}
-
 export function setLookupPreimage(ptr: number, len: number): void {
   lookupPreimage = readBytes(ptr, len);
 }
@@ -37,6 +27,31 @@ function toHex(bytes: Uint8Array): string {
   return s;
 }
 
+/**
+ * Simulate a preimage arriving via the `xtpreimages` block extrinsic.
+ *
+ * Called from AS tests via the `TestPreimages.setAttachedPreimage` wrapper.
+ * After this call, any `lookup(hash)` ecalli for the given hash returns
+ * `preimage`, regardless of the service id. The default single-preimage
+ * fallback (configured by setLookupPreimage / setLookupNone) still applies
+ * for unattached hashes.
+ */
+export function setPreimageAttached(
+  hash_ptr: number,
+  preimage_ptr: number,
+  preimage_len: number,
+): void {
+  const hashBytes = readBytes(hash_ptr, 32);
+  if (hashBytes.length !== 32) throw new Error("setPreimageAttached: hash must be 32 bytes");
+  const preimage = readBytes(preimage_ptr, preimage_len);
+  attached.set(toHex(hashBytes), preimage);
+}
+
+/** Clear all attached preimages (but not the default single-preimage fallback). */
+export function clearPreimageAttachments(): void {
+  attached.clear();
+}
+
 export function lookup(
   _service: number,
   hash_ptr: number,
@@ -45,12 +60,12 @@ export function lookup(
   length: number,
 ): bigint {
   // Preferred path: check attached map first (simulates extrinsic delivery).
-  const hashBytes = readBytes(hash_ptr, 32);
-  const hex = toHex(hashBytes);
-  const hit = attached.get(hex);
-  if (hit !== undefined) {
-    writeToMem(out_ptr, hit, offset, length);
-    return BigInt(hit.length);
+  if (attached.size > 0) {
+    const hit = attached.get(toHex(readBytes(hash_ptr, 32)));
+    if (hit !== undefined) {
+      writeToMem(out_ptr, hit, offset, length);
+      return BigInt(hit.length);
+    }
   }
 
   // Fallback: the existing single-preimage slot.

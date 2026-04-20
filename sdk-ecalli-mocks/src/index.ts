@@ -15,7 +15,10 @@ export {
   fetch, setFetchData, setFetchDataForKind, setAccumulateItems, setAccumulateItem,
   encodeOperand, encodeTransfer,
 } from "./general/index.js";
-export { lookup, setLookupPreimage, setLookupNone } from "./general/index.js";
+export {
+  lookup, setLookupPreimage, setLookupNone,
+  setPreimageAttached, clearPreimageAttachments,
+} from "./general/index.js";
 export { read, write, setStorageEntry } from "./general/index.js";
 export { info, setInfoData, setDefaultInfoData } from "./general/index.js";
 export { log } from "./general/index.js";
@@ -52,7 +55,6 @@ export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult,
   getSolicitCount, getForgetCount, getProvideCount, resetPreimageCounters,
-  setPreimageAttached, clearPreimageAttachments,
 } from "./accumulate/index.js";
 
 // Reset

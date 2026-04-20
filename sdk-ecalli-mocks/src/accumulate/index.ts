@@ -21,7 +21,6 @@ export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult, resetPreimages,
   getSolicitCount, getForgetCount, getProvideCount, resetPreimageCounters,
-  setPreimageAttached, clearPreimageAttachments,
 } from "./preimages.js";
 
 import { resetPrivileged } from "./privileged.js";
