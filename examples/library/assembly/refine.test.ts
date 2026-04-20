@@ -218,6 +218,28 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
+  test("refine demo: happy path returns peeked output", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("echo", 0x01, 16);
+    const seed = BytesBlob.parseBlob("0x00").okay!;
+    TestHistoricalLookup.setPreimage(seed.raw);
+    TestMachine.setMachineResult(0); // create OK, id = 0
+    TestMachine.setPokeResult(0);
+    TestMachine.setPagesResult(0);
+    // invoke returns Halt (0); r7 post-invoke = packed ptrAndLen(ptr=0xFEFF2000, len=3)
+    TestMachine.setInvokeResult(0, 0);
+    TestMachine.setInvokeIoR7((i64(3) << 32) | i64(0xFEFF2000));
+    const expected = BytesBlob.parseBlob("0x010203").okay!;
+    TestMachine.setPeekData(expected.raw);
+    TestMachine.setExpungeResult(0);
+
+    const input = buildDemoInput("echo", 0, 1000, BytesBlob.parseBlob("0xaabb").okay!);
+    const resp = callRefine(input);
+    assert.isEqual(resp.result, 0, "ok");
+    assert.isEqualBytes(resp.data, expected, "peeked output");
+    return assert;
+  }),
+
   test("mock: setPeekData writes configured bytes to dest", () => {
     const assert = Assert.create();
     const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
