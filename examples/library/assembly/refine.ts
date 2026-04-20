@@ -2,13 +2,16 @@ import { BytesBlob, Decoder, Encoder, ExitReason, InvokeIo, PageAccess, RefineCo
 import { AdminCommandCodec } from "./admin";
 import { LibraryEntryCodec, libraryKeyFromBlob } from "./storage";
 
-const ERR_UNKNOWN_LIB: i64 = -1;
-const ERR_PREIMAGE_MISS: i64 = -2;
-const ERR_INVALID_ENTRYPOINT: i64 = -3;
-const ERR_INVOKE_FAILURE: i64 = -4;
-const ERR_OOB: i64 = -5;
-const ERR_ADMIN_MALFORMED: i64 = -6;
-const ERR_PARSE: i64 = -7;
+// Error codes use the -100..-106 range to avoid overlap with EcalliResult
+// sentinels (NONE=-1, OOB=-3, WHO=-4, FULL=-5, HUH=-9) that may appear in
+// the same `ecalliResult` field when raw ecalli results leak through.
+const ERR_UNKNOWN_LIB: i64 = -100;
+const ERR_PREIMAGE_MISS: i64 = -101;
+const ERR_INVALID_ENTRYPOINT: i64 = -102;
+const ERR_INVOKE_FAILURE: i64 = -103;
+const ERR_OOB: i64 = -104;
+const ERR_ADMIN_MALFORMED: i64 = -105;
+const ERR_PARSE: i64 = -106;
 
 const INPUT_ADDR: u32 = 0xfeff0000;
 const PAGE_SIZE: u32 = 4096;

@@ -152,17 +152,17 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
-  test("refine: unknown tag returns -7", () => {
+  test("refine: unknown tag returns -106", () => {
     const assert = Assert.create();
     const resp = callRefine(BytesBlob.parseBlob("0x99").okay!.raw); // tag=0x99 unknown
-    assert.isEqual(resp.result, -7, "result");
+    assert.isEqual(resp.result, -106, "result");
     return assert;
   }),
 
-  test("refine: empty payload returns -7", () => {
+  test("refine: empty payload returns -106", () => {
     const assert = Assert.create();
     const resp = callRefine(new Uint8Array(0));
-    assert.isEqual(resp.result, -7, "result");
+    assert.isEqual(resp.result, -106, "result");
     return assert;
   }),
 
@@ -186,34 +186,45 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
-  test("refine: admin path rejects malformed bytes with -6", () => {
+  test("refine: admin path rejects malformed bytes with -105", () => {
     const assert = Assert.create();
     const input = Encoder.create();
     input.u8(1); // admin tag
     input.u8(0x99); // unknown AdminCommand tag
     const resp = callRefine(input.finishRaw());
-    assert.isEqual(resp.result, -6, "malformed");
+    assert.isEqual(resp.result, -105, "malformed");
     return assert;
   }),
 
-  test("refine demo: unknown library name returns -1", () => {
+  test("refine demo: unknown library name returns -100", () => {
     const assert = Assert.create();
     TestStorage.set(BytesBlob.wrap(libraryKey("missing")), null);
 
     const input = buildDemoInput("missing", 0, 1000, BytesBlob.empty());
     const resp = callRefine(input);
-    assert.isEqual(resp.result, -1, "unknown library");
+    assert.isEqual(resp.result, -100, "unknown library");
     return assert;
   }),
 
-  test("refine demo: preimage unavailable returns -2", () => {
+  test("refine demo: malformed stored entry returns -100", () => {
+    const assert = Assert.create();
+    // Store a value that is too short to decode a LibraryEntry (hash+length = 36 bytes).
+    TestStorage.set(BytesBlob.wrap(libraryKey("corrupt")), BytesBlob.parseBlob("0xdead").okay!);
+
+    const input = buildDemoInput("corrupt", 0, 1000, BytesBlob.empty());
+    const resp = callRefine(input);
+    assert.isEqual(resp.result, -100, "malformed entry treated as unknown");
+    return assert;
+  }),
+
+  test("refine demo: preimage unavailable returns -101", () => {
     const assert = Assert.create();
     seedLibraryMapping("ed25519", 0xee, 64);
     TestHistoricalLookup.setNone();
 
     const input = buildDemoInput("ed25519", 0, 1000, BytesBlob.empty());
     const resp = callRefine(input);
-    assert.isEqual(resp.result, -2, "preimage unavailable");
+    assert.isEqual(resp.result, -101, "preimage unavailable");
     return assert;
   }),
 
@@ -239,18 +250,18 @@ export const TESTS: Test[] = [
     return assert;
   }),
 
-  test("refine demo: invalid entrypoint returns -3", () => {
+  test("refine demo: invalid entrypoint returns -102", () => {
     const assert = Assert.create();
     seedLibraryMapping("bad", 0xaa, 16);
     TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
     TestMachine.setMachineResult(-9); // HUH sentinel (InvalidEntryPoint)
 
     const resp = callRefine(buildDemoInput("bad", 0, 1000, BytesBlob.empty()));
-    assert.isEqual(resp.result, -3, "invalid entrypoint");
+    assert.isEqual(resp.result, -102, "invalid entrypoint");
     return assert;
   }),
 
-  test("refine demo: invoke Panic returns -4 with reason+r8", () => {
+  test("refine demo: invoke Panic returns -103 with reason+r8", () => {
     const assert = Assert.create();
     seedLibraryMapping("panic", 0xbb, 16);
     TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
@@ -261,13 +272,13 @@ export const TESTS: Test[] = [
     TestMachine.setExpungeResult(0);
 
     const resp = callRefine(buildDemoInput("panic", 0, 1000, BytesBlob.empty()));
-    assert.isEqual(resp.result, -4, "invoke failure");
+    assert.isEqual(resp.result, -103, "invoke failure");
     assert.isEqual(resp.data.raw.length, 9, "body length = u8 + u64");
     assert.isEqual(resp.data.raw[0], 1, "reason = Panic");
     return assert;
   }),
 
-  test("refine demo: peek OOB returns -5", () => {
+  test("refine demo: peek OOB returns -104", () => {
     const assert = Assert.create();
     seedLibraryMapping("oob", 0xcc, 16);
     TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
@@ -280,7 +291,7 @@ export const TESTS: Test[] = [
     TestMachine.setExpungeResult(0);
 
     const resp = callRefine(buildDemoInput("oob", 0, 1000, BytesBlob.empty()));
-    assert.isEqual(resp.result, -5, "peek OOB");
+    assert.isEqual(resp.result, -104, "peek OOB");
     return assert;
   }),
 
