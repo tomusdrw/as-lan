@@ -1,7 +1,24 @@
-import { Bytes32, BytesBlob, Decoder, Encoder, RefineArgs, RefineContext, Response } from "@fluffylabs/as-lan";
-import { Assert, Test, test, unpackResult } from "@fluffylabs/as-lan/test";
+import {
+  AccumulateArgs,
+  AccumulateContext,
+  AccumulateItem,
+  Bytes32,
+  BytesBlob,
+  CurrentServiceData,
+  Decoder,
+  Encoder,
+  Operand,
+  RefineArgs,
+  RefineContext,
+  Response,
+  WorkExecResult,
+  WorkExecResultKind,
+} from "@fluffylabs/as-lan";
+import { Assert, Test, test, TestAccumulate, TestEcalli, unpackResult } from "@fluffylabs/as-lan/test";
+import { accumulate } from "./accumulate";
 import { blake2b256 } from "./crypto/blake2b";
 import { refine } from "./refine";
+import { pasteKey, PasteEntry } from "./storage";
 import { assertBytes } from "./test-helpers";
 
 function callRefine(payload: Uint8Array): Response {
@@ -39,6 +56,46 @@ function decodeOperand(data: BytesBlob): DecodedOperand {
   return DecodedOperand.create(hash, length);
 }
 
+const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
+
+function buildOperandItem(okBlob: Uint8Array): Uint8Array {
+  const ctx = AccumulateContext.create();
+  const op = Operand.create(
+    ZERO_HASH,
+    ZERO_HASH,
+    ZERO_HASH,
+    ZERO_HASH,
+    100000,
+    WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.wrap(okBlob)),
+    BytesBlob.empty(),
+  );
+  const enc = Encoder.create();
+  ctx.accumulateItem.encode(AccumulateItem.fromOperand(op), enc);
+  return enc.finishRaw();
+}
+
+function callAccumulateSingle(slot: u32, okBlob: Uint8Array): void {
+  TestAccumulate.setItem(0, buildOperandItem(okBlob));
+
+  const ctx = AccumulateContext.create();
+  const args = AccumulateArgs.create(slot, 42, 1);
+  const enc = Encoder.create();
+  ctx.accumulateArgs.encode(args, enc);
+  const encoded = enc.finishRaw();
+  const buf = BytesBlob.wrap(encoded);
+  unpackResult(accumulate(buf.ptr(), buf.length));
+}
+
+function buildOkBlob(hash: Uint8Array, length: u32): Uint8Array {
+  const out = new Uint8Array(36);
+  for (let i = 0; i < 32; i += 1) out[i] = hash[i];
+  out[32] = u8(length);
+  out[33] = u8(length >> 8);
+  out[34] = u8(length >> 16);
+  out[35] = u8(length >> 24);
+  return out;
+}
+
 export const TESTS: Test[] = [
   test("refine hashes payload and emits (hash ‖ length_LE)", () => {
     const payload = new Uint8Array(4);
@@ -65,6 +122,59 @@ export const TESTS: Test[] = [
     const op = decodeOperand(resp.data);
     assertBytes(assert, op.hash, blake2b256(new Uint8Array(0)), "hash");
     assert.isEqual(op.length, <u32>0, "length_LE");
+    return assert;
+  }),
+  test("accumulate solicits, writes paste entry, pushes recent", () => {
+    TestEcalli.reset();
+    const assert = Assert.create();
+
+    const payload = new Uint8Array(8);
+    for (let i = 0; i < 8; i += 1) payload[i] = u8(i);
+    const hashBytes = blake2b256(payload);
+    const okBlob = buildOkBlob(hashBytes, 8);
+
+    callAccumulateSingle(123, okBlob);
+
+    // Paste entry should be present.
+    const storage = CurrentServiceData.create();
+    const hash = Bytes32.wrapUnchecked(hashBytes);
+    const stored = storage.read(pasteKey(hash).raw);
+    assert.isEqual(stored.isSome, true, "paste entry present");
+    if (!stored.isSome) return assert;
+    const raw = stored.val!;
+    assert.isEqual(<u32>raw.length, <u32>8, "paste entry length");
+    if (raw.length !== 8) return assert;
+
+    const entry = PasteEntry.decodeOrPanic(raw);
+    assert.isEqual(entry.slot, <u32>123, "paste entry slot");
+    assert.isEqual(entry.length, <u32>8, "paste entry payload length");
+    return assert;
+  }),
+  test("accumulate re-submission is idempotent", () => {
+    TestEcalli.reset();
+    const assert = Assert.create();
+
+    const payload = new Uint8Array(4);
+    payload[0] = 1;
+    payload[1] = 2;
+    payload[2] = 3;
+    payload[3] = 4;
+    const hashBytes = blake2b256(payload);
+    const okBlob = buildOkBlob(hashBytes, 4);
+
+    callAccumulateSingle(100, okBlob);
+    callAccumulateSingle(200, okBlob);
+
+    const storage = CurrentServiceData.create();
+    const hash = Bytes32.wrapUnchecked(hashBytes);
+    const stored = storage.read(pasteKey(hash).raw);
+    assert.isEqual(stored.isSome, true, "paste entry present");
+    if (!stored.isSome) return assert;
+
+    const entry = PasteEntry.decodeOrPanic(stored.val!);
+    // First insertion's slot must be preserved — second call is a no-op.
+    assert.isEqual(entry.slot, <u32>100, "paste entry slot preserved");
+    assert.isEqual(entry.length, <u32>4, "paste entry payload length");
     return assert;
   }),
 ];
