@@ -10,5 +10,8 @@ export const CLEANUP_SLOTS_PER_CALL: u32 = 8;
 export const PREFIX_PASTE: BytesBlob = BytesBlob.encodeAscii("paste:");
 export const PREFIX_RECENT: BytesBlob = BytesBlob.encodeAscii("recent:");
 export const PREFIX_EXPIRY: BytesBlob = BytesBlob.encodeAscii("expiry:");
-export const KEY_RECENT_HEAD: BytesBlob = BytesBlob.encodeAscii("recent_head");
+// Scalar metadata lives under `meta:` (same namespace as cleanup_cursor). This
+// keeps scalar keys structurally disjoint from indexed families (`paste:<hash>`,
+// `recent:<u32 LE>`, `expiry:<u32 LE>`) regardless of future RECENT_N changes.
+export const KEY_RECENT_HEAD: BytesBlob = BytesBlob.encodeAscii("meta:recent_head");
 export const KEY_CLEANUP_CURSOR: BytesBlob = BytesBlob.encodeAscii("meta:cleanup_cursor");

@@ -1,4 +1,4 @@
-import { Bytes32, BytesBlob } from "@fluffylabs/as-lan";
+import { Bytes32, BytesBlob, panic } from "@fluffylabs/as-lan";
 import {
   KEY_CLEANUP_CURSOR,
   KEY_RECENT_HEAD,
@@ -61,7 +61,10 @@ export class PasteEntry {
   }
 
   static decodeOrPanic(raw: Uint8Array): PasteEntry {
-    assert(raw.length == 8, "PasteEntry: expected 8 bytes");
+    // Explicit check + panic() — `assert()` is stripped under `noAssert: true`
+    // in the release target (asconfig.json), which would turn a wrong-length
+    // buffer into a silent zero-filled PasteEntry instead of a trap.
+    if (raw.length != 8) panic("PasteEntry: expected 8 bytes");
     const slot = u32(raw[0]) | (u32(raw[1]) << 8) | (u32(raw[2]) << 16) | (u32(raw[3]) << 24);
     const length = u32(raw[4]) | (u32(raw[5]) << 8) | (u32(raw[6]) << 16) | (u32(raw[7]) << 24);
     return new PasteEntry(slot, length);
