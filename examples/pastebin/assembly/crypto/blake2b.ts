@@ -94,6 +94,8 @@ export function blake2b256(input: Uint8Array): Uint8Array {
   let offset: i32 = 0;
 
   // Compress all full 128-byte blocks except the last.
+  // Strict > so that inputs that are an exact multiple of 128 still have a final block
+  // (RFC 7693 requires the last compression to be flagged with f0 = 0xff…ff).
   while (inLen - offset > 128) {
     for (let i = 0; i < 16; i += 1) block[i] = readLE64(input, offset + i * 8);
     t += 128;
