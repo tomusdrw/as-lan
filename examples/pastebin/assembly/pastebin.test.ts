@@ -7,6 +7,7 @@ import {
   BytesBlob,
   CurrentServiceData,
   Decoder,
+  EcalliResult,
   Encoder,
   Operand,
   Preimages,
@@ -16,10 +17,11 @@ import {
   WorkExecResult,
   WorkExecResultKind,
 } from "@fluffylabs/as-lan";
-import { Assert, Test, test, TestAccumulate, TestEcalli, TestLookup, unpackResult } from "@fluffylabs/as-lan/test";
+import { Assert, Test, test, TestAccumulate, TestEcalli, TestLookup, TestPreimages, unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
+import { refine as dispatch } from "./index";
 import { refine } from "./refine";
-import { cleanupCursorKey, pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
+import { cleanupCursorKey, expiryKey, pasteKey, PasteEntry, readU32LE, writeU32LE } from "./storage";
 import { assertBytes } from "./test-helpers";
 
 function callRefine(payload: Uint8Array): Response {
@@ -246,6 +248,88 @@ export const TESTS: Test[] = [
     assert.isEqual(looked.isSome, true, "preimage looked up");
     if (!looked.isSome) return assert;
     assertBytes(assert, looked.val!.raw, payload, "looked-up blob");
+    return assert;
+  }),
+  test("index.ts dispatch routes len==2 to is_authorized, else to refine", () => {
+    TestEcalli.reset();
+    const assert = Assert.create();
+
+    // len == 2: is_authorized path. Payload is a u16 coreIndex; 0x0000 is fine.
+    const coreIndex = new Uint8Array(2);
+    const authRaw = unpackResult(dispatch(u32(coreIndex.dataStart), coreIndex.byteLength));
+    const authResp = RefineContext.create().response.decode(Decoder.fromBlob(authRaw)).okay!;
+    assert.isEqual(authResp.result, 0, "is_authorized result");
+    assert.isEqual(<u32>authResp.data.length, <u32>0, "is_authorized has no data");
+
+    // len > 2: the refine path. Build a proper RefineArgs encoding and verify
+    // the dispatch returns the same 36-byte okBlob that calling refine directly would.
+    const payload = new Uint8Array(4);
+    payload[0] = 0xde; payload[1] = 0xad; payload[2] = 0xbe; payload[3] = 0xef;
+    const refResp = callRefine(payload);  // goes via refine() directly
+
+    // Now call the same bytes via the dispatch function.
+    const refArgs = RefineArgs.create(0, 0, SERVICE_ID, BytesBlob.wrap(payload), ZERO_HASH);
+    const enc = Encoder.create();
+    RefineContext.create().refineArgs.encode(refArgs, enc);
+    const encoded = enc.finishRaw();
+    const buf = new Uint8Array(encoded.length);
+    buf.set(encoded);
+    const dispRaw = unpackResult(dispatch(u32(buf.dataStart), buf.byteLength));
+    const dispResp = RefineContext.create().response.decode(Decoder.fromBlob(dispRaw)).okay!;
+
+    assert.isEqual(dispResp.result, refResp.result, "dispatch result matches direct refine");
+    assert.isEqual(dispResp.data.length, refResp.data.length, "dispatch data length matches");
+    assertBytes(assert, dispResp.data.raw, refResp.data.raw, "dispatch data matches refine");
+    return assert;
+  }),
+  test("accumulate skips insertion when solicit returns FULL", () => {
+    TestEcalli.reset();
+    TestPreimages.setSolicitResult(EcalliResult.FULL);
+    const assert = Assert.create();
+
+    const payload = new Uint8Array(4);
+    payload[0] = 1; payload[1] = 2; payload[2] = 3; payload[3] = 4;
+    const hashBytes = blake2b256(payload);
+    const okBlob = buildOkBlob(hashBytes, 4);
+
+    callAccumulateSingle(77, okBlob);
+
+    // No paste entry should have been written — insertion is gated on solicit success.
+    const storage = CurrentServiceData.create();
+    const hash = Bytes32.wrapUnchecked(hashBytes);
+    const stored = storage.read(pasteKey(hash).raw);
+    assert.isEqual(stored.isSome, false, "paste not stored after solicit failure");
+    return assert;
+  }),
+  test("cleanup forgets both pastes from a shared expiry bucket", () => {
+    TestEcalli.reset();
+    const assert = Assert.create();
+
+    // Two distinct payloads inserted at the same slot share an expiry bucket.
+    const a = new Uint8Array(3); a[0] = 1; a[1] = 2; a[2] = 3;
+    const b = new Uint8Array(3); b[0] = 9; b[1] = 8; b[2] = 7;
+    const hashA = blake2b256(a);
+    const hashB = blake2b256(b);
+    const okA = buildOkBlob(hashA, 3);
+    const okB = buildOkBlob(hashB, 3);
+
+    // Both at slot 5 → expiry bucket at slot 5 + TTL_SLOTS = 1005.
+    callAccumulateSingle(5, okA);
+    callAccumulateSingle(5, okB);
+
+    // Pre-cleanup: expiry bucket holds exactly 2 hashes (64 bytes).
+    const storage = CurrentServiceData.create();
+    const bucket = storage.read(expiryKey(1005).raw);
+    assert.isEqual(bucket.isSome, true, "expiry bucket exists pre-cleanup");
+    if (bucket.isSome) assert.isEqual(<u32>bucket.val!.length, <u32>64, "bucket holds 2 hashes");
+
+    // Advance cursor past 1005 with empty calls (131 × 8 = 1048 ≥ 1005).
+    for (let i: u32 = 0; i < 130; i += 1) callAccumulateEmpty(1005 + i);
+
+    // Both pastes + the bucket itself should be gone.
+    assert.isEqual(storage.read(pasteKey(Bytes32.wrapUnchecked(hashA)).raw).isSome, false, "paste A deleted");
+    assert.isEqual(storage.read(pasteKey(Bytes32.wrapUnchecked(hashB)).raw).isSome, false, "paste B deleted");
+    assert.isEqual(storage.read(expiryKey(1005).raw).isSome, false, "bucket deleted");
     return assert;
   }),
 ];
