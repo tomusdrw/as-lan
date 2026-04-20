@@ -173,6 +173,36 @@ TestPreimages.setForgetResult(0);
 TestPreimages.setProvideResult(EcalliResult.WHO);
 ```
 
+#### Simulating extrinsic-driven preimage delivery
+
+In production, preimages arrive out-of-band via the `xtpreimages` block
+extrinsic and CE 142 gossip — a service that only calls `solicit()` (never
+`provide()`) still sees the preimage become available once the network
+delivers it. To exercise that path in tests without modeling block
+inclusion, attach the preimage directly to the `lookup()` mock:
+
+```typescript
+import { Bytes32, BytesBlob } from "@fluffylabs/as-lan";
+import { TestPreimages } from "@fluffylabs/as-lan/test";
+
+// After this call, any lookup(hash) ecalli returns `preimage`.
+TestPreimages.setAttachedPreimage(
+  Bytes32.wrapUnchecked(hashBytes),
+  BytesBlob.wrap(preimageBytes),
+);
+
+// Clear all attached preimages (keeps the TestLookup single-preimage fallback).
+TestPreimages.clearAttachedPreimages();
+```
+
+Attached entries take precedence over `TestLookup.setPreimage` / `setNone`.
+Both `TestEcalli.reset()` and any `resetPreimages`/`resetLookup` path clear
+the attached map, so tests starting with `TestEcalli.reset()` never see
+leaked attachments from a prior test.
+
+Good reference: the `pastebin` example's `"paste → solicit → attach → lookup
+retrieves blob"` test exercises the full flow end-to-end.
+
 ### TestExportSegment
 
 Override the `export_segment()` ecalli return value (refine context):
