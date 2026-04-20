@@ -47,3 +47,12 @@ export class LibraryEntryCodec implements TryDecode<LibraryEntry>, TryEncode<Lib
 export function libraryKey(name: string): Uint8Array {
   return BytesBlob.encodeAscii(`lib:${name}`).raw;
 }
+
+/** Build the storage key `"lib:<name>"` when `name` is already an ASCII byte blob. */
+export function libraryKeyFromBlob(name: BytesBlob): Uint8Array {
+  const prefix = BytesBlob.encodeAscii("lib:").raw;
+  const key = new Uint8Array(prefix.length + name.raw.length);
+  key.set(prefix, 0);
+  key.set(name.raw, prefix.length);
+  return key;
+}

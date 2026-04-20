@@ -1,8 +1,28 @@
 import { Bytes32, BytesBlob, Decoder, Encoder, InvokeIo, Machine } from "@fluffylabs/as-lan";
 import { Assert, Test, TestMachine, test } from "@fluffylabs/as-lan/test";
+import { TestHistoricalLookup, TestStorage } from "@fluffylabs/as-lan/test";
 import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKey } from "./storage";
 import { callRefine } from "./test-helpers";
+
+function buildDemoInput(name: string, entrypoint: u32, gas: u64, payload: BytesBlob): Uint8Array {
+  const enc = Encoder.create();
+  enc.u8(0); // demo tag
+  enc.bytesVarLen(BytesBlob.encodeAscii(name));
+  enc.u32(entrypoint);
+  enc.u64(gas);
+  enc.bytesVarLen(payload);
+  return enc.finishRaw();
+}
+
+function seedLibraryMapping(name: string, hashByte0: u8, length: u32): void {
+  const h = Bytes32.zero();
+  h.raw[0] = hashByte0;
+  const e = LibraryEntry.create(h, length);
+  const enc = Encoder.create();
+  LibraryEntryCodec.create().encode(e, enc);
+  TestStorage.set(BytesBlob.wrap(libraryKey(name)), BytesBlob.wrap(enc.finishRaw()));
+}
 
 export const TESTS: Test[] = [
   test("mock: setInvokeIoR7 writes r7 into InvokeIo after invoke", () => {
@@ -174,6 +194,27 @@ export const TESTS: Test[] = [
     input.u8(0x99); // unknown AdminCommand tag
     const resp = callRefine(input.finishRaw());
     assert.isEqual(resp.result, -6, "malformed");
+    return assert;
+  }),
+
+  test("refine demo: unknown library name returns -1", () => {
+    const assert = Assert.create();
+    TestStorage.set(BytesBlob.wrap(libraryKey("missing")), null);
+
+    const input = buildDemoInput("missing", 0, 1000, BytesBlob.empty());
+    const resp = callRefine(input);
+    assert.isEqual(resp.result, -1, "unknown library");
+    return assert;
+  }),
+
+  test("refine demo: preimage unavailable returns -2", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("ed25519", 0xee, 64);
+    TestHistoricalLookup.setNone();
+
+    const input = buildDemoInput("ed25519", 0, 1000, BytesBlob.empty());
+    const resp = callRefine(input);
+    assert.isEqual(resp.result, -2, "preimage unavailable");
     return assert;
   }),
 
