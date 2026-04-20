@@ -7,7 +7,8 @@ export {
 export { export_segment, setExportSegmentResult, resetSegments } from "./segments.js";
 export {
   machine, peek, poke, pages, invoke, expunge, resetMachines,
-  setMachineResult, setPeekResult, setPokeResult, setPagesResult, setInvokeResult, setExpungeResult,
+  setMachineResult, setPeekResult, setPokeResult, setPagesResult, setInvokeResult, setInvokeIoR7,
+  setExpungeResult,
 } from "./machines.js";
 
 import { resetHistoricalLookup } from "./lookup.js";

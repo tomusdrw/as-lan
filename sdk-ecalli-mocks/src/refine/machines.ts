@@ -12,6 +12,7 @@ let pokeResult: bigint | null = null;
 let pagesResult: bigint | null = null;
 let invokeResult: bigint | null = null;
 let invokeR8: bigint = 0n;
+let invokeIoR7: bigint | null = null;
 let expungeResult: bigint | null = null;
 
 /** Ecalli 8: Create inner PVM machine. */
@@ -60,10 +61,14 @@ export function pages(
 /** Ecalli 12: Invoke inner machine — returns HALT (0), writes r8. */
 export function invoke(
   _machine_id: number,
-  _io_ptr: number,
+  io_ptr: number,
   out_r8: number,
 ): bigint {
   writeI64(out_r8, invokeR8);
+  if (invokeIoR7 !== null) {
+    // InvokeIo layout: [gas(8), r0(8), r1(8), ..., r12(8)]. r7 is at offset 8 + 7*8 = 64.
+    writeI64(io_ptr + 64, invokeIoR7);
+  }
   if (invokeResult !== null) return invokeResult;
   return 0n; // HALT
 }
@@ -99,6 +104,10 @@ export function setInvokeResult(result: bigint, r8: bigint = 0n): void {
   invokeR8 = r8;
 }
 
+export function setInvokeIoR7(value: bigint): void {
+  invokeIoR7 = value;
+}
+
 export function setExpungeResult(result: bigint): void {
   expungeResult = result;
 }
@@ -111,5 +120,6 @@ export function resetMachines(): void {
   pagesResult = null;
   invokeResult = null;
   invokeR8 = 0n;
+  invokeIoR7 = null;
   expungeResult = null;
 }

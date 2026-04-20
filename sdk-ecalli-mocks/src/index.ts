@@ -28,7 +28,8 @@ export {
 export { export_segment as export, setExportSegmentResult } from "./refine/index.js";
 export {
   machine, peek, poke, pages, invoke, expunge,
-  setMachineResult, setPeekResult, setPokeResult, setPagesResult, setInvokeResult, setExpungeResult,
+  setMachineResult, setPeekResult, setPokeResult, setPagesResult, setInvokeResult, setInvokeIoR7,
+  setExpungeResult,
 } from "./refine/index.js";
 
 // Accumulate ecalli stubs (14-26)
