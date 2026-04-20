@@ -8,13 +8,14 @@ import {
   Decoder,
   Encoder,
   Operand,
+  Preimages,
   RefineArgs,
   RefineContext,
   Response,
   WorkExecResult,
   WorkExecResultKind,
 } from "@fluffylabs/as-lan";
-import { Assert, Test, test, TestAccumulate, TestEcalli, unpackResult } from "@fluffylabs/as-lan/test";
+import { Assert, Test, test, TestAccumulate, TestEcalli, TestPreimages, unpackResult } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
 import { blake2b256 } from "./crypto/blake2b";
 import { refine } from "./refine";
@@ -221,6 +222,30 @@ export const TESTS: Test[] = [
       }
     }
 
+    return assert;
+  }),
+  test("paste → solicit → attach → lookup retrieves blob", () => {
+    TestEcalli.reset();
+    const assert = Assert.create();
+
+    // 10-byte payload [0xc0..0xc9].
+    const payload = new Uint8Array(10);
+    for (let i: u32 = 0; i < 10; i += 1) payload[i] = u8(0xc0 + i);
+    const hashBytes = blake2b256(payload);
+    const okBlob = buildOkBlob(hashBytes, 10);
+
+    // Accumulate: inserts paste entry + calls solicit.
+    callAccumulateSingle(50, okBlob);
+
+    // Simulate extrinsic delivery (CE 142 gossip + xtpreimages inclusion).
+    TestPreimages.setAttachedPreimage(Bytes32.wrapUnchecked(hashBytes), BytesBlob.wrap(payload));
+
+    // Service-visible lookup via the lookup ecalli.
+    const preimages = Preimages.create();
+    const looked = preimages.lookup(Bytes32.wrapUnchecked(hashBytes));
+    assert.isEqual(looked.isSome, true, "preimage looked up");
+    if (!looked.isSome) return assert;
+    assertBytes(assert, looked.val!.raw, payload, "looked-up blob");
     return assert;
   }),
 ];

@@ -52,6 +52,7 @@ export {
   query, solicit, forget, yield_result, provide,
   setQueryResult, setSolicitResult, setForgetResult, setProvideResult,
   getSolicitCount, getForgetCount, getProvideCount, resetPreimageCounters,
+  setPreimageAttached, clearPreimageAttachments,
 } from "./accumulate/index.js";
 
 // Reset
