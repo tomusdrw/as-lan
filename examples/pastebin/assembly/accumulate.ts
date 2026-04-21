@@ -10,7 +10,7 @@ import {
   Response,
 } from "@fluffylabs/as-lan";
 import { CLEANUP_SLOTS_PER_CALL, RECENT_ENTRY_LEN, RECENT_N, REFINE_OUTPUT_LEN, TTL_SLOTS } from "./constants";
-import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey, recentHeadKey, recentKey } from "./storage";
+import { cleanupCursorKey, expiryKey, PasteDigest, PasteEntry, pasteKey, recentHeadKey, recentKey } from "./storage";
 
 /** Build a 4-byte little-endian u32 BytesBlob (counter / cursor value). */
 function u32Blob(value: u32): BytesBlob {
@@ -66,12 +66,11 @@ export function accumulate(ptr: u32, len: u32): u64 {
     if (!operand.result.isOk) continue;
 
     const okBlob = operand.result.okBlob;
+    // Soft-skip malformed refine output (would otherwise trip PasteDigest.decodeOrPanic).
     if (okBlob.length < REFINE_OUTPUT_LEN) continue;
-
-    // Decode refine output: hash (bytes32) ‖ length (u32 LE).
-    const d = Decoder.fromBlob(okBlob.raw);
-    const hash = d.bytes32();
-    const length = d.u32();
+    const digest = PasteDigest.decodeOrPanic(okBlob);
+    const hash = digest.hash;
+    const length = digest.length;
 
     // Idempotency: skip if this paste is already known.
     const existing = storage.read(pasteKey(hash).raw);

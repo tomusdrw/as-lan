@@ -31,7 +31,7 @@ import { accumulate } from "./accumulate";
 import { REFINE_OUTPUT_LEN } from "./constants";
 import { refine as dispatch } from "./index";
 import { refine } from "./refine";
-import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey } from "./storage";
+import { cleanupCursorKey, expiryKey, PasteDigest, PasteEntry, pasteKey } from "./storage";
 
 function callRefine(payload: Uint8Array): Response {
   const ctx = RefineContext.create();
@@ -43,23 +43,6 @@ function callRefine(payload: Uint8Array): Response {
   buf.set(encoded);
   const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
   return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
-}
-
-class DecodedOperand {
-  static create(hash: Uint8Array, length: u32): DecodedOperand {
-    return new DecodedOperand(hash, length);
-  }
-  private constructor(
-    public readonly hash: Uint8Array,
-    public readonly length: u32,
-  ) {}
-}
-
-function decodeOperand(data: BytesBlob): DecodedOperand {
-  const d = Decoder.fromBlob(data.raw);
-  const hash = d.bytes32();
-  const length = d.u32();
-  return DecodedOperand.create(hash.raw, length);
 }
 
 const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
@@ -104,10 +87,7 @@ function callAccumulateEmpty(slot: u32): void {
 }
 
 function buildOkBlob(hash: Uint8Array, length: u32): Uint8Array {
-  const e = Encoder.create(REFINE_OUTPUT_LEN);
-  e.bytes32(Bytes32.wrapUnchecked(hash));
-  e.u32(length);
-  return e.finishRaw();
+  return PasteDigest.create(Bytes32.wrapUnchecked(hash), length).encode().raw;
 }
 
 export const TESTS: Test[] = [
@@ -122,8 +102,8 @@ export const TESTS: Test[] = [
     assert.isEqual(resp.result, 0, "result");
     assert.isEqual(resp.data.length, REFINE_OUTPUT_LEN, "data.length");
     if (resp.data.length !== REFINE_OUTPUT_LEN) return assert;
-    const op = decodeOperand(resp.data);
-    assert.isEqualBytes(BytesBlob.wrap(op.hash), BytesBlob.wrap(blake2b256(payload)), "hash");
+    const op = PasteDigest.decodeOrPanic(resp.data);
+    assert.isEqualBytes(op.hash.bytes, BytesBlob.wrap(blake2b256(payload)), "hash");
     assert.isEqual(op.length, <u32>4, "length_LE");
     return assert;
   }),
@@ -133,8 +113,8 @@ export const TESTS: Test[] = [
     assert.isEqual(resp.result, 0, "result");
     assert.isEqual(resp.data.length, REFINE_OUTPUT_LEN, "data.length");
     if (resp.data.length !== REFINE_OUTPUT_LEN) return assert;
-    const op = decodeOperand(resp.data);
-    assert.isEqualBytes(BytesBlob.wrap(op.hash), BytesBlob.wrap(blake2b256(new Uint8Array(0))), "hash");
+    const op = PasteDigest.decodeOrPanic(resp.data);
+    assert.isEqualBytes(op.hash.bytes, BytesBlob.wrap(blake2b256(new Uint8Array(0))), "hash");
     assert.isEqual(op.length, <u32>0, "length_LE");
     return assert;
   }),
