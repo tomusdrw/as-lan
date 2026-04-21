@@ -88,7 +88,7 @@ export const TESTS: Test[] = [
   test("AccountInfo decode rejects truncated input", () => {
     const a = Assert.create();
     const truncated = BytesBlob.zero(50);
-    const d = Decoder.fromBlob(truncated.raw);
+    const d = Decoder.fromBytesBlob(truncated);
     const r = _codec.decode(d);
     a.isEqual(r.isError, true, "should fail on truncated input");
     return a;

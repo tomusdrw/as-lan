@@ -41,7 +41,7 @@ export const TESTS: Test[] = [
     const data = BytesBlob.parseBlob(
       "0x01d204deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
     ).okay!;
-    const decoder = Decoder.fromBlob(data.raw);
+    const decoder = Decoder.fromBytesBlob(data);
 
     // then
     const assert = Assert.create();
@@ -60,7 +60,7 @@ export const TESTS: Test[] = [
   }),
   test("decode blob", () => {
     const data = BytesBlob.parseBlob("0x051234567890").okay!;
-    const decoder = Decoder.fromBlob(data.raw);
+    const decoder = Decoder.fromBytesBlob(data);
 
     // then
     const assert = Assert.create();

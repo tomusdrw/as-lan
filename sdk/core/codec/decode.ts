@@ -28,6 +28,15 @@ export class Decoder {
     return new Decoder(source);
   }
 
+  /**
+   * Create a new [`Decoder`] instance reading from a [`BytesBlob`] without
+   * copying. Prefer this over `fromBlob(blob.raw)` at call sites that already
+   * hold a `BytesBlob`.
+   */
+  static fromBytesBlob(source: BytesBlob): Decoder {
+    return new Decoder(source.raw);
+  }
+
   private readonly dataView: DataView;
   private _isError: boolean = false;
 

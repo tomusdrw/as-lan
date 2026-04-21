@@ -58,7 +58,7 @@ export function refine(ptr: u32, len: u32): u64 {
 }
 
 function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
-  const d = Decoder.fromBlob(rest.raw);
+  const d = Decoder.fromBytesBlob(rest);
   const name = d.bytesVarLen();
   const entrypoint = d.u32();
   const gas = d.u64();
@@ -162,7 +162,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
 
 function handleAdmin(ctx: RefineContext, rest: BytesBlob): u64 {
   const codec = AdminCommandCodec.create();
-  const d = Decoder.fromBlob(rest.raw);
+  const d = Decoder.fromBytesBlob(rest);
   const r = codec.decode(d);
   if (r.isError) {
     logger.warn("refine admin: decode failure");

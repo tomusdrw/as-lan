@@ -18,8 +18,7 @@ export class NestedPvm {
   static fromSpi(blob: BytesBlob, args: BytesBlob, gas: u64): NestedPvm {
     if (u32(args.length) > SPI_MAX_ARGS_LEN) panic("SPI: args exceed MAX_ARGS_LEN");
 
-    // `Decoder.fromBlob` takes a raw `Uint8Array`; `.raw` is the backing buffer.
-    const d = Decoder.fromBlob(blob.raw);
+    const d = Decoder.fromBytesBlob(blob);
     const roLength = d.u24();
     const rwLength = d.u24();
     const heapPages = u32(d.u16());
