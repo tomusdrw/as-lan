@@ -217,7 +217,7 @@ export function refine(ptr: u32, len: u32): u64 {
 - **`vm.remainingGas()`** / **`vm.setGas(g)`** — Read / top up the gas budget
   between invokes.
 - **`vm.peek(src, dest)`** / **`vm.poke(dest, data)`** — Read / write inner
-  memory outside of an invoke. Returns `ResultN<bool, OutOfBounds>`.
+  memory outside an invoke. Returns `ResultN<bool, OutOfBounds>`.
 - **`vm.expunge()`** — Destroy the inner machine. Returns the host
   expunge value (`i64`).
 

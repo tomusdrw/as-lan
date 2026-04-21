@@ -85,21 +85,21 @@ export class TestMachine {
   }
 
   static pagesLogLength(): u32 {
-    return u32(_getPagesLogLength());
+    return nonNegativeToU32(_getPagesLogLength(), "pagesLogLength");
   }
 
   /** Field: 0=machineId, 1=startPage, 2=pageCount, 3=accessType. */
   static pagesLogField(index: u32, field: u32): u32 {
-    return u32(_getPagesLogField(index, field));
+    return nonNegativeToU32(_getPagesLogField(index, field), "pagesLogField");
   }
 
   static pokeLogLength(): u32 {
-    return u32(_getPokeLogLength());
+    return nonNegativeToU32(_getPokeLogLength(), "pokeLogLength");
   }
 
   /** Field: 0=machineId, 1=dest, 2=dataLength. */
   static pokeLogField(index: u32, field: u32): u32 {
-    return u32(_getPokeLogField(index, field));
+    return nonNegativeToU32(_getPokeLogField(index, field), "pokeLogField");
   }
 
   /** Copy the i-th poke()'s data into the caller-owned buffer.
@@ -113,4 +113,14 @@ export class TestMachine {
     const written = _getPokeLogData(index, u32(buffer.dataStart));
     return u32(written);
   }
+}
+
+/**
+ * The JS mocks return `-1` (i64) when an index is out of range. A raw
+ * `u32(-1)` cast would silently wrap to `0xFFFFFFFF` and feed garbage to
+ * test assertions. Assert non-negative here so a buggy index fails loud.
+ */
+function nonNegativeToU32(raw: i64, label: string): u32 {
+  assert(raw >= 0, `TestMachine.${label}: out-of-range index`);
+  return u32(raw);
 }

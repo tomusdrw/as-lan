@@ -21,10 +21,10 @@ function buildSpi(
   e.u16(heapPages);
   e.u24(stackSize);
   // Regions.
-  for (let i = 0; i < roBytes.length; i++) e.u8(roBytes[i]);
-  for (let i = 0; i < rwBytes.length; i++) e.u8(rwBytes[i]);
+  e.bytesFixLen(BytesBlob.wrap(roBytes));
+  e.bytesFixLen(BytesBlob.wrap(rwBytes));
   e.u32(u32(codeBytes.length));
-  for (let i = 0; i < codeBytes.length; i++) e.u8(codeBytes[i]);
+  e.bytesFixLen(BytesBlob.wrap(codeBytes));
   return e.finish();
 }
 
