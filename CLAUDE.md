@@ -102,7 +102,7 @@ docs/                       Documentation (mdbook)
 - **sdk-ecalli-mocks**: JS stubs wired as WASM imports during test. Export names must match `@external` names exactly.
 - **EcalliResult**: Sentinel constants (NONE=-1, WHO=-4, FULL=-5, etc.) shared across all host calls.
 - **panic(msg)** (`sdk/core/panic.ts`): Use for host-contract violations where recovery is impossible (e.g. host returned malformed data, invalid entry point arguments). Do NOT use for expected failures — use `Result` or `Optional` instead. The SDK does not allow recovering from invalid host data — these are always panics, never `Result`.
-- **Self-authorizing services**: A single service can handle both `is_authorized` and `refine` by detecting the invocation context from input length. `is_authorized` receives exactly 2 bytes (u16 core index), `refine` receives 10+ bytes (RefineArgs). The `index.ts` dispatch pattern: `if (len == 2) return is_authorized(ptr, len); return refine_(ptr, len);`. See `examples/all-ecalli/`, `examples/ecalli-test/`, and `examples/pastebin/`.
+- **Self-authorizing services**: A single service can handle both `is_authorized` and `refine` by detecting the invocation context from input length. `is_authorized` receives exactly 2 bytes (u16 core index), `refine` receives 10+ bytes (RefineArgs). Use the SDK helper `isRefineArgs(len)` (from `sdk/jam/service.ts`) for the `index.ts` dispatch: `if (isRefineArgs(len)) return refine_(ptr, len); return is_authorized(ptr, len);`. See `examples/all-ecalli/`, `examples/ecalli-test/`, and `examples/pastebin/`.
 
 ### Codec Pattern (sdk/core/codec/ + sdk/jam/)
 

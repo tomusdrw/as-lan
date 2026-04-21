@@ -16,8 +16,9 @@ expires pastes after `TTL_SLOTS` slots.
   forgetting expired pastes and deleting their metadata.
 - **Preimage delivery**: out-of-band via the `xtpreimages` block extrinsic
   plus CE 142 gossip. The service never calls `provide`.
-- **Self-authorizing dispatch**: `index.ts` routes on input length —
-  `len === 2` → `is_authorized`, else `refine`.
+- **Self-authorizing dispatch**: `index.ts` routes on input length using
+  the SDK helper `isRefineArgs(len)` — refine if true, `is_authorized`
+  (2-byte u16 core index) otherwise.
 
 ## Storage layout
 

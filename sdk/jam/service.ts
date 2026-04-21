@@ -6,6 +6,28 @@ import { ptrAndLen } from "../core/pack";
 import { Result } from "../core/result";
 import { CodeHash, CoreIndex, ServiceId, Slot, WorkPackageHash } from "./types";
 
+// ─── Entry-point discriminant ─────────────────────────────────────────
+
+/**
+ * Distinguish a refine invocation from an `is_authorized` invocation by
+ * input length.
+ *
+ * JAM self-authorizing services share a single entry function between
+ * `is_authorized` (exactly 2 bytes — a u16 core index; GP Appendix B)
+ * and `refine` (10+ bytes — a full RefineArgs encoding). This helper
+ * centralizes that discriminant for the typical `index.ts` dispatch:
+ *
+ * ```typescript
+ * export function refine(ptr: u32, len: u32): u64 {
+ *   if (isRefineArgs(len)) return refine_(ptr, len);
+ *   return is_authorized(ptr, len);
+ * }
+ * ```
+ */
+export function isRefineArgs(len: u32): bool {
+  return len !== 2;
+}
+
 // ─── RefineArgs ───────────────────────────────────────────────────────
 
 export class RefineArgs {
