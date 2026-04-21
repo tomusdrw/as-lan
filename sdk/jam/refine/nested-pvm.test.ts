@@ -59,14 +59,13 @@ export const TESTS: Test[] = [
     const blob = buildSpi(ro, rw, 0, 0, code);
     NestedPvm.fromSpi(blob, BytesBlob.empty(), 1_000);
 
-    const pagesCount = TestMachine.pagesLogLength();
-    a.isTrue(pagesCount >= 1, "pages() called at least once");
+    a.isEqual(TestMachine.pagesLogLength(), 1, "exactly one pages() call");
     const roStartPage: u32 = 0x0001_0000 / 4096; // = 16
     a.isEqual(TestMachine.pagesLogField(0, 1), roStartPage, "RO start page");
     a.isEqual(TestMachine.pagesLogField(0, 2), 1, "RO page count (10 bytes → 1 page)");
     a.isEqual(TestMachine.pagesLogField(0, 3), 1, "RO access = Read");
 
-    a.isTrue(TestMachine.pokeLogLength() >= 1, "poke() called");
+    a.isEqual(TestMachine.pokeLogLength(), 1, "exactly one poke() call");
     a.isEqual(TestMachine.pokeLogField(0, 1), 0x0001_0000, "poke dest = RO start");
     a.isEqual(TestMachine.pokeLogField(0, 2), 10, "poke length = ro length");
     const copied = new Uint8Array(10);
