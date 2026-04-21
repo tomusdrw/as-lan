@@ -70,4 +70,28 @@ export const TESTS: Test[] = [
     assert.isEqual(decoder.isError, false);
     return assert;
   }),
+
+  test("decode u24 little-endian", () => {
+    const a = Assert.create();
+    const bytes = new Uint8Array(6);
+    // 0x010203 little-endian = [0x03, 0x02, 0x01]
+    bytes[0] = 0x03; bytes[1] = 0x02; bytes[2] = 0x01;
+    // 0xFFFFFF little-endian = [0xFF, 0xFF, 0xFF]
+    bytes[3] = 0xff; bytes[4] = 0xff; bytes[5] = 0xff;
+    const d = Decoder.fromBlob(bytes);
+    a.isEqual(d.u24(), 0x010203, "first value");
+    a.isEqual(d.u24(), 0xffffff, "second value");
+    a.isEqual(d.isFinished(), true, "fully consumed");
+    return a;
+  }),
+
+  test("decode u24 short read sets isError", () => {
+    const a = Assert.create();
+    const bytes = new Uint8Array(2);
+    const d = Decoder.fromBlob(bytes);
+    const v = d.u24();
+    a.isEqual(v, 0, "garbage value on underrun");
+    a.isEqual(d.isError, true, "isError set");
+    return a;
+  }),
 ];

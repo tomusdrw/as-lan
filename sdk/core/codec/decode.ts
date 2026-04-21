@@ -81,6 +81,17 @@ export class Decoder {
     return 0;
   }
 
+  /** Decode three bytes as an unsigned number (little-endian). */
+  u24(): u32 {
+    const offset = this.moveOffset(3);
+    if (offset !== -1) {
+      const lo = this.dataView.getUint16(offset, true);
+      const hi = this.dataView.getUint8(offset + 2);
+      return u32(lo) | (u32(hi) << 16);
+    }
+    return 0;
+  }
+
   /** Decode 4 bytes as an unsigned number. */
   u32(): u32 {
     const offset = this.moveOffset(4);
