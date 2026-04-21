@@ -67,6 +67,12 @@ examples/
       accumulate.test.ts    Tests for accumulate ecallis via operand/transfer flow (14 tests)
       authorize.test.ts     Tests for general ecallis via authorize dispatch (7 tests)
       test-helpers.ts       Shared test utilities (callRefine, callAccumulate, builders)
+  nested-pvm-spi/           Smoke-test: loads an embedded SPI blob (as-add.jam
+                            fixture), strips the Standard-Program metadata
+                            prefix, and runs it through `ctx.nestedPvmFromSpiChecked`.
+                            Demonstrates the Result-returning entry path.
+    fixtures/as-add.jam     Real 648-byte SPI blob from @fluffylabs/pvm-debugger.
+    bin/generate-blob.mjs   Regenerates assembly/as-add-jam.ts from the fixture.
   library/                  Library service — hosts reusable PVM verification blobs
                             (ed25519, blake2b, …) as preimages, resolved by name via
                             storage. Refine demo invokes them via the Machine interface.
