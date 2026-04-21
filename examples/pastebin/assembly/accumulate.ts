@@ -4,20 +4,20 @@ import {
   Bytes32,
   BytesBlob,
   CurrentServiceData,
+  Decoder,
+  Encoder,
   panic,
   Response,
 } from "@fluffylabs/as-lan";
 import { CLEANUP_SLOTS_PER_CALL, RECENT_ENTRY_LEN, RECENT_N, REFINE_OUTPUT_LEN, TTL_SLOTS } from "./constants";
-import {
-  cleanupCursorKey,
-  expiryKey,
-  PasteEntry,
-  pasteKey,
-  readU32LE,
-  recentHeadKey,
-  recentKey,
-  writeU32LE,
-} from "./storage";
+import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey, recentHeadKey, recentKey } from "./storage";
+
+/** Build a 4-byte little-endian u32 BytesBlob (counter / cursor value). */
+function u32Blob(value: u32): BytesBlob {
+  const e = Encoder.create(4);
+  e.u32(value);
+  return e.finish();
+}
 
 /**
  * Append a 32-byte hash to an `expiry:<slot>` bucket (read-modify-write).
@@ -30,11 +30,11 @@ import {
  */
 function appendHashToExpiryBucket(storage: CurrentServiceData, bucketKey: Uint8Array, hash: Bytes32): void {
   const existing = storage.read(bucketKey);
-  const prev: Uint8Array = existing.isSome ? existing.val! : new Uint8Array(0);
-  const out = new Uint8Array(prev.length + 32);
-  out.set(prev, 0);
-  out.set(hash.raw, prev.length);
-  storage.write(bucketKey, BytesBlob.wrap(out));
+  const prevLen: u32 = existing.isSome ? u32(existing.val!.length) : 0;
+  const e = Encoder.create(prevLen + 32);
+  if (existing.isSome) e.bytesFixLen(BytesBlob.wrap(existing.val!));
+  e.bytes32(hash);
+  storage.write(bucketKey, e.finish());
 }
 
 /**
@@ -68,11 +68,10 @@ export function accumulate(ptr: u32, len: u32): u64 {
     const okBlob = operand.result.okBlob;
     if (okBlob.length < REFINE_OUTPUT_LEN) continue;
 
-    // Extract (hash, length_LE) from refine output.
-    const hashBytes = new Uint8Array(32);
-    hashBytes.set(okBlob.raw.subarray(0, 32), 0);
-    const hash = Bytes32.wrapUnchecked(hashBytes);
-    const length: u32 = readU32LE(okBlob.raw, 32);
+    // Decode refine output: hash (bytes32) ‖ length (u32 LE).
+    const d = Decoder.fromBlob(okBlob.raw);
+    const hash = d.bytes32();
+    const length = d.u32();
 
     // Idempotency: skip if this paste is already known.
     const existing = storage.read(pasteKey(hash).raw);
@@ -85,15 +84,12 @@ export function accumulate(ptr: u32, len: u32): u64 {
         // Ring buffer of recent pastes: write hash ‖ slot at recent:<head % N>,
         // then bump the head counter.
         const headBlob = storage.read(recentHeadKey().raw);
-        const head: u32 = headBlob.isSome ? readU32LE(headBlob.val!, 0) : 0;
-        const entry = new Uint8Array(RECENT_ENTRY_LEN);
-        entry.set(hash.raw, 0);
-        writeU32LE(entry, 32, currentSlot);
-        storage.write(recentKey(head % RECENT_N).raw, BytesBlob.wrap(entry));
-
-        const newHead = new Uint8Array(4);
-        writeU32LE(newHead, 0, head + 1);
-        storage.write(recentHeadKey().raw, BytesBlob.wrap(newHead));
+        const head: u32 = headBlob.isSome ? Decoder.fromBlob(headBlob.val!).u32() : 0;
+        const entryEnc = Encoder.create(RECENT_ENTRY_LEN);
+        entryEnc.bytes32(hash);
+        entryEnc.u32(currentSlot);
+        storage.write(recentKey(head % RECENT_N).raw, entryEnc.finish());
+        storage.write(recentHeadKey().raw, u32Blob(head + 1));
 
         // Expiry bucket.
         const expireAt: u32 = currentSlot + TTL_SLOTS;
@@ -126,7 +122,7 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
   if (cursorBlob.isSome) {
     const raw = cursorBlob.val!;
     if (raw.length !== 4) panic("cleanup cursor: expected 4 bytes");
-    cursor = readU32LE(raw, 0);
+    cursor = Decoder.fromBlob(raw).u32();
   }
 
   // Walk at most CLEANUP_SLOTS_PER_CALL slots forward, bounded by currentSlot.
@@ -138,14 +134,11 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
     const bucket = storage.read(bucketKeyBytes);
     if (!bucket.isSome) continue;
 
-    // Bucket holds a packed list of 32-byte hashes.
-    const raw = bucket.val!;
-    const bucketLen = u32(raw.length);
-    let off: u32 = 0;
-    while (off + 32 <= bucketLen) {
-      const hashBytes = new Uint8Array(32);
-      hashBytes.set(raw.subarray(i32(off), i32(off + 32)), 0);
-      const hash = Bytes32.wrapUnchecked(hashBytes);
+    // Bucket holds a packed list of 32-byte hashes — decode with the standard codec.
+    const d = Decoder.fromBlob(bucket.val!);
+    const bucketLen = u32(bucket.val!.length);
+    while (u32(d.bytesRead()) + 32 <= bucketLen) {
+      const hash = d.bytes32();
 
       const entryBlob = storage.read(pasteKey(hash).raw);
       if (entryBlob.isSome) {
@@ -154,7 +147,6 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
         preimages.forget(hash, entry.length);
         storage.write(pasteKey(hash).raw, BytesBlob.empty());
       }
-      off += 32;
     }
     // Delete the bucket itself.
     storage.write(bucketKeyBytes, BytesBlob.empty());
@@ -162,8 +154,6 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
 
   // Persist new cursor only if it advanced.
   if (target > cursor) {
-    const out = new Uint8Array(4);
-    writeU32LE(out, 0, target);
-    storage.write(cleanupCursorKey().raw, BytesBlob.wrap(out));
+    storage.write(cleanupCursorKey().raw, u32Blob(target));
   }
 }

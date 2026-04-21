@@ -1,32 +1,23 @@
-import { Bytes32, BytesBlob, panic } from "@fluffylabs/as-lan";
+import { Bytes32, BytesBlob, Decoder, Encoder, panic } from "@fluffylabs/as-lan";
 import { KEY_CLEANUP_CURSOR, KEY_RECENT_HEAD, PREFIX_EXPIRY, PREFIX_PASTE, PREFIX_RECENT } from "./constants";
 
-export function writeU32LE(dst: Uint8Array, offset: i32, value: u32): void {
-  dst[offset] = u8(value);
-  dst[offset + 1] = u8(value >> 8);
-  dst[offset + 2] = u8(value >> 16);
-  dst[offset + 3] = u8(value >> 24);
-}
-
-export function readU32LE(src: Uint8Array, offset: i32): u32 {
-  return u32(src[offset]) | (u32(src[offset + 1]) << 8) | (u32(src[offset + 2]) << 16) | (u32(src[offset + 3]) << 24);
-}
-
-function concatBytes(a: BytesBlob, b: BytesBlob): BytesBlob {
-  const out = BytesBlob.zero(a.length + b.length);
-  for (let i = 0; i < a.length; i += 1) out.raw[i] = a.raw[i];
-  for (let i = 0; i < b.length; i += 1) out.raw[a.length + i] = b.raw[i];
-  return out;
-}
-
+/** Build a 4-byte little-endian u32 as a BytesBlob (storage-key suffix helper). */
 function u32LE(value: u32): BytesBlob {
-  const out = BytesBlob.zero(4);
-  writeU32LE(out.raw, 0, value);
-  return out;
+  const e = Encoder.create(4);
+  e.u32(value);
+  return e.finish();
+}
+
+/** Concatenate two BytesBlobs into a new one (prefix + suffix for storage keys). */
+function concatBytes(a: BytesBlob, b: BytesBlob): BytesBlob {
+  const e = Encoder.create(a.length + b.length);
+  e.bytesFixLen(a);
+  e.bytesFixLen(b);
+  return e.finish();
 }
 
 export function pasteKey(hash: Bytes32): BytesBlob {
-  return concatBytes(PREFIX_PASTE, BytesBlob.wrap(hash.raw));
+  return concatBytes(PREFIX_PASTE, hash.bytes);
 }
 
 export function recentKey(idx: u32): BytesBlob {
@@ -57,10 +48,10 @@ export class PasteEntry {
   ) {}
 
   encode(): BytesBlob {
-    const out = BytesBlob.zero(8);
-    writeU32LE(out.raw, 0, this.slot);
-    writeU32LE(out.raw, 4, this.length);
-    return out;
+    const e = Encoder.create(8);
+    e.u32(this.slot);
+    e.u32(this.length);
+    return e.finish();
   }
 
   static decodeOrPanic(raw: Uint8Array): PasteEntry {
@@ -68,8 +59,9 @@ export class PasteEntry {
     // in the release target (asconfig.json), which would turn a wrong-length
     // buffer into a silent zero-filled PasteEntry instead of a trap.
     if (raw.length !== 8) panic("PasteEntry: expected 8 bytes");
-    const slot = readU32LE(raw, 0);
-    const length = readU32LE(raw, 4);
+    const d = Decoder.fromBlob(raw);
+    const slot = d.u32();
+    const length = d.u32();
     return new PasteEntry(slot, length);
   }
 }

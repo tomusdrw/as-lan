@@ -1,6 +1,5 @@
-import { BytesBlob, blake2b256, RefineContext, Response } from "@fluffylabs/as-lan";
+import { Bytes32, blake2b256, Encoder, RefineContext, Response } from "@fluffylabs/as-lan";
 import { REFINE_OUTPUT_LEN } from "./constants";
-import { writeU32LE } from "./storage";
 
 /**
  * Refine phase: Blake2b-256 the raw payload, emit `hash ‖ length_LE`.
@@ -15,11 +14,9 @@ export function refine(ptr: u32, len: u32): u64 {
   const hash = blake2b256(args.payload.raw);
 
   // Operand okBlob = 32-byte hash ‖ 4-byte length (u32 LE). See REFINE_OUTPUT_LEN.
-  const out = BytesBlob.zero(REFINE_OUTPUT_LEN);
-  for (let i = 0; i < 32; i += 1) out.raw[i] = hash[i];
-  // BytesBlob.length is i32; cast to u32 so subsequent shifts are unsigned.
-  const length: u32 = u32(args.payload.length);
-  writeU32LE(out.raw, 32, length);
+  const e = Encoder.create(REFINE_OUTPUT_LEN);
+  e.bytes32(Bytes32.wrapUnchecked(hash));
+  e.u32(u32(args.payload.length));
 
-  return Response.with(0, out);
+  return Response.with(0, e.finish());
 }

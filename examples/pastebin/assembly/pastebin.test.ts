@@ -31,7 +31,7 @@ import { accumulate } from "./accumulate";
 import { REFINE_OUTPUT_LEN } from "./constants";
 import { refine as dispatch } from "./index";
 import { refine } from "./refine";
-import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey, readU32LE, writeU32LE } from "./storage";
+import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey } from "./storage";
 
 function callRefine(payload: Uint8Array): Response {
   const ctx = RefineContext.create();
@@ -56,10 +56,10 @@ class DecodedOperand {
 }
 
 function decodeOperand(data: BytesBlob): DecodedOperand {
-  const hash = new Uint8Array(32);
-  hash.set(data.raw.subarray(0, 32), 0);
-  const length: u32 = readU32LE(data.raw, 32);
-  return DecodedOperand.create(hash, length);
+  const d = Decoder.fromBlob(data.raw);
+  const hash = d.bytes32();
+  const length = d.u32();
+  return DecodedOperand.create(hash.raw, length);
 }
 
 const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
@@ -104,10 +104,10 @@ function callAccumulateEmpty(slot: u32): void {
 }
 
 function buildOkBlob(hash: Uint8Array, length: u32): Uint8Array {
-  const out = new Uint8Array(REFINE_OUTPUT_LEN);
-  out.set(hash, 0);
-  writeU32LE(out, 32, length);
-  return out;
+  const e = Encoder.create(REFINE_OUTPUT_LEN);
+  e.bytes32(Bytes32.wrapUnchecked(hash));
+  e.u32(length);
+  return e.finishRaw();
 }
 
 export const TESTS: Test[] = [
@@ -226,7 +226,7 @@ export const TESTS: Test[] = [
       const cursorVal = cursorStored.val!;
       assert.isEqual(<u32>cursorVal.length, <u32>4, "cursor blob length");
       if (cursorVal.length === 4) {
-        assert.isEqual(readU32LE(cursorVal, 0), <u32>1048, "cursor value");
+        assert.isEqual(Decoder.fromBlob(cursorVal).u32(), <u32>1048, "cursor value");
       }
     }
 
