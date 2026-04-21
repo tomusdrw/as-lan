@@ -1,3 +1,5 @@
+import { BytesBlob } from "../../core/bytes";
+
 // @ts-expect-error: decorator
 @external("ecalli", "setMachineResult")
 declare function _setMachineResult(result: i64): void;
@@ -107,10 +109,10 @@ export class TestMachine {
    *  the call aborts the test if it isn't, rather than writing past
    *  the AS-side allocation.
    */
-  static pokeLogData(index: u32, buffer: Uint8Array): u32 {
+  static pokeLogData(index: u32, buffer: BytesBlob): u32 {
     const required = TestMachine.pokeLogField(index, 2);
     assert(u32(buffer.length) >= required, "TestMachine.pokeLogData: buffer too small");
-    const written = _getPokeLogData(index, u32(buffer.dataStart));
+    const written = _getPokeLogData(index, buffer.ptr());
     return u32(written);
   }
 }

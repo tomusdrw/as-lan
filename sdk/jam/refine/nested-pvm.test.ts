@@ -6,14 +6,20 @@ import { Assert, Test, test } from "../../test/utils";
 import { ExitReason } from "./machine";
 import { NestedPvm, SpiError } from "./nested-pvm";
 
-/** Build an SPI blob with the given regions. */
+const U24_MAX: u32 = 0x00ff_ffff;
+
+/** Build an SPI blob with the given regions. Fails loud on header-field overflow. */
 function buildSpi(
-  roBytes: Uint8Array,
-  rwBytes: Uint8Array,
+  roBytes: BytesBlob,
+  rwBytes: BytesBlob,
   heapPages: u16,
   stackSize: u32,
-  codeBytes: Uint8Array,
+  codeBytes: BytesBlob,
 ): BytesBlob {
+  assert(u32(roBytes.length) <= U24_MAX, "buildSpi: roLength exceeds u24");
+  assert(u32(rwBytes.length) <= U24_MAX, "buildSpi: rwLength exceeds u24");
+  assert(stackSize <= U24_MAX, "buildSpi: stackSize exceeds u24");
+
   const e = Encoder.create(64);
   // Header: u24 roLength, u24 rwLength, u16 heapPages, u24 stackSize.
   e.u24(u32(roBytes.length));
@@ -21,10 +27,10 @@ function buildSpi(
   e.u16(heapPages);
   e.u24(stackSize);
   // Regions.
-  e.bytesFixLen(BytesBlob.wrap(roBytes));
-  e.bytesFixLen(BytesBlob.wrap(rwBytes));
+  e.bytesFixLen(roBytes);
+  e.bytesFixLen(rwBytes);
   e.u32(u32(codeBytes.length));
-  e.bytesFixLen(BytesBlob.wrap(codeBytes));
+  e.bytesFixLen(codeBytes);
   return e.finish();
 }
 
@@ -32,16 +38,9 @@ export const TESTS: Test[] = [
   test("NestedPvm.fromSpi decodes header and slices", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const ro = new Uint8Array(3);
-    ro[0] = 1;
-    ro[1] = 2;
-    ro[2] = 3;
-    const rw = new Uint8Array(2);
-    rw[0] = 9;
-    rw[1] = 8;
-    const code = new Uint8Array(4);
-    code[0] = 0xaa;
-    code[3] = 0xbb;
+    const ro = BytesBlob.parseBlob("0x010203").okay!;
+    const rw = BytesBlob.parseBlob("0x0908").okay!;
+    const code = BytesBlob.parseBlob("0xaa0000bb").okay!;
     const blob = buildSpi(ro, rw, 2, 4096, code);
     const args = BytesBlob.empty();
     const vm = NestedPvm.fromSpi(blob, args, 1_000_000);
@@ -56,11 +55,9 @@ export const TESTS: Test[] = [
   test("NestedPvm.fromSpi allocates RO pages then pokes RO bytes", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const ro = new Uint8Array(10);
-    for (let i = 0; i < 10; i++) ro[i] = u8(i + 1);
-    const rw = new Uint8Array(0);
-    const code = new Uint8Array(4);
-    const blob = buildSpi(ro, rw, 0, 0, code);
+    const ro = BytesBlob.zero(10);
+    for (let i = 0; i < 10; i++) ro.raw[i] = u8(i + 1);
+    const blob = buildSpi(ro, BytesBlob.empty(), 0, 0, BytesBlob.zero(4));
     NestedPvm.fromSpi(blob, BytesBlob.empty(), 1_000);
 
     a.isEqual(TestMachine.pagesLogLength(), 1, "exactly one pages() call");
@@ -72,26 +69,22 @@ export const TESTS: Test[] = [
     a.isEqual(TestMachine.pokeLogLength(), 1, "exactly one poke() call");
     a.isEqual(TestMachine.pokeLogField(0, 1), 0x0001_0000, "poke dest = RO start");
     a.isEqual(TestMachine.pokeLogField(0, 2), 10, "poke length = ro length");
-    const copied = new Uint8Array(10);
+    const copied = BytesBlob.zero(10);
     TestMachine.pokeLogData(0, copied);
-    for (let i = 0; i < 10; i++) a.isEqual(copied[i], u8(i + 1), `byte ${i.toString()}`);
+    for (let i = 0; i < 10; i++) a.isEqual(copied.raw[i], u8(i + 1), `byte ${i.toString()}`);
     return a;
   }),
 
   test("NestedPvm.fromSpi configures RW, heap, stack, args regions", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const ro = new Uint8Array(0);
-    const rw = new Uint8Array(4);
-    rw[0] = 0xaa;
-    rw[3] = 0xbb;
-    const code = new Uint8Array(4);
-    const args = new Uint8Array(5);
-    args[0] = 0xcc;
+    const rw = BytesBlob.parseBlob("0xaa0000bb").okay!;
+    const args = BytesBlob.zero(5);
+    args.raw[0] = 0xcc;
     const stackSize: u32 = 2 * 4096 + 1; // rounds up to 3 pages.
     const heapPages: u16 = 2;
-    const blob = buildSpi(ro, rw, heapPages, stackSize, code);
-    NestedPvm.fromSpi(blob, BytesBlob.wrap(args), 1_000);
+    const blob = buildSpi(BytesBlob.empty(), rw, heapPages, stackSize, BytesBlob.zero(4));
+    NestedPvm.fromSpi(blob, args, 1_000);
 
     const rwPage: u32 = 0x0002_0000 / 4096; // 32
     const heapPage: u32 = rwPage + 1;
@@ -124,7 +117,7 @@ export const TESTS: Test[] = [
   test("NestedPvm.invoke propagates reason + exit arg, register R/W roundtrip", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const blob = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    const blob = buildSpi(BytesBlob.empty(), BytesBlob.empty(), 0, 0, BytesBlob.zero(4));
     const vm = NestedPvm.fromSpi(blob, BytesBlob.empty(), 500);
 
     // First invoke: mock returns Host with r8 = 21.
@@ -151,7 +144,7 @@ export const TESTS: Test[] = [
   test("NestedPvm.fromSpiChecked returns ok on valid blob", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const blob = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    const blob = buildSpi(BytesBlob.empty(), BytesBlob.empty(), 0, 0, BytesBlob.zero(4));
     const r = NestedPvm.fromSpiChecked(blob, BytesBlob.empty(), 100);
     a.isEqual(r.isOkay, true, "is okay");
     return a;
@@ -161,7 +154,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     // Header needs 11 bytes; we only supply 5.
-    const blob = BytesBlob.wrap(new Uint8Array(5));
+    const blob = BytesBlob.zero(5);
     const r = NestedPvm.fromSpiChecked(blob, BytesBlob.empty(), 100);
     a.isEqual(r.isError, true, "is error");
     a.isEqual(r.error, SpiError.MalformedBlob, "error variant");
@@ -171,12 +164,12 @@ export const TESTS: Test[] = [
   test("NestedPvm.fromSpiChecked returns TrailingBytes on extra data", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const valid = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    const valid = buildSpi(BytesBlob.empty(), BytesBlob.empty(), 0, 0, BytesBlob.zero(4));
     // Append one trailing byte to an otherwise valid blob.
-    const padded = new Uint8Array(valid.length + 1);
-    for (let i = 0; i < valid.length; i++) padded[i] = valid.raw[i];
-    padded[valid.length] = 0xff;
-    const r = NestedPvm.fromSpiChecked(BytesBlob.wrap(padded), BytesBlob.empty(), 100);
+    const padded = BytesBlob.zero(valid.length + 1);
+    padded.raw.set(valid.raw, 0);
+    padded.raw[valid.length] = 0xff;
+    const r = NestedPvm.fromSpiChecked(padded, BytesBlob.empty(), 100);
     a.isEqual(r.isError, true, "is error");
     a.isEqual(r.error, SpiError.TrailingBytes, "error variant");
     return a;
@@ -186,7 +179,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     TestMachine.setMachineResult(EcalliResult.HUH);
-    const blob = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    const blob = buildSpi(BytesBlob.empty(), BytesBlob.empty(), 0, 0, BytesBlob.zero(4));
     const r = NestedPvm.fromSpiChecked(blob, BytesBlob.empty(), 100);
     a.isEqual(r.isError, true, "is error");
     a.isEqual(r.error, SpiError.InvalidEntryPoint, "error variant");
