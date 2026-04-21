@@ -2,7 +2,7 @@ import { BytesBlob } from "../../core/bytes";
 import { Decoder } from "../../core/codec/decode";
 import { panic } from "../../core/panic";
 import { ResultN } from "../../core/result";
-import { ExitReason, InvokeIo, Machine, OutOfBounds } from "./machine";
+import { ExitReason, InvokeIo, Machine, OutOfBounds, PageAccess } from "./machine";
 
 /** SPI memory-layout constants (Z_P, Z_Z, Z_I). */
 export const SPI_PAGE_SIZE: u32 = 1 << 12;
@@ -41,11 +41,28 @@ export class NestedPvm {
     io.setRegister(7, u64(SPI_ARGS_SEGMENT_START));
     io.setRegister(8, u64(u32(args.length)));
 
-    // Memory setup (pages/poke) is filled in by Task 4.
-    // For now we intentionally skip those calls so this task can land green
-    // without disturbing later work.
+    setupRegion(machine, SPI_RO_START, roBytes, PageAccess.Read);
 
-    return new NestedPvm(machine, io, roBytes, rwBytes, heapPages, stackSize, args);
+    const heapStart = 2 * SPI_SEGMENT_SIZE + alignToSegment(roLength);
+    setupRegion(machine, heapStart, rwBytes, PageAccess.ReadWrite);
+
+    const heapZerosStart = heapStart + alignToPage(rwLength);
+    const heapZerosBytes = heapPages * SPI_PAGE_SIZE;
+    if (heapZerosBytes > 0) {
+      allocatePages(machine, heapZerosStart, heapZerosBytes, PageAccess.ReadWrite);
+    }
+
+    const stackLength = alignToPage(stackSize);
+    if (stackLength > 0) {
+      const stackStart = SPI_STACK_SEGMENT_END - stackLength;
+      allocatePages(machine, stackStart, stackLength, PageAccess.ReadWrite);
+    }
+
+    if (args.length > 0) {
+      setupRegion(machine, SPI_ARGS_SEGMENT_START, args, PageAccess.Read);
+    }
+
+    return new NestedPvm(machine, io);
   }
 
   private lastExitArg: i64 = 0;
@@ -53,12 +70,6 @@ export class NestedPvm {
   private constructor(
     private readonly machine: Machine,
     private readonly io: InvokeIo,
-    // Retained only for Task 4 (memory setup); will be consumed there.
-    private readonly roBytes: BytesBlob,
-    private readonly rwBytes: BytesBlob,
-    private readonly heapPages: u32,
-    private readonly stackSize: u32,
-    private readonly args: BytesBlob,
   ) {}
 
   getRegister(index: u32): u64 {
@@ -98,4 +109,29 @@ export class NestedPvm {
   expunge(): i64 {
     return this.machine.expunge();
   }
+}
+
+function alignToPage(size: u32): u32 {
+  const mask: u32 = SPI_PAGE_SIZE - 1;
+  return (size + mask) & ~mask;
+}
+
+function alignToSegment(size: u32): u32 {
+  const mask: u32 = SPI_SEGMENT_SIZE - 1;
+  return (size + mask) & ~mask;
+}
+
+/** Allocate pages covering [addr, addr + byteLen) with the given access. */
+function allocatePages(machine: Machine, addr: u32, byteLen: u32, access: PageAccess): void {
+  // addr is always page-aligned by construction (RO/RW/heap/stack/args start on page boundaries).
+  const startPage = addr / SPI_PAGE_SIZE;
+  const pageCount = alignToPage(byteLen) / SPI_PAGE_SIZE;
+  machine.pages(startPage, pageCount, access);
+}
+
+/** Allocate a region at `addr`, then poke the initial bytes. */
+function setupRegion(machine: Machine, addr: u32, data: BytesBlob, access: PageAccess): void {
+  if (data.length === 0) return;
+  allocatePages(machine, addr, u32(data.length), access);
+  machine.poke(addr, data);
 }
