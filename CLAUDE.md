@@ -30,6 +30,7 @@ sdk/                        AssemblyScript SDK library
     refine/                 Refine-context fetcher and machine wrapper
       fetcher.ts            RefineFetcher (entropy, authorizerTrace, extrinsics, imports + inherits kinds 7-13)
       machine.ts            Machine (inner PVM lifecycle: create, peek, poke, pages, invoke, expunge)
+      nested-pvm.ts         NestedPvm (SPI-backed inner PVM: decodes SPI blob, wires memory/registers, caller-driven invoke loop)
     authorize/              Authorize-context fetcher
       fetcher.ts            AuthorizeFetcher (inherits constants + kinds 7-13 from WorkPackageFetcher)
   test/                     Test framework (Assert, TestSuite, strBlob, unpackResult)
@@ -66,9 +67,16 @@ examples/
       accumulate.test.ts    Tests for accumulate ecallis via operand/transfer flow (14 tests)
       authorize.test.ts     Tests for general ecallis via authorize dispatch (7 tests)
       test-helpers.ts       Shared test utilities (callRefine, callAccumulate, builders)
+  nested-pvm-spi/           Smoke-test: loads an embedded SPI blob (as-add.jam
+                            fixture), strips the Standard-Program metadata
+                            prefix, and runs it through `ctx.nestedPvmFromSpiChecked`.
+                            Demonstrates the Result-returning entry path.
+    fixtures/as-add.jam     Real 648-byte SPI blob from @fluffylabs/pvm-debugger.
+    bin/generate-blob.mjs   Regenerates assembly/as-add-jam.ts from the fixture.
   library/                  Library service — hosts reusable PVM verification blobs
-                            (ed25519, blake2b, …) as preimages, resolved by name via
-                            storage. Refine demo invokes them via the Machine interface.
+                            (ed25519, blake2b, …) as SPI-encoded preimages, resolved
+                            by name via storage. Refine demo runs them through
+                            `ctx.nestedPvmFromSpiChecked(...)`.
     fixtures/
       halt.pvm              Placeholder preimage bytes (real code lands later)
     assembly/
@@ -151,7 +159,7 @@ context-appropriate helpers. **Prefer `ctx.*()` over standalone `*.create()`.**
 
 Contexts:
 - **AccumulateContext** — `parseArgs()`, `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, `scheduleTransfer()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `admin()`, `childServices()`, `selfService()`, accumulate codecs
-- **RefineContext** — `parseArgs()`, `respond()`, `exportSegment()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `machine(code, entrypoint)`, refine codecs
+- **RefineContext** — `parseArgs()`, `respond()`, `exportSegment()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `machine(code, entrypoint)`, `nestedPvmFromSpi(blob, args, gas)`, `nestedPvmFromSpiChecked(blob, args, gas)`, refine codecs
 - **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16), `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`. No codec state.
 
 ### Service ABI Types (sdk/jam/service.ts)
@@ -185,7 +193,7 @@ GP fetch parameter mapping per context (eq B.1, B.6, B.11):
 
 High-level wrappers for service storage (`read`/`write` ecallis) and account info (`info` ecalli).
 
-- **ServiceData** — read-only access to any service by ID. Methods: `info()` → `Optional<AccountInfo>`, `read(key)` → `Optional<Uint8Array>`.
+- **ServiceData** — read-only access to any service by ID. Methods: `info()` → `Optional<AccountInfo>`, `read(key)` → `Optional<BytesBlob>`.
 - **CurrentServiceData** extends ServiceData — adds `write(key, value)` → `Result<OptionalN<u64>, WriteError>` for the current service (uses `u32.MAX_VALUE` as service ID).
 - Both manage an internal reusable buffer with auto-expansion (same pattern as `FetchBuffer`).
 - `info()` panics on decode failure (host-contract violation). `read()` returns `Optional.none` for missing keys. `write()` returns `WriteError.Full` when storage quota is exceeded.
@@ -233,6 +241,17 @@ npm test         # Build mocks + run SDK tests + example tests
 - Use `d.varU32()` (not `u32(d.varU64())`) when decoding a varint that must fit in u32 — it validates the range and sets `isError` on overflow.
 - Test helpers for configuring mock state from AS go in `sdk/test/test-ecalli/` using `@external("ecalli", ...)` bridging.
 - All classes must have private constructors and use static builder methods (e.g. `ClassName.create(...)`) — never expose `new ClassName(...)` to callers.
-- **Use `BytesBlob` by default, not raw `Uint8Array`.** Use `BytesBlob.ptr()` and `.length` for ecalli pointer/length args. Use `BytesBlob.zero(n)` for buffers. Raw `Uint8Array` is only acceptable in low-level code (e.g. `load<i64>` on backing memory) and must be commented with justification.
+- **Use `BytesBlob` by default, not raw `Uint8Array`. This is not optional.** Code review rejects `Uint8Array` every time it appears in a public or test-helper API, so stop introducing it.
+  - **Function parameters**: if a function accepts bytes, the parameter type is `BytesBlob` (not `Uint8Array`). This includes SDK code, examples, AND test helpers under `sdk/test/`, `sdk/**/*.test.ts`, `examples/**/assembly/**`.
+  - **Function returns**: same — return `BytesBlob`. If the returned bytes need to cross into JS (e.g. `writeToMem`), unwrap with `.raw` at the callsite, not inside the helper.
+  - **Construction**: `BytesBlob.zero(n)` for zeroed buffers, `BytesBlob.wrap(uint8Array)` when you already have a `Uint8Array` from a lower layer, `BytesBlob.parseBlob("0x...")` in tests.
+  - **Ecalli / host-call args**: `BytesBlob.ptr()` and `.length` (both are already `u32` / `i32`).
+  - **Decoder input**: `Decoder.fromBytesBlob(blob)`. Never `Decoder.fromBlob(blob.raw)` from a `BytesBlob` — that's the anti-pattern.
+  - **Only acceptable `Uint8Array` use**: low-level code doing `load<T>`/`store<T>` on a backing buffer. Comment each such occurrence with justification. Anywhere else (including *test fixtures*) use `BytesBlob`.
+- **Use existing codec helpers instead of hand-encoding bytes.** The `Encoder` already has `u8`/`u16`/`u24`/`u32`/`u64`/`varU64`/`bytesFixLen`/`bytesVarLen`. `Decoder` mirrors them. Anti-patterns to avoid:
+  - `e.u8(v & 0xff); e.u8((v >> 8) & 0xff); e.u8((v >> 16) & 0xff)` — use `e.u24(v)`.
+  - `for (let i = 0; i < arr.length; i++) e.u8(arr[i])` — use `e.bytesFixLen(BytesBlob.wrap(arr))`.
+  - `e.varU64(u64(blob.length)); for (…) e.u8(blob.raw[i])` — use `e.bytesVarLen(blob)`.
+  If an LE-width helper you need doesn't exist yet, add it to the `Encoder`/`Decoder` (with a test). Don't hand-roll it at the callsite.
 - **Always update `docs/src/` when adding or modifying SDK features.** Update `sdk-api.md` for new public API, `testing.md` for new mock helpers. Keep docs in sync with code.
 - **Prefer `ByteBuf.strAscii()` / `BytesBlob.encodeAscii()` over `String.UTF8.encode`** for ASCII strings (log targets, storage keys, etc.). It avoids pulling in the full UTF-8 machinery (~520 B WASM / ~1.15 KB PVM). Use `ByteBuf.strUtf8()` / `BytesBlob.encodeUtf8()` when full UTF-8 is needed. Exception: `Logger` keeps `String.UTF8.encode` because code using `Logger` already pulls in string machinery via template literals — switching Logger has zero size benefit and causes AS compiler code-generation issues.

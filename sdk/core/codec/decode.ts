@@ -28,6 +28,15 @@ export class Decoder {
     return new Decoder(source);
   }
 
+  /**
+   * Create a new [`Decoder`] instance reading from a [`BytesBlob`] without
+   * copying. Prefer this over `fromBlob(blob.raw)` at call sites that already
+   * hold a `BytesBlob`.
+   */
+  static fromBytesBlob(source: BytesBlob): Decoder {
+    return new Decoder(source.raw);
+  }
+
   private readonly dataView: DataView;
   private _isError: boolean = false;
 
@@ -77,6 +86,17 @@ export class Decoder {
     const offset = this.moveOffset(2);
     if (offset !== -1) {
       return this.dataView.getUint16(offset, true);
+    }
+    return 0;
+  }
+
+  /** Decode three bytes as an unsigned number (little-endian). */
+  u24(): u32 {
+    const offset = this.moveOffset(3);
+    if (offset !== -1) {
+      const lo = this.dataView.getUint16(offset, true);
+      const hi = this.dataView.getUint8(offset + 2);
+      return u32(lo) | (u32(hi) << 16);
     }
     return 0;
   }

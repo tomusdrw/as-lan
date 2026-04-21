@@ -18,6 +18,7 @@ import { RefineArgs, RefineArgsCodec, Response, ResponseCodec } from "../service
 import { CurrentServiceData } from "../service-data";
 import { RefineFetcher } from "./fetcher";
 import { InvalidEntryPoint, Machine } from "./machine";
+import { NestedPvm, SpiError } from "./nested-pvm";
 import { RefinePreimages } from "./preimages";
 
 export class RefineContext {
@@ -58,6 +59,25 @@ export class RefineContext {
   /** Create an inner PVM machine (ecalli 8). Delegates to Machine.create(). */
   machine(code: BytesBlob, entrypoint: u32): ResultN<Machine, InvalidEntryPoint> {
     return Machine.create(code, entrypoint);
+  }
+
+  /**
+   * Decode an SPI blob and set up an inner PVM ready to invoke. Panics on
+   * setup failure — use {@link nestedPvmFromSpiChecked} for untrusted input.
+   *
+   * See `NestedPvm` for the caller-driven invoke / host-call loop.
+   */
+  nestedPvmFromSpi(blob: BytesBlob, args: BytesBlob, gas: u64): NestedPvm {
+    return NestedPvm.fromSpi(blob, args, gas);
+  }
+
+  /**
+   * Same as {@link nestedPvmFromSpi} but returns a recoverable error instead
+   * of panicking. Prefer this when the SPI blob comes from an untrusted
+   * source (preimage, peer, etc.).
+   */
+  nestedPvmFromSpiChecked(blob: BytesBlob, args: BytesBlob, gas: u64): ResultN<NestedPvm, SpiError> {
+    return NestedPvm.fromSpiChecked(blob, args, gas);
   }
 
   /** Parse raw refine arguments from (ptr, len). Panics on invalid data. */

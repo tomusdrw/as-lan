@@ -37,7 +37,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
     }
     const body = op.result.okBlob;
 
-    const d = Decoder.fromBlob(body.raw);
+    const d = Decoder.fromBytesBlob(body);
     const r = adminCodec.decode(d);
     if (r.isError) {
       logger.warn(`accumulate[${i}]: malformed operand, skipping`);

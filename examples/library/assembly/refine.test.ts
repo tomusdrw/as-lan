@@ -4,14 +4,30 @@ import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
 import { LibraryEntry, LibraryEntryCodec, libraryKey } from "./storage";
 import { callRefine } from "./test-helpers";
 
-function buildDemoInput(name: string, entrypoint: u32, gas: u64, payload: BytesBlob): Uint8Array {
+function buildDemoInput(name: string, gas: u64, payload: BytesBlob): Uint8Array {
   const enc = Encoder.create();
   enc.u8(0); // demo tag
   enc.bytesVarLen(BytesBlob.encodeAscii(name));
-  enc.u32(entrypoint);
   enc.u64(gas);
   enc.bytesVarLen(payload);
   return enc.finishRaw();
+}
+
+/**
+ * Minimal valid SPI blob: empty RO/RW/heap/stack, `codeLen` bytes of zero code.
+ * Used as a stand-in preimage in tests where real PVM execution is mocked out.
+ *
+ * Layout: 3+3+2+3 (header) + 0+0 (regions) + 4 (u32 codeLen) + codeLen bytes.
+ */
+function buildMinimalSpi(codeLen: u32): BytesBlob {
+  const enc = Encoder.create();
+  enc.u24(0); // roLength
+  enc.u24(0); // rwLength
+  enc.u16(0); // heapPages
+  enc.u24(0); // stackSize
+  enc.u32(codeLen);
+  for (let i: u32 = 0; i < codeLen; i++) enc.u8(0);
+  return enc.finish();
 }
 
 function seedLibraryMapping(name: string, hashByte0: u8, length: u32): void {
@@ -215,7 +231,7 @@ export const TESTS: Test[] = [
   test("refine demo: trailing bytes after payload return -106", () => {
     const assert = Assert.create();
     seedLibraryMapping("ok", 0x01, 16);
-    const valid = buildDemoInput("ok", 0, 1000, BytesBlob.empty());
+    const valid = buildDemoInput("ok", 1000, BytesBlob.empty());
     const withTrail = new Uint8Array(valid.length + 1);
     withTrail.set(valid, 0);
     withTrail[valid.length] = 0xff;
@@ -228,7 +244,7 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     TestStorage.set(libraryKey("missing"), null);
 
-    const input = buildDemoInput("missing", 0, 1000, BytesBlob.empty());
+    const input = buildDemoInput("missing", 1000, BytesBlob.empty());
     const resp = callRefine(input);
     assert.isEqual(resp.result, -100, "unknown library");
     return assert;
@@ -239,7 +255,7 @@ export const TESTS: Test[] = [
     // Store a value that is too short to decode a LibraryEntry (hash+length = 36 bytes).
     TestStorage.set(libraryKey("corrupt"), BytesBlob.parseBlob("0xdead").okay!);
 
-    const input = buildDemoInput("corrupt", 0, 1000, BytesBlob.empty());
+    const input = buildDemoInput("corrupt", 1000, BytesBlob.empty());
     const resp = callRefine(input);
     assert.isEqual(resp.result, -100, "malformed entry treated as unknown");
     return assert;
@@ -250,7 +266,7 @@ export const TESTS: Test[] = [
     seedLibraryMapping("ed25519", 0xee, 64);
     TestHistoricalLookup.setNone();
 
-    const input = buildDemoInput("ed25519", 0, 1000, BytesBlob.empty());
+    const input = buildDemoInput("ed25519", 1000, BytesBlob.empty());
     const resp = callRefine(input);
     assert.isEqual(resp.result, -101, "preimage unavailable");
     return assert;
@@ -259,8 +275,7 @@ export const TESTS: Test[] = [
   test("refine demo: happy path returns peeked output", () => {
     const assert = Assert.create();
     seedLibraryMapping("echo", 0x01, 16);
-    const seed = BytesBlob.parseBlob("0x00").okay!;
-    TestHistoricalLookup.setPreimage(seed.raw);
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0); // create OK, id = 0
     TestMachine.setPokeResult(0);
     TestMachine.setPagesResult(0);
@@ -271,7 +286,7 @@ export const TESTS: Test[] = [
     TestMachine.setPeekData(expected.raw);
     TestMachine.setExpungeResult(0);
 
-    const input = buildDemoInput("echo", 0, 1000, BytesBlob.parseBlob("0xaabb").okay!);
+    const input = buildDemoInput("echo", 1000, BytesBlob.parseBlob("0xaabb").okay!);
     const resp = callRefine(input);
     assert.isEqual(resp.result, 0, "ok");
     assert.isEqualBytes(resp.data, expected, "peeked output");
@@ -281,25 +296,36 @@ export const TESTS: Test[] = [
   test("refine demo: invalid entrypoint returns -102", () => {
     const assert = Assert.create();
     seedLibraryMapping("bad", 0xaa, 16);
-    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(-9); // HUH sentinel (InvalidEntryPoint)
 
-    const resp = callRefine(buildDemoInput("bad", 0, 1000, BytesBlob.empty()));
+    const resp = callRefine(buildDemoInput("bad", 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -102, "invalid entrypoint");
+    return assert;
+  }),
+
+  test("refine demo: malformed SPI preimage returns -107", () => {
+    const assert = Assert.create();
+    seedLibraryMapping("corrupt-spi", 0xf0, 4);
+    // Preimage is only 3 bytes — not enough for the 11-byte SPI header.
+    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x010203").okay!.raw);
+
+    const resp = callRefine(buildDemoInput("corrupt-spi", 1000, BytesBlob.empty()));
+    assert.isEqual(resp.result, -107, "malformed SPI preimage");
     return assert;
   }),
 
   test("refine demo: invoke Panic returns -103 with reason+r8", () => {
     const assert = Assert.create();
     seedLibraryMapping("panic", 0xbb, 16);
-    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0);
     TestMachine.setPagesResult(0);
     TestMachine.setPokeResult(0);
     TestMachine.setInvokeResult(1, 42); // Panic, r8=42
     TestMachine.setExpungeResult(0);
 
-    const resp = callRefine(buildDemoInput("panic", 0, 1000, BytesBlob.empty()));
+    const resp = callRefine(buildDemoInput("panic", 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -103, "invoke failure");
     const dec = Decoder.fromBlob(resp.data.raw);
     assert.isEqual(dec.u8(), u8(1), "reason = Panic");
@@ -311,7 +337,7 @@ export const TESTS: Test[] = [
   test("refine demo: oversized output length returns -104 without allocating", () => {
     const assert = Assert.create();
     seedLibraryMapping("huge", 0xdd, 16);
-    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0);
     TestMachine.setPagesResult(0);
     TestMachine.setPokeResult(0);
@@ -320,7 +346,7 @@ export const TESTS: Test[] = [
     TestMachine.setInvokeIoR7((i64(0xffffffff) << 32) | i64(0));
     TestMachine.setExpungeResult(0);
 
-    const resp = callRefine(buildDemoInput("huge", 0, 1000, BytesBlob.empty()));
+    const resp = callRefine(buildDemoInput("huge", 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -104, "oversized outLen capped before alloc");
     return assert;
   }),
@@ -336,7 +362,7 @@ export const TESTS: Test[] = [
     enc.u8(0xff); // trailing junk
     TestStorage.set(libraryKey("trail"), BytesBlob.wrap(enc.finishRaw()));
 
-    const resp = callRefine(buildDemoInput("trail", 0, 1000, BytesBlob.empty()));
+    const resp = callRefine(buildDemoInput("trail", 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -100, "trailing bytes in stored entry rejected");
     return assert;
   }),
@@ -344,7 +370,7 @@ export const TESTS: Test[] = [
   test("refine demo: peek OOB returns -104", () => {
     const assert = Assert.create();
     seedLibraryMapping("oob", 0xcc, 16);
-    TestHistoricalLookup.setPreimage(BytesBlob.parseBlob("0x00").okay!.raw);
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0);
     TestMachine.setPagesResult(0);
     TestMachine.setPokeResult(0);
@@ -353,7 +379,7 @@ export const TESTS: Test[] = [
     TestMachine.setPeekResult(-3); // OOB sentinel
     TestMachine.setExpungeResult(0);
 
-    const resp = callRefine(buildDemoInput("oob", 0, 1000, BytesBlob.empty()));
+    const resp = callRefine(buildDemoInput("oob", 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -104, "peek OOB");
     return assert;
   }),

@@ -31,6 +31,13 @@ export class Assert {
     this.errors.push(msg);
   }
 
+  isTrue(condition: bool, msg: string = ""): void {
+    if (!condition) {
+      this.isOkay = false;
+      this.errors.push(`Expected true @ ${msg}`);
+    }
+  }
+
   isEqualBytes(actual: BytesBlob, expected: BytesBlob, msg: string = ""): void {
     this.isEqual(actual.toString(), expected.toString(), msg);
   }

@@ -30,7 +30,7 @@ export function is_authorized(ptr: u32, len: u32): u64 {
 
   // Use authConfig as the dispatch payload
   const authConfig = fetcher.authConfig();
-  const d = Decoder.fromBlob(authConfig.raw);
+  const d = Decoder.fromBytesBlob(authConfig);
   const ecalliIndex = d.varU64();
   if (d.isError) {
     logger.warn("Missing ecalli index in authConfig");

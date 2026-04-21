@@ -111,7 +111,7 @@ function processOperand(ctx: AccumulateContext, d: Decoder, index: u32): u64 {
     return Response.with(0);
   }
 
-  const pd = Decoder.fromBlob(payload.raw);
+  const pd = Decoder.fromBytesBlob(payload);
   const ecalliIndex = pd.varU64();
   if (pd.isError) {
     logger.warn(`operand[${index}]: failed to decode ecalli index from okBlob`);

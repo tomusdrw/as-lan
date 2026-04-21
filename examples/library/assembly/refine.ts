@@ -1,20 +1,11 @@
-import {
-  BytesBlob,
-  Decoder,
-  Encoder,
-  ExitReason,
-  InvokeIo,
-  Logger,
-  PageAccess,
-  RefineContext,
-} from "@fluffylabs/as-lan";
+import { BytesBlob, Decoder, Encoder, ExitReason, Logger, RefineContext, SpiError } from "@fluffylabs/as-lan";
 import { AdminCommandCodec } from "./admin";
 import { LibraryEntryCodec, libraryKeyFromBlob } from "./storage";
 
 /**
  * Error codes returned in `Response.result` (decoded by the caller).
  *
- * Values live in the `-100..-106` range to avoid overlap with `EcalliResult`
+ * Values live in the `-100..-107` range to avoid overlap with `EcalliResult`
  * sentinels (NONE=-1, OOB=-3, WHO=-4, FULL=-5, HUH=-9) that may appear in the
  * same field when raw ecalli results leak through.
  */
@@ -26,10 +17,9 @@ export enum LibraryError {
   Oob = -104,
   AdminMalformed = -105,
   Parse = -106,
+  MalformedPreimage = -107,
 }
 
-const INPUT_ADDR: u32 = 0xfeff0000;
-const PAGE_SIZE: u32 = 4096;
 // Cap on the output length the inner PVM may report in r7. Bounds the
 // response-buffer allocation so a buggy or malicious library cannot force
 // a multi-GB allocation before peek() gets a chance to surface the error.
@@ -58,9 +48,8 @@ export function refine(ptr: u32, len: u32): u64 {
 }
 
 function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
-  const d = Decoder.fromBlob(rest.raw);
+  const d = Decoder.fromBytesBlob(rest);
   const name = d.bytesVarLen();
-  const entrypoint = d.u32();
   const gas = d.u64();
   const callPayload = d.bytesVarLen();
   if (d.isError) {
@@ -71,9 +60,9 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
     logger.warn("refine demo: input trailing bytes");
     return ctx.respond(i64(LibraryError.Parse));
   }
-  logger.info(`refine demo: name=${name.toString()} ep=${entrypoint} gas=${gas} payloadLen=${callPayload.length}`);
+  logger.info(`refine demo: name=${name.toString()} gas=${gas} payloadLen=${callPayload.length}`);
 
-  // Resolve name → LibraryEntry via storage
+  // Resolve name → LibraryEntry via storage.
   const storage = ctx.serviceData();
   const stored = storage.read(libraryKeyFromBlob(name));
   if (!stored.isSome) {
@@ -97,72 +86,63 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
     logger.warn(`refine demo: preimage missing for ${name.toString()}`);
     return ctx.respond(i64(LibraryError.PreimageMiss));
   }
-  const code = preimageOpt.val!;
-  logger.debug(`refine demo: preimage fetched ${code.length} bytes`);
+  const spiBlob = preimageOpt.val!;
+  logger.debug(`refine demo: preimage fetched ${spiBlob.length} bytes`);
 
-  // Spawn inner machine
-  const machineR = ctx.machine(code, entrypoint);
-  if (machineR.isError) {
-    logger.warn(`refine demo: invalid entrypoint ${entrypoint}`);
-    return ctx.respond(i64(LibraryError.InvalidEntryPoint));
+  // Preimages are peer-controlled input, so use the Result-returning
+  // variant rather than panicking on a malformed blob.
+  const vmR = ctx.nestedPvmFromSpiChecked(spiBlob, callPayload, gas);
+  if (vmR.isError) {
+    const e = vmR.error;
+    if (e === SpiError.InvalidEntryPoint) {
+      logger.warn("refine demo: invalid entry point");
+      return ctx.respond(i64(LibraryError.InvalidEntryPoint));
+    }
+    logger.warn(`refine demo: malformed SPI preimage error=${e}`);
+    return ctx.respond(i64(LibraryError.MalformedPreimage));
   }
-  const m = machineR.okay;
+  const vm = vmR.okay!;
 
-  // Allocate RW pages at INPUT_ADDR to fit the payload (at least one page).
-  const startPage: u32 = INPUT_ADDR / PAGE_SIZE;
-  const pageCount: u32 = callPayload.length === 0 ? 1 : (u32(callPayload.length) + PAGE_SIZE - 1) / PAGE_SIZE;
-  m.pages(startPage, pageCount, PageAccess.ReadWrite);
-
-  // Poke payload into inner PVM memory.
-  const pokeR = m.poke(INPUT_ADDR, callPayload);
-  if (pokeR.isError) {
-    logger.warn("refine demo: poke OOB");
-    m.expunge();
-    return ctx.respond(i64(LibraryError.Oob));
-  }
-
-  // Build IO (SPI convention: r7 = input ptr, r8 = input len) and invoke.
-  const io = InvokeIo.create(gas);
-  io.setRegister(7, u64(INPUT_ADDR));
-  io.setRegister(8, u64(callPayload.length));
-  const outcome = m.invoke(io);
-
-  if (outcome.reason !== ExitReason.Halt) {
-    logger.warn(`refine demo: invoke non-halt reason=${outcome.reason} r8=${outcome.r8}`);
-    m.expunge();
+  const reason = vm.invoke();
+  if (reason !== ExitReason.Halt) {
+    const exitArg = vm.getExitArg();
+    logger.warn(`refine demo: invoke non-halt reason=${reason} r8=${exitArg}`);
+    vm.expunge();
     const errEnc = Encoder.create();
-    errEnc.u8(u8(outcome.reason));
-    errEnc.u64(u64(outcome.r8));
+    errEnc.u8(u8(reason));
+    errEnc.u64(u64(exitArg));
     return ctx.respond(i64(LibraryError.InvokeFailure), errEnc.finishRaw());
   }
 
-  // Unpack r7 = ptrAndLen (low 32 = ptr, high 32 = len).
-  const r7 = io.getRegister(7);
+  // Library output convention: on halt, r7 holds a packed `ptrAndLen`
+  // (low 32 = ptr, high 32 = len) pointing at the result bytes in inner
+  // memory. Caller peeks them out.
+  const r7 = vm.getRegister(7);
   const outAddr: u32 = u32(r7 & 0xffffffff);
   const outLen: u32 = u32(r7 >> 32);
   if (outLen > MAX_OUTPUT_LEN) {
     logger.warn(`refine demo: output length ${outLen} exceeds cap ${MAX_OUTPUT_LEN}`);
-    m.expunge();
+    vm.expunge();
     return ctx.respond(i64(LibraryError.Oob));
   }
 
   const outBuf = BytesBlob.zero(outLen);
   if (outLen > 0) {
-    const peekR = m.peek(outAddr, outBuf);
+    const peekR = vm.peek(outAddr, outBuf);
     if (peekR.isError) {
       logger.warn(`refine demo: peek OOB addr=${outAddr} len=${outLen}`);
-      m.expunge();
+      vm.expunge();
       return ctx.respond(i64(LibraryError.Oob));
     }
   }
-  m.expunge();
+  vm.expunge();
   logger.info(`refine demo: ok, output ${outLen} bytes`);
   return ctx.respond(0, outBuf.raw);
 }
 
 function handleAdmin(ctx: RefineContext, rest: BytesBlob): u64 {
   const codec = AdminCommandCodec.create();
-  const d = Decoder.fromBlob(rest.raw);
+  const d = Decoder.fromBytesBlob(rest);
   const r = codec.decode(d);
   if (r.isError) {
     logger.warn("refine admin: decode failure");

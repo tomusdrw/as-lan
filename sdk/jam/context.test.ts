@@ -1,4 +1,5 @@
 import { Bytes32, BytesBlob } from "../core/bytes";
+import { Encoder } from "../core/codec/encode";
 import { EcalliResult } from "../ecalli";
 import { TestEcalli, TestExportSegment, TestGas } from "../test/test-ecalli";
 import { Assert, Test, test } from "../test/utils";
@@ -91,6 +92,27 @@ export const TESTS: Test[] = [
     const result = ctx.exportSegment(segment);
     a.isEqual(result.isOkay, true, "should be ok");
     a.isEqual(result.okay, 42, "host-returned index");
+    return a;
+  }),
+
+  test("RefineContext.nestedPvmFromSpi creates a NestedPvm", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const ctx = RefineContext.create();
+    // Minimal SPI blob: empty regions, 4-byte zero code.
+    const e = Encoder.create(32);
+    e.u24(0); // roLength
+    e.u24(0); // rwLength
+    e.u16(0); // heapPages
+    e.u24(0); // stackSize
+    e.u32(4); // codeLength
+    e.u8(0);
+    e.u8(0);
+    e.u8(0);
+    e.u8(0);
+    const blob = e.finish();
+    const vm = ctx.nestedPvmFromSpi(blob, BytesBlob.empty(), 1);
+    a.isEqual(vm.getRegister(7), 0xfeff_0000, "r7 = args start");
     return a;
   }),
 

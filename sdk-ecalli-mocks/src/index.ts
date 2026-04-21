@@ -33,6 +33,8 @@ export {
   machine, peek, poke, pages, invoke, expunge,
   setMachineResult, setPeekResult, setPeekData, setPokeResult, setPagesResult, setInvokeResult,
   setInvokeIoR7, setExpungeResult,
+  getPagesLogLength, getPagesLogField,
+  getPokeLogLength, getPokeLogField, getPokeLogData,
 } from "./refine/index.js";
 
 // Accumulate ecalli stubs (14-26)
