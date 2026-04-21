@@ -12,8 +12,8 @@ import * as selfService from "../jam/accumulate/self-service.test";
 import * as transferTest from "../jam/accumulate/transfer.test";
 import * as context from "../jam/context.test";
 import * as machine from "../jam/machine.test";
-import * as nestedPvm from "../jam/refine/nested-pvm.test";
 import * as preimages from "../jam/preimages.test";
+import * as nestedPvm from "../jam/refine/nested-pvm.test";
 import * as service from "../jam/service.test";
 import * as workPackage from "../jam/work-package.test";
 

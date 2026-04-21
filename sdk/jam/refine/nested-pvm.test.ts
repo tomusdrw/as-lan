@@ -37,15 +37,22 @@ export const TESTS: Test[] = [
   test("NestedPvm.fromSpi decodes header and slices", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const ro = new Uint8Array(3); ro[0] = 1; ro[1] = 2; ro[2] = 3;
-    const rw = new Uint8Array(2); rw[0] = 9; rw[1] = 8;
-    const code = new Uint8Array(4); code[0] = 0xAA; code[3] = 0xBB;
+    const ro = new Uint8Array(3);
+    ro[0] = 1;
+    ro[1] = 2;
+    ro[2] = 3;
+    const rw = new Uint8Array(2);
+    rw[0] = 9;
+    rw[1] = 8;
+    const code = new Uint8Array(4);
+    code[0] = 0xaa;
+    code[3] = 0xbb;
     const blob = buildSpi(ro, rw, 2, 4096, code);
     const args = BytesBlob.empty();
     const vm = NestedPvm.fromSpi(blob, args, 1_000_000);
-    a.isEqual(vm.getRegister(0), 0xFFFF_0000, "r0 initial");
-    a.isEqual(vm.getRegister(1), 0xFEFE_0000, "r1 = stack segment end");
-    a.isEqual(vm.getRegister(7), 0xFEFF_0000, "r7 = args segment start");
+    a.isEqual(vm.getRegister(0), 0xffff_0000, "r0 initial");
+    a.isEqual(vm.getRegister(1), 0xfefe_0000, "r1 = stack segment end");
+    a.isEqual(vm.getRegister(7), 0xfeff_0000, "r7 = args segment start");
     a.isEqual(vm.getRegister(8), 0, "r8 = args length");
     a.isEqual(vm.remainingGas(), 1_000_000, "gas");
     return a;
@@ -54,7 +61,8 @@ export const TESTS: Test[] = [
   test("NestedPvm.fromSpi allocates RO pages then pokes RO bytes", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const ro = new Uint8Array(10); for (let i = 0; i < 10; i++) ro[i] = u8(i + 1);
+    const ro = new Uint8Array(10);
+    for (let i = 0; i < 10; i++) ro[i] = u8(i + 1);
     const rw = new Uint8Array(0);
     const code = new Uint8Array(4);
     const blob = buildSpi(ro, rw, 0, 0, code);
@@ -79,19 +87,22 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const ro = new Uint8Array(0);
-    const rw = new Uint8Array(4); rw[0] = 0xAA; rw[3] = 0xBB;
+    const rw = new Uint8Array(4);
+    rw[0] = 0xaa;
+    rw[3] = 0xbb;
     const code = new Uint8Array(4);
-    const args = new Uint8Array(5); args[0] = 0xCC;
+    const args = new Uint8Array(5);
+    args[0] = 0xcc;
     const stackSize: u32 = 2 * 4096 + 1; // rounds up to 3 pages.
     const heapPages: u16 = 2;
     const blob = buildSpi(ro, rw, heapPages, stackSize, code);
     NestedPvm.fromSpi(blob, BytesBlob.wrap(args), 1_000);
 
-    const rwPage: u32 = 0x0002_0000 / 4096;         // 32
+    const rwPage: u32 = 0x0002_0000 / 4096; // 32
     const heapPage: u32 = rwPage + 1;
     const stackPages: u32 = 3;
-    const stackPage: u32 = (0xFEFE_0000 - stackPages * 4096) / 4096;
-    const argsPage: u32 = 0xFEFF_0000 / 4096;
+    const stackPage: u32 = (0xfefe_0000 - stackPages * 4096) / 4096;
+    const argsPage: u32 = 0xfeff_0000 / 4096;
     const n = TestMachine.pagesLogLength();
     a.isEqual(n, 4, "four pages() calls");
     a.isEqual(TestMachine.pagesLogField(0, 1), rwPage, "rw start page");
@@ -110,7 +121,7 @@ export const TESTS: Test[] = [
     a.isEqual(TestMachine.pokeLogLength(), 2, "two poke() calls");
     a.isEqual(TestMachine.pokeLogField(0, 1), 0x0002_0000, "poke 0 dest = rw start");
     a.isEqual(TestMachine.pokeLogField(0, 2), 4, "poke 0 length");
-    a.isEqual(TestMachine.pokeLogField(1, 1), 0xFEFF_0000, "poke 1 dest = args start");
+    a.isEqual(TestMachine.pokeLogField(1, 1), 0xfeff_0000, "poke 1 dest = args start");
     a.isEqual(TestMachine.pokeLogField(1, 2), 5, "poke 1 length");
     return a;
   }),

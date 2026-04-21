@@ -9,9 +9,9 @@ export const SPI_PAGE_SIZE: u32 = 1 << 12;
 export const SPI_SEGMENT_SIZE: u32 = 1 << 16;
 export const SPI_MAX_ARGS_LEN: u32 = 1 << 24;
 export const SPI_RO_START: u32 = SPI_SEGMENT_SIZE;
-export const SPI_ARGS_SEGMENT_START: u32 = 0xFFFF_FFFF - SPI_SEGMENT_SIZE - SPI_MAX_ARGS_LEN + 1; // 0xFEFF_0000
-export const SPI_STACK_SEGMENT_END: u32 = SPI_ARGS_SEGMENT_START - SPI_SEGMENT_SIZE;             // 0xFEFE_0000
-const R0_INITIAL: u64 = 0xFFFF_0000;
+export const SPI_ARGS_SEGMENT_START: u32 = 0xffff_ffff - SPI_SEGMENT_SIZE - SPI_MAX_ARGS_LEN + 1; // 0xFEFF_0000
+export const SPI_STACK_SEGMENT_END: u32 = SPI_ARGS_SEGMENT_START - SPI_SEGMENT_SIZE; // 0xFEFE_0000
+const R0_INITIAL: u64 = 0xffff_0000;
 
 /** Host-call-backed inner PVM set up from an SPI blob. */
 export class NestedPvm {
