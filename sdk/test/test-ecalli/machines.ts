@@ -30,6 +30,26 @@ declare function _setInvokeIoR7(value: i64): void;
 @external("ecalli", "setExpungeResult")
 declare function _setExpungeResult(result: i64): void;
 
+// @ts-expect-error: decorator
+@external("ecalli", "getPagesLogLength")
+declare function _getPagesLogLength(): i64;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getPagesLogField")
+declare function _getPagesLogField(index: u32, field: u32): i64;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getPokeLogLength")
+declare function _getPokeLogLength(): i64;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getPokeLogField")
+declare function _getPokeLogField(index: u32, field: u32): i64;
+
+// @ts-expect-error: decorator
+@external("ecalli", "getPokeLogData")
+declare function _getPokeLogData(index: u32, dest_ptr: u32): i64;
+
 /** Configure machine ecalli stub return values from AS tests. */
 export class TestMachine {
   static setMachineResult(result: i64): void {
@@ -62,5 +82,29 @@ export class TestMachine {
 
   static setExpungeResult(result: i64): void {
     _setExpungeResult(result);
+  }
+
+  static pagesLogLength(): u32 {
+    return u32(_getPagesLogLength());
+  }
+
+  /** Field: 0=machineId, 1=startPage, 2=pageCount, 3=accessType. */
+  static pagesLogField(index: u32, field: u32): u32 {
+    return u32(_getPagesLogField(index, field));
+  }
+
+  static pokeLogLength(): u32 {
+    return u32(_getPokeLogLength());
+  }
+
+  /** Field: 0=machineId, 1=dest, 2=dataLength. */
+  static pokeLogField(index: u32, field: u32): u32 {
+    return u32(_getPokeLogField(index, field));
+  }
+
+  /** Copy the i-th poke()'s data into the caller-owned buffer. */
+  static pokeLogData(index: u32, buffer: Uint8Array): u32 {
+    const written = _getPokeLogData(index, u32(buffer.dataStart));
+    return u32(written);
   }
 }

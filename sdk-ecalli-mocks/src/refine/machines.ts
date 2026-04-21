@@ -16,6 +16,20 @@ let invokeR8: bigint = 0n;
 let invokeIoR7: bigint | null = null;
 let expungeResult: bigint | null = null;
 
+type PagesCall = {
+  machineId: number;
+  startPage: number;
+  pageCount: number;
+  accessType: number;
+};
+type PokeCall = {
+  machineId: number;
+  dest: number;
+  data: Uint8Array;
+};
+let pagesLog: PagesCall[] = [];
+let pokeLog: PokeCall[] = [];
+
 /** Ecalli 8: Create inner PVM machine. */
 export function machine(
   _code_ptr: number,
@@ -45,22 +59,30 @@ export function peek(
 
 /** Ecalli 10: Poke inner machine memory — returns OK. */
 export function poke(
-  _machine_id: number,
-  _source_ptr: number,
-  _dest: number,
-  _length: number,
+  machine_id: number,
+  source_ptr: number,
+  dest: number,
+  length: number,
 ): bigint {
+  const data = readBytes(source_ptr, length);
+  pokeLog.push({ machineId: machine_id, dest, data });
   if (pokeResult !== null) return pokeResult;
   return 0n; // OK
 }
 
 /** Ecalli 11: Set inner machine page access — returns OK. */
 export function pages(
-  _machine_id: number,
-  _start_page: number,
-  _page_count: number,
-  _access_type: number,
+  machine_id: number,
+  start_page: number,
+  page_count: number,
+  access_type: number,
 ): bigint {
+  pagesLog.push({
+    machineId: machine_id,
+    startPage: start_page,
+    pageCount: page_count,
+    accessType: access_type,
+  });
   if (pagesResult !== null) return pagesResult;
   return 0n; // OK
 }
@@ -135,4 +157,49 @@ export function resetMachines(): void {
   invokeR8 = 0n;
   invokeIoR7 = null;
   expungeResult = null;
+  pagesLog = [];
+  pokeLog = [];
+}
+
+/** Return the number of logged pages() calls since last reset. */
+export function getPagesLogLength(): number {
+  return pagesLog.length;
+}
+
+/** Return a field from the i-th logged pages() call.
+ *  field 0 = machineId, 1 = startPage, 2 = pageCount, 3 = accessType.
+ */
+export function getPagesLogField(index: number, field: number): number {
+  const call = pagesLog[index];
+  if (!call) return -1;
+  if (field === 0) return call.machineId;
+  if (field === 1) return call.startPage;
+  if (field === 2) return call.pageCount;
+  if (field === 3) return call.accessType;
+  return -1;
+}
+
+/** Return the number of logged poke() calls since last reset. */
+export function getPokeLogLength(): number {
+  return pokeLog.length;
+}
+
+/** Return a scalar field from the i-th logged poke() call.
+ *  field 0 = machineId, 1 = dest, 2 = dataLength.
+ */
+export function getPokeLogField(index: number, field: number): number {
+  const call = pokeLog[index];
+  if (!call) return -1;
+  if (field === 0) return call.machineId;
+  if (field === 1) return call.dest;
+  if (field === 2) return call.data.length;
+  return -1;
+}
+
+/** Copy the i-th poke()'s data bytes into AS memory at dest_ptr. */
+export function getPokeLogData(index: number, dest_ptr: number): number {
+  const call = pokeLog[index];
+  if (!call) return -1;
+  writeToMem(dest_ptr, call.data, 0, call.data.length);
+  return call.data.length;
 }

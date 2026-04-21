@@ -9,6 +9,8 @@ export {
   machine, peek, poke, pages, invoke, expunge, resetMachines,
   setMachineResult, setPeekResult, setPeekData, setPokeResult, setPagesResult, setInvokeResult,
   setInvokeIoR7, setExpungeResult,
+  getPagesLogLength, getPagesLogField,
+  getPokeLogLength, getPokeLogField, getPokeLogData,
 } from "./machines.js";
 
 import { resetHistoricalLookup } from "./lookup.js";
