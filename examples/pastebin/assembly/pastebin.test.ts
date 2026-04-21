@@ -132,14 +132,14 @@ export const TESTS: Test[] = [
     // Paste entry should be present.
     const storage = CurrentServiceData.create();
     const hash = Bytes32.wrapUnchecked(hashBytes);
-    const stored = storage.read(pasteKey(hash).raw);
+    const stored = storage.read(pasteKey(hash));
     assert.isEqual(stored.isSome, true, "paste entry present");
     if (!stored.isSome) return assert;
     const raw = stored.val!;
     assert.isEqual(<u32>raw.length, <u32>8, "paste entry length");
     if (raw.length !== 8) return assert;
 
-    const entry = PasteEntry.decodeOrPanic(raw);
+    const entry = PasteEntry.decodeOrPanic(raw.raw);
     assert.isEqual(entry.slot, <u32>123, "paste entry slot");
     assert.isEqual(entry.length, <u32>8, "paste entry payload length");
     return assert;
@@ -161,11 +161,11 @@ export const TESTS: Test[] = [
 
     const storage = CurrentServiceData.create();
     const hash = Bytes32.wrapUnchecked(hashBytes);
-    const stored = storage.read(pasteKey(hash).raw);
+    const stored = storage.read(pasteKey(hash));
     assert.isEqual(stored.isSome, true, "paste entry present");
     if (!stored.isSome) return assert;
 
-    const entry = PasteEntry.decodeOrPanic(stored.val!);
+    const entry = PasteEntry.decodeOrPanic(stored.val!.raw);
     // First insertion's slot must be preserved — second call is a no-op.
     assert.isEqual(entry.slot, <u32>100, "paste entry slot preserved");
     assert.isEqual(entry.length, <u32>4, "paste entry payload length");
@@ -193,20 +193,20 @@ export const TESTS: Test[] = [
     // Paste entry should be gone.
     const storage = CurrentServiceData.create();
     const hash = Bytes32.wrapUnchecked(hashBytes);
-    const pasteStored = storage.read(pasteKey(hash).raw);
+    const pasteStored = storage.read(pasteKey(hash));
     assert.isEqual(pasteStored.isSome, false, "paste entry deleted after expiry");
 
     // Cursor advances by CLEANUP_SLOTS_PER_CALL (=8) on every accumulate
     // invocation: the initial insert + 130 empty calls = 131 × 8 = 1048.
     // Direct-observes the cursor persistence path so a future bug that
     // silently stops writing it can't hide behind the deletion assertion.
-    const cursorStored = storage.read(cleanupCursorKey().raw);
+    const cursorStored = storage.read(cleanupCursorKey());
     assert.isEqual(cursorStored.isSome, true, "cursor persisted");
     if (cursorStored.isSome) {
       const cursorVal = cursorStored.val!;
       assert.isEqual(<u32>cursorVal.length, <u32>4, "cursor blob length");
       if (cursorVal.length === 4) {
-        assert.isEqual(Decoder.fromBlob(cursorVal).u32(), <u32>1048, "cursor value");
+        assert.isEqual(Decoder.fromBlob(cursorVal.raw).u32(), <u32>1048, "cursor value");
       }
     }
 
@@ -289,7 +289,7 @@ export const TESTS: Test[] = [
     // No paste entry should have been written — insertion is gated on solicit success.
     const storage = CurrentServiceData.create();
     const hash = Bytes32.wrapUnchecked(hashBytes);
-    const stored = storage.read(pasteKey(hash).raw);
+    const stored = storage.read(pasteKey(hash));
     assert.isEqual(stored.isSome, false, "paste not stored after solicit failure");
     return assert;
   }),
@@ -317,7 +317,7 @@ export const TESTS: Test[] = [
 
     // Pre-cleanup: expiry bucket holds exactly 2 hashes (64 bytes).
     const storage = CurrentServiceData.create();
-    const bucket = storage.read(expiryKey(1005).raw);
+    const bucket = storage.read(expiryKey(1005));
     assert.isEqual(bucket.isSome, true, "expiry bucket exists pre-cleanup");
     if (bucket.isSome) assert.isEqual(<u32>bucket.val!.length, <u32>64, "bucket holds 2 hashes");
 
@@ -325,9 +325,9 @@ export const TESTS: Test[] = [
     for (let i: u32 = 0; i < 130; i += 1) callAccumulateEmpty(1005 + i);
 
     // Both pastes + the bucket itself should be gone.
-    assert.isEqual(storage.read(pasteKey(Bytes32.wrapUnchecked(hashA)).raw).isSome, false, "paste A deleted");
-    assert.isEqual(storage.read(pasteKey(Bytes32.wrapUnchecked(hashB)).raw).isSome, false, "paste B deleted");
-    assert.isEqual(storage.read(expiryKey(1005).raw).isSome, false, "bucket deleted");
+    assert.isEqual(storage.read(pasteKey(Bytes32.wrapUnchecked(hashA))).isSome, false, "paste A deleted");
+    assert.isEqual(storage.read(pasteKey(Bytes32.wrapUnchecked(hashB))).isSome, false, "paste B deleted");
+    assert.isEqual(storage.read(expiryKey(1005)).isSome, false, "bucket deleted");
     return assert;
   }),
 ];

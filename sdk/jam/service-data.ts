@@ -59,19 +59,19 @@ export class ServiceData {
   }
 
   /** Read a value from storage by key. Returns None if the key does not exist. */
-  read(key: Uint8Array): Optional<Uint8Array> {
-    let result = read(this.serviceId, u32(key.dataStart), key.length, u32(this.buf.dataStart), 0, this.buf.length);
-    if (result === EcalliResult.NONE) return Optional.none<Uint8Array>();
+  read(key: BytesBlob): Optional<BytesBlob> {
+    let result = read(this.serviceId, key.ptr(), key.length, u32(this.buf.dataStart), 0, this.buf.length);
+    if (result === EcalliResult.NONE) return Optional.none<BytesBlob>();
 
     // Auto-expand: the host told us the total length exceeds our buffer.
     if (result > i64(this.buf.length)) {
       this.buf = new Uint8Array(u32(result));
-      result = read(this.serviceId, u32(key.dataStart), key.length, u32(this.buf.dataStart), 0, this.buf.length);
-      if (result === EcalliResult.NONE) return Optional.none<Uint8Array>();
+      result = read(this.serviceId, key.ptr(), key.length, u32(this.buf.dataStart), 0, this.buf.length);
+      if (result === EcalliResult.NONE) return Optional.none<BytesBlob>();
     }
 
     const len = u32(min(i64(this.buf.length), result));
-    return Optional.some<Uint8Array>(this.buf.slice(0, len));
+    return Optional.some<BytesBlob>(BytesBlob.wrap(this.buf.slice(0, len)));
   }
 }
 
@@ -91,8 +91,8 @@ export class CurrentServiceData extends ServiceData {
    * Fails with WriteError.Full if the storage quota is exceeded.
    * Pass `BytesBlob.empty()` to delete the entry.
    */
-  write(key: Uint8Array, value: BytesBlob): Result<OptionalN<u64>, WriteError> {
-    const result = write(u32(key.dataStart), key.length, value.ptr(), value.length);
+  write(key: BytesBlob, value: BytesBlob): Result<OptionalN<u64>, WriteError> {
+    const result = write(key.ptr(), key.length, value.ptr(), value.length);
     if (result === EcalliResult.FULL) return Result.err<OptionalN<u64>, WriteError>(WriteError.Full);
     if (result === EcalliResult.NONE) return Result.ok<OptionalN<u64>, WriteError>(OptionalN.none<u64>());
     return Result.ok<OptionalN<u64>, WriteError>(OptionalN.some<u64>(u64(result)));

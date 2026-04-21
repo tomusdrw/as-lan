@@ -20,7 +20,7 @@ function seedLibraryMapping(name: string, hashByte0: u8, length: u32): void {
   const e = LibraryEntry.create(h, length);
   const enc = Encoder.create();
   LibraryEntryCodec.create().encode(e, enc);
-  TestStorage.set(BytesBlob.wrap(libraryKey(name)), BytesBlob.wrap(enc.finishRaw()));
+  TestStorage.set(libraryKey(name), BytesBlob.wrap(enc.finishRaw()));
 }
 
 export const TESTS: Test[] = [
@@ -63,7 +63,7 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     const key = libraryKey("ed25519");
     const expected = BytesBlob.encodeAscii("lib:ed25519");
-    assert.isEqualBytes(BytesBlob.wrap(key), expected, "key");
+    assert.isEqualBytes(key, expected, "key");
     return assert;
   }),
 
@@ -226,7 +226,7 @@ export const TESTS: Test[] = [
 
   test("refine demo: unknown library name returns -100", () => {
     const assert = Assert.create();
-    TestStorage.set(BytesBlob.wrap(libraryKey("missing")), null);
+    TestStorage.set(libraryKey("missing"), null);
 
     const input = buildDemoInput("missing", 0, 1000, BytesBlob.empty());
     const resp = callRefine(input);
@@ -237,7 +237,7 @@ export const TESTS: Test[] = [
   test("refine demo: malformed stored entry returns -100", () => {
     const assert = Assert.create();
     // Store a value that is too short to decode a LibraryEntry (hash+length = 36 bytes).
-    TestStorage.set(BytesBlob.wrap(libraryKey("corrupt")), BytesBlob.parseBlob("0xdead").okay!);
+    TestStorage.set(libraryKey("corrupt"), BytesBlob.parseBlob("0xdead").okay!);
 
     const input = buildDemoInput("corrupt", 0, 1000, BytesBlob.empty());
     const resp = callRefine(input);
@@ -334,7 +334,7 @@ export const TESTS: Test[] = [
     const enc = Encoder.create();
     LibraryEntryCodec.create().encode(entry, enc);
     enc.u8(0xff); // trailing junk
-    TestStorage.set(BytesBlob.wrap(libraryKey("trail")), BytesBlob.wrap(enc.finishRaw()));
+    TestStorage.set(libraryKey("trail"), BytesBlob.wrap(enc.finishRaw()));
 
     const resp = callRefine(buildDemoInput("trail", 0, 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -100, "trailing bytes in stored entry rejected");

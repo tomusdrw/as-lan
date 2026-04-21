@@ -1,3 +1,5 @@
+import { BytesBlob } from "./bytes";
+
 /**
  * A lightweight byte-buffer builder that avoids AssemblyScript's String
  * machinery.  Append ASCII strings, raw byte slices, or decimal numbers,
@@ -146,6 +148,11 @@ export class ByteBuf {
     memory.copy(out.dataStart, this._ptr, this._pos);
     this._pos = 0;
     return out;
+  }
+
+  /** Copy the buffer contents into a new `BytesBlob`. */
+  finishBlob(): BytesBlob {
+    return BytesBlob.wrap(this.finish());
   }
 
   /** Reset the write position without producing output. */

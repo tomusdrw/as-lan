@@ -79,6 +79,7 @@ Builder methods (all return `ByteBuf` for chaining):
 
 Terminal methods:
 - **`.finish()`** — copy buffer into a new `Uint8Array` and reset
+- **`.finishBlob()`** — copy buffer into a new `BytesBlob` and reset
 - **`.reset()`** — discard contents without producing output
 
 The buffer is heap-allocated at a fixed capacity; writes beyond the capacity

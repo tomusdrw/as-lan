@@ -19,8 +19,8 @@ High-level wrappers for service storage (`read`/`write`) and account info (`info
 // Read/write access to the current service (preferred)
 const storage = ctx.serviceData();
 const info = storage.info();                  // Optional<AccountInfo>
-const val = storage.read(key);               // Optional<Uint8Array>
-const result = storage.write(key, value);    // value: BytesBlob → Result<OptionalN<u64>, WriteError>
+const val = storage.read(key);               // key: BytesBlob → Optional<BytesBlob>
+const result = storage.write(key, value);    // key/value: BytesBlob → Result<OptionalN<u64>, WriteError>
 
 // Read-only access to another service by ID
 const other = ServiceData.create(42);

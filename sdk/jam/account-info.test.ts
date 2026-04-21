@@ -140,15 +140,15 @@ export const TESTS: Test[] = [
     TestStorage.set(strBlob("testkey"), val);
 
     const svc = ServiceData.create(42);
-    const key = ByteBuf.create(32).strAscii("testkey").finish();
+    const key = ByteBuf.create(32).strAscii("testkey").finishBlob();
     const result = svc.read(key);
     a.isEqual(result.isSome, true, "should be some");
     const data = result.val!;
     a.isEqual(data.length, 4, "length");
-    a.isEqual(data[0], 0xde, "byte 0");
-    a.isEqual(data[1], 0xad, "byte 1");
-    a.isEqual(data[2], 0xbe, "byte 2");
-    a.isEqual(data[3], 0xef, "byte 3");
+    a.isEqual(data.raw[0], 0xde, "byte 0");
+    a.isEqual(data.raw[1], 0xad, "byte 1");
+    a.isEqual(data.raw[2], 0xbe, "byte 2");
+    a.isEqual(data.raw[3], 0xef, "byte 3");
     return a;
   }),
 
@@ -157,7 +157,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = ServiceData.create(42);
-    const key = ByteBuf.create(32).strAscii("nonexistent").finish();
+    const key = ByteBuf.create(32).strAscii("nonexistent").finishBlob();
     const result = svc.read(key);
     a.isEqual(result.isSome, false, "should be none");
     return a;
@@ -172,15 +172,15 @@ export const TESTS: Test[] = [
 
     // Create with small buffer (64 bytes) to force auto-expansion
     const svc = ServiceData.create(42, 64);
-    const key = ByteBuf.create(32).strAscii("bigkey").finish();
+    const key = ByteBuf.create(32).strAscii("bigkey").finishBlob();
     const result = svc.read(key);
     a.isEqual(result.isSome, true, "should be some");
     const data = result.val!;
     a.isEqual(data.length, 2048, "length");
-    a.isEqual(data[0], 0, "byte 0");
-    a.isEqual(data[1], 1, "byte 1");
-    a.isEqual(data[255], 255, "byte 255");
-    a.isEqual(data[256], 0, "byte 256 wraps");
+    a.isEqual(data.raw[0], 0, "byte 0");
+    a.isEqual(data.raw[1], 1, "byte 1");
+    a.isEqual(data.raw[255], 255, "byte 255");
+    a.isEqual(data.raw[256], 0, "byte 256 wraps");
     return a;
   }),
 
@@ -191,7 +191,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = CurrentServiceData.create();
-    const key = ByteBuf.create(32).strAscii("newkey").finish();
+    const key = ByteBuf.create(32).strAscii("newkey").finishBlob();
     const val = BytesBlob.parseBlob("0x010203").okay!;
     const result = svc.write(key, val);
     a.isEqual(result.isOkay, true, "should be ok");
@@ -204,7 +204,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = CurrentServiceData.create();
-    const key = ByteBuf.create(32).strAscii("overkey").finish();
+    const key = ByteBuf.create(32).strAscii("overkey").finishBlob();
     const val1 = BytesBlob.zero(5);
     val1.raw.fill(0xaa);
     const val2 = BytesBlob.zero(3);
@@ -214,7 +214,7 @@ export const TESTS: Test[] = [
     svc.write(key, val1);
 
     // Second write — should return previous length (5)
-    const key2 = ByteBuf.create(32).strAscii("overkey").finish();
+    const key2 = ByteBuf.create(32).strAscii("overkey").finishBlob();
     const result = svc.write(key2, val2);
     a.isEqual(result.isOkay, true, "should be ok");
     a.isEqual(result.okay!.isSome, true, "has previous value");
@@ -227,20 +227,20 @@ export const TESTS: Test[] = [
     const a = Assert.create();
 
     const svc = CurrentServiceData.create();
-    const key = ByteBuf.create(32).strAscii("rtkey").finish();
+    const key = ByteBuf.create(32).strAscii("rtkey").finishBlob();
     const val = BytesBlob.parseBlob("0xcafebabe").okay!;
 
     svc.write(key, val);
 
-    const key2 = ByteBuf.create(32).strAscii("rtkey").finish();
+    const key2 = ByteBuf.create(32).strAscii("rtkey").finishBlob();
     const result = svc.read(key2);
     a.isEqual(result.isSome, true, "should be some");
     const data = result.val!;
     a.isEqual(data.length, 4, "length");
-    a.isEqual(data[0], 0xca, "byte 0");
-    a.isEqual(data[1], 0xfe, "byte 1");
-    a.isEqual(data[2], 0xba, "byte 2");
-    a.isEqual(data[3], 0xbe, "byte 3");
+    a.isEqual(data.raw[0], 0xca, "byte 0");
+    a.isEqual(data.raw[1], 0xfe, "byte 1");
+    a.isEqual(data.raw[2], 0xba, "byte 2");
+    a.isEqual(data.raw[3], 0xbe, "byte 3");
     return a;
   }),
 ];
