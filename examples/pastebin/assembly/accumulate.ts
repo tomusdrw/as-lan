@@ -28,11 +28,11 @@ function u32Blob(value: u32): BytesBlob {
  * service would want to either roll back the prior writes or surface the
  * failure in the accumulate Response.
  */
-function appendHashToExpiryBucket(storage: CurrentServiceData, bucketKey: Uint8Array, hash: Bytes32): void {
+function appendHashToExpiryBucket(storage: CurrentServiceData, bucketKey: BytesBlob, hash: Bytes32): void {
   const existing = storage.read(bucketKey);
   const prevLen: u32 = existing.isSome ? u32(existing.val!.length) : 0;
   const e = Encoder.create(prevLen + 32);
-  if (existing.isSome) e.bytesFixLen(BytesBlob.wrap(existing.val!));
+  if (existing.isSome) e.bytesFixLen(existing.val!);
   e.bytes32(hash);
   storage.write(bucketKey, e.finish());
 }
@@ -73,26 +73,26 @@ export function accumulate(ptr: u32, len: u32): u64 {
     const length = digest.length;
 
     // Idempotency: skip if this paste is already known.
-    const existing = storage.read(pasteKey(hash).raw);
+    const existing = storage.read(pasteKey(hash));
     if (!existing.isSome) {
       const solicitRes = preimages.solicit(hash, length);
       if (!solicitRes.isError) {
         // Metadata.
-        storage.write(pasteKey(hash).raw, PasteEntry.create(currentSlot, length).encode());
+        storage.write(pasteKey(hash), PasteEntry.create(currentSlot, length).encode());
 
         // Ring buffer of recent pastes: write hash ‖ slot at recent:<head % N>,
         // then bump the head counter.
-        const headBlob = storage.read(recentHeadKey().raw);
-        const head: u32 = headBlob.isSome ? Decoder.fromBlob(headBlob.val!).u32() : 0;
+        const headBlob = storage.read(recentHeadKey());
+        const head: u32 = headBlob.isSome ? Decoder.fromBlob(headBlob.val!.raw).u32() : 0;
         const entryEnc = Encoder.create(RECENT_ENTRY_LEN);
         entryEnc.bytes32(hash);
         entryEnc.u32(currentSlot);
-        storage.write(recentKey(head % RECENT_N).raw, entryEnc.finish());
-        storage.write(recentHeadKey().raw, u32Blob(head + 1));
+        storage.write(recentKey(head % RECENT_N), entryEnc.finish());
+        storage.write(recentHeadKey(), u32Blob(head + 1));
 
         // Expiry bucket.
         const expireAt: u32 = currentSlot + TTL_SLOTS;
-        appendHashToExpiryBucket(storage, expiryKey(expireAt).raw, hash);
+        appendHashToExpiryBucket(storage, expiryKey(expireAt), hash);
       }
       // On solicit failure, skip the insertion entirely.
     }
@@ -116,12 +116,12 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
   // A wrong-length blob is host-contract corruption (the only writer is this
   // function, which always writes exactly 4 bytes) — panic, matching
   // PasteEntry.decodeOrPanic's posture on malformed internal records.
-  const cursorBlob = storage.read(cleanupCursorKey().raw);
+  const cursorBlob = storage.read(cleanupCursorKey());
   let cursor: u32 = 0;
   if (cursorBlob.isSome) {
     const raw = cursorBlob.val!;
     if (raw.length !== 4) panic("cleanup cursor: expected 4 bytes");
-    cursor = Decoder.fromBlob(raw).u32();
+    cursor = Decoder.fromBlob(raw.raw).u32();
   }
 
   // Walk at most CLEANUP_SLOTS_PER_CALL slots forward, bounded by currentSlot.
@@ -129,30 +129,30 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
   const target: u32 = limit < currentSlot ? limit : currentSlot;
 
   for (let s: u32 = cursor + 1; s <= target; s += 1) {
-    const bucketKeyBytes = expiryKey(s).raw;
-    const bucket = storage.read(bucketKeyBytes);
+    const bucketKey = expiryKey(s);
+    const bucket = storage.read(bucketKey);
     if (!bucket.isSome) continue;
 
     // Bucket holds a packed list of 32-byte hashes — decode with the standard codec.
-    const d = Decoder.fromBlob(bucket.val!);
+    const d = Decoder.fromBlob(bucket.val!.raw);
     const bucketLen = u32(bucket.val!.length);
     while (u32(d.bytesRead()) + 32 <= bucketLen) {
       const hash = d.bytes32();
 
-      const entryBlob = storage.read(pasteKey(hash).raw);
+      const entryBlob = storage.read(pasteKey(hash));
       if (entryBlob.isSome) {
-        const entry = PasteEntry.decodeOrPanic(entryBlob.val!);
+        const entry = PasteEntry.decodeOrPanic(entryBlob.val!.raw);
         // forget result ignored: the paste metadata is being deleted either way.
         preimages.forget(hash, entry.length);
-        storage.write(pasteKey(hash).raw, BytesBlob.empty());
+        storage.write(pasteKey(hash), BytesBlob.empty());
       }
     }
     // Delete the bucket itself.
-    storage.write(bucketKeyBytes, BytesBlob.empty());
+    storage.write(bucketKey, BytesBlob.empty());
   }
 
   // Persist new cursor only if it advanced.
   if (target > cursor) {
-    storage.write(cleanupCursorKey().raw, u32Blob(target));
+    storage.write(cleanupCursorKey(), u32Blob(target));
   }
 }

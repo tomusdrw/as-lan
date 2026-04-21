@@ -30,7 +30,7 @@ export const TESTS: Test[] = [
     hash.raw[0] = 0x11;
     const entryEnc = Encoder.create();
     LibraryEntryCodec.create().encode(LibraryEntry.create(hash, 32), entryEnc);
-    TestStorage.set(BytesBlob.wrap(libraryKey("blake2b")), BytesBlob.wrap(entryEnc.finishRaw()));
+    TestStorage.set(libraryKey("blake2b"), BytesBlob.wrap(entryEnc.finishRaw()));
 
     const cmd = AdminCommand.removeMapping(BytesBlob.encodeAscii("blake2b"));
     TestAccumulate.setItem(0, buildAdminOperand(encodeAdmin(cmd)));
@@ -91,7 +91,7 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     // Set then Remove → storage ends empty. Reversed order would leave the
     // entry present. Observable side-effect therefore depends on ordering.
-    TestStorage.set(BytesBlob.wrap(libraryKey("ordered")), null);
+    TestStorage.set(libraryKey("ordered"), null);
     const hash = Bytes32.zero();
     hash.raw[0] = 0x55;
     TestAccumulate.setItem(
@@ -111,7 +111,7 @@ export const TESTS: Test[] = [
 
   test("accumulate: SetMapping writes LibraryEntry to storage", () => {
     const assert = Assert.create();
-    TestStorage.set(BytesBlob.wrap(libraryKey("ed25519")), null);
+    TestStorage.set(libraryKey("ed25519"), null);
 
     const hash = Bytes32.zero();
     hash.raw[0] = 0xab;
@@ -125,7 +125,7 @@ export const TESTS: Test[] = [
       assert.fail("entry not written");
       return assert;
     }
-    const decoded = LibraryEntryCodec.create().decode(Decoder.fromBlob(got.val!)).okay!;
+    const decoded = LibraryEntryCodec.create().decode(Decoder.fromBlob(got.val!.raw)).okay!;
     assert.isEqual(decoded.hash.raw[0], 0xab, "hash");
     assert.isEqual(decoded.length, 8192, "length");
     return assert;

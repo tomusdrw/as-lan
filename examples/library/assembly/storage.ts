@@ -35,15 +35,15 @@ export class LibraryEntryCodec implements TryDecode<LibraryEntry>, TryEncode<Lib
 }
 
 /** Build the storage key `"lib:<name>"` as ASCII bytes. */
-export function libraryKey(name: string): Uint8Array {
-  return BytesBlob.encodeAscii(`lib:${name}`).raw;
+export function libraryKey(name: string): BytesBlob {
+  return BytesBlob.encodeAscii(`lib:${name}`);
 }
 
 /** Build the storage key `"lib:<name>"` when `name` is already an ASCII byte blob. */
-export function libraryKeyFromBlob(name: BytesBlob): Uint8Array {
+export function libraryKeyFromBlob(name: BytesBlob): BytesBlob {
   const prefix = BytesBlob.encodeAscii("lib:").raw;
   const key = new Uint8Array(prefix.length + name.raw.length);
   key.set(prefix, 0);
   key.set(name.raw, prefix.length);
-  return key;
+  return BytesBlob.wrap(key);
 }
