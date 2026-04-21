@@ -1,9 +1,10 @@
 import { BytesBlob } from "../../core/bytes";
 import { Encoder } from "../../core/codec/encode";
+import { EcalliResult } from "../../ecalli";
 import { TestEcalli, TestMachine } from "../../test/test-ecalli";
 import { Assert, Test, test } from "../../test/utils";
 import { ExitReason } from "./machine";
-import { NestedPvm } from "./nested-pvm";
+import { NestedPvm, SpiError } from "./nested-pvm";
 
 /** Build an SPI blob with the given regions. */
 function buildSpi(
@@ -148,6 +149,53 @@ export const TESTS: Test[] = [
     a.isEqual(r2, ExitReason.Halt, "reason = Halt");
 
     a.isEqual(vm.expunge(), 0, "expunge OK");
+    return a;
+  }),
+
+  // ─── fromSpiChecked (Result variant) ───────────────────────────────
+
+  test("NestedPvm.fromSpiChecked returns ok on valid blob", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const blob = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    const r = NestedPvm.fromSpiChecked(blob, BytesBlob.empty(), 100);
+    a.isEqual(r.isOkay, true, "is okay");
+    return a;
+  }),
+
+  test("NestedPvm.fromSpiChecked returns MalformedBlob on short header", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    // Header needs 11 bytes; we only supply 5.
+    const blob = BytesBlob.wrap(new Uint8Array(5));
+    const r = NestedPvm.fromSpiChecked(blob, BytesBlob.empty(), 100);
+    a.isEqual(r.isError, true, "is error");
+    a.isEqual(r.error, SpiError.MalformedBlob, "error variant");
+    return a;
+  }),
+
+  test("NestedPvm.fromSpiChecked returns TrailingBytes on extra data", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const valid = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    // Append one trailing byte to an otherwise valid blob.
+    const padded = new Uint8Array(valid.length + 1);
+    for (let i = 0; i < valid.length; i++) padded[i] = valid.raw[i];
+    padded[valid.length] = 0xff;
+    const r = NestedPvm.fromSpiChecked(BytesBlob.wrap(padded), BytesBlob.empty(), 100);
+    a.isEqual(r.isError, true, "is error");
+    a.isEqual(r.error, SpiError.TrailingBytes, "error variant");
+    return a;
+  }),
+
+  test("NestedPvm.fromSpiChecked returns InvalidEntryPoint when host rejects code", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    TestMachine.setMachineResult(EcalliResult.HUH);
+    const blob = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    const r = NestedPvm.fromSpiChecked(blob, BytesBlob.empty(), 100);
+    a.isEqual(r.isError, true, "is error");
+    a.isEqual(r.error, SpiError.InvalidEntryPoint, "error variant");
     return a;
   }),
 ];

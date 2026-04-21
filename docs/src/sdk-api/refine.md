@@ -203,8 +203,13 @@ export function refine(ptr: u32, len: u32): u64 {
 ### NestedPvm API
 
 - **`NestedPvm.fromSpi(blob, args, gas)`** — Decode SPI blob, create inner
-  PVM, set up memory + registers. Panics on malformed blob, args exceeding
-  `SPI_MAX_ARGS_LEN`, or invalid entry point.
+  PVM, set up memory + registers. **Panics** on malformed blob, args
+  exceeding `SPI_MAX_ARGS_LEN`, or invalid entry point. Use this for
+  trusted blobs (embedded at build time, produced by the outer runtime).
+- **`NestedPvm.fromSpiChecked(blob, args, gas)`** — Same setup, but returns
+  `ResultN<NestedPvm, SpiError>` instead of panicking. Use this for blobs
+  loaded from an untrusted source (preimage, peer). `SpiError` covers
+  `MalformedBlob`, `TrailingBytes`, `ArgsTooLarge`, `InvalidEntryPoint`.
 - **`vm.invoke()`** — Run the inner PVM. Returns an `ExitReason`. Updates
   gas and registers in place.
 - **`vm.getExitArg()`** — Most recent `r8` — host-call index on `Host`,

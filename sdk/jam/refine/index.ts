@@ -17,5 +17,6 @@ export {
   SPI_RO_START,
   SPI_SEGMENT_SIZE,
   SPI_STACK_SEGMENT_END,
+  SpiError,
 } from "./nested-pvm";
 export { RefinePreimages } from "./preimages";

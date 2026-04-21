@@ -13,10 +13,52 @@ export const SPI_ARGS_SEGMENT_START: u32 = 0xffff_ffff - SPI_SEGMENT_SIZE - SPI_
 export const SPI_STACK_SEGMENT_END: u32 = SPI_ARGS_SEGMENT_START - SPI_SEGMENT_SIZE; // 0xFEFE_0000
 const R0_INITIAL: u64 = 0xffff_0000;
 
+/** Reasons a well-formed SPI setup can fail — used by {@link NestedPvm.fromSpiChecked}. */
+export enum SpiError {
+  /** Decoder ran out of bytes or produced an error before the blob was fully consumed. */
+  MalformedBlob = 0,
+  /** Decoder finished successfully but extra bytes were left over. */
+  TrailingBytes = 1,
+  /** `args.length` exceeds `SPI_MAX_ARGS_LEN` (16 MiB). */
+  ArgsTooLarge = 2,
+  /** Host rejected the program with HUH — code blob has no valid entry at offset 0. */
+  InvalidEntryPoint = 3,
+}
+
 /** Host-call-backed inner PVM set up from an SPI blob. */
 export class NestedPvm {
+  /**
+   * Decode an SPI blob and set up an inner PVM. Panics on any setup error.
+   *
+   * Use this when the blob comes from a trusted source (e.g. embedded in the
+   * service or produced by the outer runtime). For peer-controlled or
+   * preimage-loaded blobs, prefer {@link NestedPvm.fromSpiChecked}.
+   */
   static fromSpi(blob: BytesBlob, args: BytesBlob, gas: u64): NestedPvm {
-    if (u32(args.length) > SPI_MAX_ARGS_LEN) panic("SPI: args exceed MAX_ARGS_LEN");
+    const r = NestedPvm.fromSpiChecked(blob, args, gas);
+    if (r.isError) {
+      const e = r.error;
+      if (e === SpiError.MalformedBlob) panic("SPI: malformed blob");
+      if (e === SpiError.TrailingBytes) panic("SPI: trailing bytes");
+      if (e === SpiError.ArgsTooLarge) panic("SPI: args exceed MAX_ARGS_LEN");
+      if (e === SpiError.InvalidEntryPoint) panic("SPI: invalid entry point");
+      panic("SPI: unknown setup error");
+    }
+    return r.okay!;
+  }
+
+  /**
+   * Decode an SPI blob and set up an inner PVM, returning a recoverable
+   * error instead of panicking.
+   *
+   * Use this when the blob originates from untrusted input — e.g. loaded
+   * from a preimage, fetched from a peer, or otherwise not under the
+   * service's direct control.
+   */
+  static fromSpiChecked(blob: BytesBlob, args: BytesBlob, gas: u64): ResultN<NestedPvm, SpiError> {
+    if (u32(args.length) > SPI_MAX_ARGS_LEN) {
+      return ResultN.err<NestedPvm, SpiError>(SpiError.ArgsTooLarge);
+    }
 
     const d = Decoder.fromBytesBlob(blob);
     const roLength = d.u24();
@@ -27,11 +69,13 @@ export class NestedPvm {
     const rwBytes = d.bytesFixLen(rwLength);
     const codeLength = d.u32();
     const codeBytes = d.bytesFixLen(codeLength);
-    if (d.isError) panic("SPI: malformed blob");
-    if (!d.isFinished()) panic("SPI: trailing bytes");
+    if (d.isError) return ResultN.err<NestedPvm, SpiError>(SpiError.MalformedBlob);
+    if (!d.isFinished()) return ResultN.err<NestedPvm, SpiError>(SpiError.TrailingBytes);
 
     const machineResult = Machine.create(codeBytes, 0);
-    if (machineResult.isError) panic("SPI: invalid entry point");
+    if (machineResult.isError) {
+      return ResultN.err<NestedPvm, SpiError>(SpiError.InvalidEntryPoint);
+    }
     const machine = machineResult.okay!;
 
     const io = InvokeIo.create(gas);
@@ -61,7 +105,7 @@ export class NestedPvm {
       setupRegion(machine, SPI_ARGS_SEGMENT_START, args, PageAccess.Read);
     }
 
-    return new NestedPvm(machine, io);
+    return ResultN.ok<NestedPvm, SpiError>(new NestedPvm(machine, io));
   }
 
   private lastExitArg: i64 = 0;
