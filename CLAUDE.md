@@ -193,7 +193,7 @@ GP fetch parameter mapping per context (eq B.1, B.6, B.11):
 
 High-level wrappers for service storage (`read`/`write` ecallis) and account info (`info` ecalli).
 
-- **ServiceData** — read-only access to any service by ID. Methods: `info()` → `Optional<AccountInfo>`, `read(key)` → `Optional<Uint8Array>`.
+- **ServiceData** — read-only access to any service by ID. Methods: `info()` → `Optional<AccountInfo>`, `read(key)` → `Optional<BytesBlob>`.
 - **CurrentServiceData** extends ServiceData — adds `write(key, value)` → `Result<OptionalN<u64>, WriteError>` for the current service (uses `u32.MAX_VALUE` as service ID).
 - Both manage an internal reusable buffer with auto-expansion (same pattern as `FetchBuffer`).
 - `info()` panics on decode failure (host-contract violation). `read()` returns `Optional.none` for missing keys. `write()` returns `WriteError.Full` when storage quota is exceeded.
