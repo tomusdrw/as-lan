@@ -102,7 +102,9 @@ export class TestMachine {
     return u32(_getPokeLogField(index, field));
   }
 
-  /** Copy the i-th poke()'s data into the caller-owned buffer. */
+  /** Copy the i-th poke()'s data into the caller-owned buffer.
+   *  `buffer.length` must be ≥ `pokeLogField(index, 2)`.
+   */
   static pokeLogData(index: u32, buffer: Uint8Array): u32 {
     const written = _getPokeLogData(index, u32(buffer.dataStart));
     return u32(written);

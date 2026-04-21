@@ -196,7 +196,9 @@ export function getPokeLogField(index: number, field: number): bigint {
   return -1n;
 }
 
-/** Copy the i-th poke()'s data bytes into AS memory at dest_ptr. */
+/** Copy the i-th poke()'s data bytes into AS memory at dest_ptr.
+ *  Caller must ensure the destination buffer has at least getPokeLogField(i, 2) bytes.
+ */
 export function getPokeLogData(index: number, dest_ptr: number): bigint {
   const call = pokeLog[index];
   if (!call) return -1n;
