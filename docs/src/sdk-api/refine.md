@@ -135,27 +135,21 @@ Typed wrapper for the 112-byte gas+registers I/O structure:
 
 ### Calling convention for library-style inner PVMs
 
-The `Machine` API is general — you can set up any memory layout and register
-state you like. For the common case of invoking a *library* PVM (an inner
-blob that takes some input, returns some output, and halts), `examples/library/`
-uses a fixed convention mirroring the outer JAM service ABI:
+For the common case of invoking a *library* PVM (an inner blob that takes
+some input, returns some output, and halts), `examples/library/` uses
+`NestedPvm` with SPI-encoded preimages:
 
-**On entry (before `invoke`):**
+**On entry:** `NestedPvm.fromSpi(blob, payload, gas)` sets up the inner
+PVM per the SPI memory layout and places the payload in the read-only
+args region at `SPI_ARGS_SEGMENT_START` (`0xFEFF_0000`). `r7` / `r8` are
+initialised to the args pointer and length respectively — the same
+`(ptr, len)` convention every JAM service entry point receives.
 
-- Caller maps a RW page region at `INPUT_ADDR = 0xFEFF0000` via
-  `machine.pages(startPage, pageCount, PageAccess.ReadWrite)` sized to fit
-  the payload (`pageCount = ceil(payload.length / 4096)`).
-- Caller copies the payload into inner memory with `machine.poke(INPUT_ADDR, payload)`.
-- Caller sets `io.setRegister(7, INPUT_ADDR)` and `io.setRegister(8, payload.length)`
-  — the same `(ptr, len)` convention every JAM service entry point receives.
-
-**On halt:**
-
-- Inner PVM places its output anywhere in its memory and returns a packed
-  `ptrAndLen` in `r7` — low 32 bits = address, high 32 bits = length, matching
-  the SDK's `ptrAndLen(Uint8Array)` helper.
-- Caller unpacks `r7`, calls `machine.peek(outAddr, buf)` for `outLen` bytes,
-  then `machine.expunge()`.
+**On halt:** the inner PVM places its output anywhere in its memory and
+returns a packed `ptrAndLen` in `r7` — low 32 bits = address, high 32 bits
+= length, matching the SDK's `ptrAndLen(Uint8Array)` helper. The caller
+unpacks `r7`, calls `vm.peek(outAddr, buf)` for `outLen` bytes, then
+`vm.expunge()`.
 
 **Why this matters:** writing a library PVM to a different convention means
 consumers have to special-case your library. Following this convention lets
@@ -163,7 +157,8 @@ authors of ed25519, blake2b, and similar verification primitives all be
 invoked identically.
 
 See `examples/library/assembly/refine.ts` for the full reference
-implementation (error handling, page sizing, peek unwind on failure).
+implementation (error handling, malformed-blob handling, peek unwind on
+failure).
 
 ## NestedPvm (SPI-backed inner PVM)
 

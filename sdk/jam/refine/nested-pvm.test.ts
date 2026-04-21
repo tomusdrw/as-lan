@@ -80,7 +80,7 @@ export const TESTS: Test[] = [
     a.isEqual(TestMachine.pokeLogField(0, 2), 10, "poke length = ro length");
     const copied = new Uint8Array(10);
     TestMachine.pokeLogData(0, copied);
-    for (let i = 0; i < 10; i++) a.isEqual(copied[i], u8(i + 1), "byte " + i.toString());
+    for (let i = 0; i < 10; i++) a.isEqual(copied[i], u8(i + 1), `byte ${i.toString()}`);
     return a;
   }),
 

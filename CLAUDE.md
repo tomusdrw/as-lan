@@ -74,8 +74,9 @@ examples/
     fixtures/as-add.jam     Real 648-byte SPI blob from @fluffylabs/pvm-debugger.
     bin/generate-blob.mjs   Regenerates assembly/as-add-jam.ts from the fixture.
   library/                  Library service — hosts reusable PVM verification blobs
-                            (ed25519, blake2b, …) as preimages, resolved by name via
-                            storage. Refine demo invokes them via the Machine interface.
+                            (ed25519, blake2b, …) as SPI-encoded preimages, resolved
+                            by name via storage. Refine demo runs them through
+                            `ctx.nestedPvmFromSpiChecked(...)`.
     fixtures/
       halt.pvm              Placeholder preimage bytes (real code lands later)
     assembly/
