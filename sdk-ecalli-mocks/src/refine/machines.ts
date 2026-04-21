@@ -162,44 +162,44 @@ export function resetMachines(): void {
 }
 
 /** Return the number of logged pages() calls since last reset. */
-export function getPagesLogLength(): number {
-  return pagesLog.length;
+export function getPagesLogLength(): bigint {
+  return BigInt(pagesLog.length);
 }
 
 /** Return a field from the i-th logged pages() call.
  *  field 0 = machineId, 1 = startPage, 2 = pageCount, 3 = accessType.
  */
-export function getPagesLogField(index: number, field: number): number {
+export function getPagesLogField(index: number, field: number): bigint {
   const call = pagesLog[index];
-  if (!call) return -1;
-  if (field === 0) return call.machineId;
-  if (field === 1) return call.startPage;
-  if (field === 2) return call.pageCount;
-  if (field === 3) return call.accessType;
-  return -1;
+  if (!call) return -1n;
+  if (field === 0) return BigInt(call.machineId);
+  if (field === 1) return BigInt(call.startPage);
+  if (field === 2) return BigInt(call.pageCount);
+  if (field === 3) return BigInt(call.accessType);
+  return -1n;
 }
 
 /** Return the number of logged poke() calls since last reset. */
-export function getPokeLogLength(): number {
-  return pokeLog.length;
+export function getPokeLogLength(): bigint {
+  return BigInt(pokeLog.length);
 }
 
 /** Return a scalar field from the i-th logged poke() call.
  *  field 0 = machineId, 1 = dest, 2 = dataLength.
  */
-export function getPokeLogField(index: number, field: number): number {
+export function getPokeLogField(index: number, field: number): bigint {
   const call = pokeLog[index];
-  if (!call) return -1;
-  if (field === 0) return call.machineId;
-  if (field === 1) return call.dest;
-  if (field === 2) return call.data.length;
-  return -1;
+  if (!call) return -1n;
+  if (field === 0) return BigInt(call.machineId);
+  if (field === 1) return BigInt(call.dest);
+  if (field === 2) return BigInt(call.data.length);
+  return -1n;
 }
 
 /** Copy the i-th poke()'s data bytes into AS memory at dest_ptr. */
-export function getPokeLogData(index: number, dest_ptr: number): number {
+export function getPokeLogData(index: number, dest_ptr: number): bigint {
   const call = pokeLog[index];
-  if (!call) return -1;
+  if (!call) return -1n;
   writeToMem(dest_ptr, call.data, 0, call.data.length);
-  return call.data.length;
+  return BigInt(call.data.length);
 }
