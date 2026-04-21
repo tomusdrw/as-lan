@@ -41,9 +41,9 @@ export function libraryKey(name: string): BytesBlob {
 
 /** Build the storage key `"lib:<name>"` when `name` is already an ASCII byte blob. */
 export function libraryKeyFromBlob(name: BytesBlob): BytesBlob {
-  const prefix = BytesBlob.encodeAscii("lib:").raw;
-  const key = new Uint8Array(prefix.length + name.raw.length);
-  key.set(prefix, 0);
-  key.set(name.raw, prefix.length);
-  return BytesBlob.wrap(key);
+  const prefix = BytesBlob.encodeAscii("lib:");
+  const e = Encoder.create(prefix.length + name.length);
+  e.bytesFixLen(prefix);
+  e.bytesFixLen(name);
+  return e.finish();
 }
