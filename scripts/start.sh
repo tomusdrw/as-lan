@@ -12,7 +12,7 @@ if [ $# -lt 1 ]; then
 fi
 
 NAME="$1"
-AS_LAN_REPO="${AS_LAN_REPO:-https://github.com/fluffylabs/as-lan.git}"
+AS_LAN_REPO="${AS_LAN_REPO:-https://github.com/tomusdrw/as-lan.git}"
 BASE_URL="${BASE_URL:-https://todr.me/as-lan/fibonacci}"
 
 if [ -d "$NAME" ]; then
@@ -38,8 +38,6 @@ FILES=(
   assembly/index.test.ts
   assembly/test-run.ts
   assembly/tsconfig.json
-  ecalli/index.js
-  ecalli/package.json
   bin/test.js
   package.json
 )
@@ -50,9 +48,12 @@ for file in "${FILES[@]}"; do
   curl -sfL "$BASE_URL/$file" -o "$file"
 done
 
-# --- Patch package.json: name, SDK path, PVM adapter path ---
+# --- Patch package.json: name, SDK path, ecalli mocks path, PVM adapter path ---
+# Order matters: rewrite the longer `sdk-ecalli-mocks` path before the
+# shorter `sdk` path so the latter doesn't also match inside the former.
 sed -i.bak \
   -e "s|@fluffylabs/as-lan-fibonacci-example|$NAME|" \
+  -e 's|file:../../sdk-ecalli-mocks|file:./sdk/sdk-ecalli-mocks|' \
   -e 's|file:../../sdk|file:./sdk|' \
   -e 's|../../pvm-adapter.wat|./sdk/pvm-adapter.wat|' \
   package.json

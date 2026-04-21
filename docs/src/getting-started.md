@@ -14,7 +14,7 @@ This will:
 
 1. Create a `my-service/` directory with a git repo
 2. Add the as-lan SDK as a git submodule
-3. Download template files from the [fibonacci example](https://github.com/fluffylabs/as-lan/tree/main/examples/fibonacci) and patch paths
+3. Download template files from the [fibonacci example](https://github.com/tomusdrw/as-lan/tree/main/examples/fibonacci) and patch paths
 4. Run `npm install`
 
 ## What You Get
@@ -44,37 +44,32 @@ The ecalli host call stubs used for testing live in `sdk/sdk-ecalli-mocks/` and 
 
 ## Implement Your Service
 
-Edit `assembly/fibonacci.ts` (rename it to match your service). You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service — see the [authorizer example](https://github.com/fluffylabs/as-lan/tree/main/examples/authorizer) and the [SDK API entry point pattern](./sdk-api/authorize.md)).
+Edit `assembly/fibonacci.ts` (rename it to match your service). You need to implement `refine` and `accumulate` functions (or `is_authorized` for an authorizer service — see the [authorizer example](https://github.com/tomusdrw/as-lan/tree/main/examples/authorizer) and the [SDK API entry point pattern](./sdk-api/authorize.md)).
 
-Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a packed `u64` result. The SDK provides helpers for parsing arguments, and results are returned by calling `.toPtrAndLen()` on a `BytesBlob`:
+Each function takes `(ptr: u32, len: u32)` raw memory arguments and returns a packed `u64` result. Create a context (`AccumulateContext` / `RefineContext`) inside the entry point to parse args and build the response. `ctx.parseArgs()` panics if the host hands back malformed data — that is a host-contract violation, not a recoverable error, so the entry point does not need to handle it.
 
 ```typescript
-import { Logger, Optional, RefineArgs, AccumulateArgs, encodeOptionalCodeHash } from "@fluffylabs/as-lan";
-import { CodeHash } from "@fluffylabs/as-lan";
+import { AccumulateContext, RefineContext, LogMsg } from "@fluffylabs/as-lan";
 
-const logger = Logger.create("my-service");
+// LogMsg is a lightweight buffer-based logger that avoids pulling in
+// AssemblyScript's String machinery. You can also use `Logger.create("my-service")`
+// with template literals for convenience (at a ~24% WASM size cost).
+const logger: LogMsg = LogMsg.create("my-service");
 
 export function accumulate(ptr: u32, len: u32): u64 {
-  const result = AccumulateArgs.parse(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse accumulate args: ${result.error}`);
-    return 0;
-  }
-  const args = result.okay!;
-  logger.info(`accumulate called for service ${args.serviceId} at slot ${args.slot}`);
-  // TODO: implement your accumulate logic here
-  return encodeOptionalCodeHash(Optional.none<CodeHash>()).toPtrAndLen();
+  const ctx = AccumulateContext.create();
+  const args = ctx.parseArgs(ptr, len);
+  logger.str("accumulate, service ").u32(args.serviceId).str(" @").u32(args.slot).info();
+  // TODO: implement your accumulate logic here.
+  // Return an Optional<CodeHash> (null = no upgrade) via ctx.yieldHash.
+  return ctx.yieldHash(null);
 }
 
 export function refine(ptr: u32, len: u32): u64 {
-  const result = RefineArgs.parse(ptr, len);
-  if (result.isError) {
-    logger.warn(`Failed to parse refine args: ${result.error}`);
-    return 0;
-  }
-  const args = result.okay!;
-  logger.info(`refine called for service ${args.serviceId}`);
-  // TODO: implement your refine logic here — for now, echo payload back
+  const ctx = RefineContext.create();
+  const args = ctx.parseArgs(ptr, len);
+  logger.str("refine, service ").u32(args.serviceId).info();
+  // TODO: implement your refine logic here — for now, echo payload back.
   return args.payload.toPtrAndLen();
 }
 ```

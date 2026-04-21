@@ -15,16 +15,25 @@ wrappers available during that entry point.
 Each example in `examples/` is a self-contained service that exercises a
 particular slice of the SDK. Browse the source for end-to-end patterns.
 
-- **[fibonacci](https://github.com/fluffylabs/as-lan/tree/main/examples/fibonacci)**
+- **[fibonacci](https://github.com/tomusdrw/as-lan/tree/main/examples/fibonacci)**
   — minimal refine + accumulate, starter template.
-- **[authorizer](https://github.com/fluffylabs/as-lan/tree/main/examples/authorizer)**
+- **[authorizer](https://github.com/tomusdrw/as-lan/tree/main/examples/authorizer)**
   — standalone `is_authorized` service with gating logic.
-- **[ecalli-test](https://github.com/fluffylabs/as-lan/tree/main/examples/ecalli-test)**
+- **[ecalli-test](https://github.com/tomusdrw/as-lan/tree/main/examples/ecalli-test)**
   — dispatches every ecalli host call for smoke-testing the SDK surface.
-- **[pastebin](https://github.com/fluffylabs/as-lan/tree/main/examples/pastebin)**
+- **[all-ecalli](https://github.com/tomusdrw/as-lan/tree/main/examples/all-ecalli)**
+  — self-authorizing service that invokes every ecalli across refine,
+  accumulate, and authorize entry points.
+- **[pastebin](https://github.com/tomusdrw/as-lan/tree/main/examples/pastebin)**
   — open-submission paste service. Refine hashes the payload with
   Blake2b-256; accumulate solicits the preimage and records metadata in a
   storage-backed ring buffer plus a slot-bucketed TTL index. Preimage bytes
   arrive via the `xtpreimages` block extrinsic — accumulate never calls
   `provide`. Good reference for the solicit-only preimage lifecycle and
   slot-bucket cleanup patterns.
+- **[library](https://github.com/tomusdrw/as-lan/tree/main/examples/library)**
+  — hosts reusable PVM verification blobs as SPI-encoded preimages keyed
+  by name, resolved and executed via `ctx.nestedPvmFromSpiChecked(...)`.
+- **[nested-pvm-spi](https://github.com/tomusdrw/as-lan/tree/main/examples/nested-pvm-spi)**
+  — minimal smoke test for the inner PVM: loads an embedded SPI blob and
+  runs it through `ctx.nestedPvmFromSpiChecked`.

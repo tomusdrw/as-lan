@@ -18,7 +18,9 @@ export function accumulate(ptr: u32, len: u32): u64 {
 
   const gasLeft = ctx.remainingGas();    // i64 — ecalli 0
   const gas = ctx.checkpoint();          // i64 — commit state, return remaining gas
-  ctx.yieldResult(Bytes32.zero());       // provide accumulation result hash
+
+  // ecalli 25 — publish the accumulation result hash (side effect, no return).
+  ctx.yieldResult(Bytes32.zero());
 
   // Create helpers via the context
   const fetcher = ctx.fetcher();         // AccumulateFetcher
@@ -35,6 +37,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
   const memo = Memo.create(BytesBlob.encodeAscii("hello"));
   const r2 = ctx.scheduleTransfer(42, 1000, 100, memo);
 
+  // Encode the entry-point return value: Optional<CodeHash> (null = no upgrade).
   return ctx.yieldHash(null);
 }
 ```

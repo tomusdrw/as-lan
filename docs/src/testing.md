@@ -357,8 +357,8 @@ TestEcalli.reset();
 | `provide()` | Returns `OK` (0) |
 
 
-See the [fibonacci](https://github.com/fluffylabs/as-lan/tree/main/examples/fibonacci)
-and [ecalli-test](https://github.com/fluffylabs/as-lan/tree/main/examples/ecalli-test)
+See the [fibonacci](https://github.com/tomusdrw/as-lan/tree/main/examples/fibonacci)
+and [ecalli-test](https://github.com/tomusdrw/as-lan/tree/main/examples/ecalli-test)
 examples for usage examples.
 
 ## Authoring new test helpers
