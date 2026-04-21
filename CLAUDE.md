@@ -30,6 +30,7 @@ sdk/                        AssemblyScript SDK library
     refine/                 Refine-context fetcher and machine wrapper
       fetcher.ts            RefineFetcher (entropy, authorizerTrace, extrinsics, imports + inherits kinds 7-13)
       machine.ts            Machine (inner PVM lifecycle: create, peek, poke, pages, invoke, expunge)
+      nested-pvm.ts         NestedPvm (SPI-backed inner PVM: decodes SPI blob, wires memory/registers, caller-driven invoke loop)
     authorize/              Authorize-context fetcher
       fetcher.ts            AuthorizeFetcher (inherits constants + kinds 7-13 from WorkPackageFetcher)
   test/                     Test framework (Assert, TestSuite, strBlob, unpackResult)
@@ -151,7 +152,7 @@ context-appropriate helpers. **Prefer `ctx.*()` over standalone `*.create()`.**
 
 Contexts:
 - **AccumulateContext** — `parseArgs()`, `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, `scheduleTransfer()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `admin()`, `childServices()`, `selfService()`, accumulate codecs
-- **RefineContext** — `parseArgs()`, `respond()`, `exportSegment()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `machine(code, entrypoint)`, refine codecs
+- **RefineContext** — `parseArgs()`, `respond()`, `exportSegment()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `machine(code, entrypoint)`, `nestedPvmFromSpi(blob, args, gas)`, refine codecs
 - **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16), `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`. No codec state.
 
 ### Service ABI Types (sdk/jam/service.ts)
