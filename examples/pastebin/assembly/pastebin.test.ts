@@ -28,6 +28,7 @@ import {
   unpackResult,
 } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
+import { REFINE_OUTPUT_LEN } from "./constants";
 import { refine as dispatch } from "./index";
 import { refine } from "./refine";
 import { cleanupCursorKey, expiryKey, PasteEntry, pasteKey, readU32LE, writeU32LE } from "./storage";
@@ -103,7 +104,7 @@ function callAccumulateEmpty(slot: u32): void {
 }
 
 function buildOkBlob(hash: Uint8Array, length: u32): Uint8Array {
-  const out = new Uint8Array(36);
+  const out = new Uint8Array(REFINE_OUTPUT_LEN);
   out.set(hash, 0);
   writeU32LE(out, 32, length);
   return out;
@@ -119,8 +120,8 @@ export const TESTS: Test[] = [
     const resp = callRefine(payload);
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "result");
-    assert.isEqual(resp.data.length, 36, "data.length");
-    if (resp.data.length !== 36) return assert;
+    assert.isEqual(resp.data.length, REFINE_OUTPUT_LEN, "data.length");
+    if (resp.data.length !== REFINE_OUTPUT_LEN) return assert;
     const op = decodeOperand(resp.data);
     assert.isEqualBytes(BytesBlob.wrap(op.hash), BytesBlob.wrap(blake2b256(payload)), "hash");
     assert.isEqual(op.length, <u32>4, "length_LE");
@@ -130,8 +131,8 @@ export const TESTS: Test[] = [
     const resp = callRefine(new Uint8Array(0));
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "result");
-    assert.isEqual(resp.data.length, 36, "data.length");
-    if (resp.data.length !== 36) return assert;
+    assert.isEqual(resp.data.length, REFINE_OUTPUT_LEN, "data.length");
+    if (resp.data.length !== REFINE_OUTPUT_LEN) return assert;
     const op = decodeOperand(resp.data);
     assert.isEqualBytes(BytesBlob.wrap(op.hash), BytesBlob.wrap(blake2b256(new Uint8Array(0))), "hash");
     assert.isEqual(op.length, <u32>0, "length_LE");

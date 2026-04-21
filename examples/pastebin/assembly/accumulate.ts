@@ -7,7 +7,7 @@ import {
   panic,
   Response,
 } from "@fluffylabs/as-lan";
-import { CLEANUP_SLOTS_PER_CALL, RECENT_N, TTL_SLOTS } from "./constants";
+import { CLEANUP_SLOTS_PER_CALL, RECENT_ENTRY_LEN, RECENT_N, REFINE_OUTPUT_LEN, TTL_SLOTS } from "./constants";
 import {
   cleanupCursorKey,
   expiryKey,
@@ -66,7 +66,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
     if (!operand.result.isOk) continue;
 
     const okBlob = operand.result.okBlob;
-    if (okBlob.length < 36) continue;
+    if (okBlob.length < REFINE_OUTPUT_LEN) continue;
 
     // Extract (hash, length_LE) from refine output.
     const hashBytes = new Uint8Array(32);
@@ -86,7 +86,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
         // then bump the head counter.
         const headBlob = storage.read(recentHeadKey().raw);
         const head: u32 = headBlob.isSome ? readU32LE(headBlob.val!, 0) : 0;
-        const entry = new Uint8Array(36);
+        const entry = new Uint8Array(RECENT_ENTRY_LEN);
         entry.set(hash.raw, 0);
         writeU32LE(entry, 32, currentSlot);
         storage.write(recentKey(head % RECENT_N).raw, BytesBlob.wrap(entry));
