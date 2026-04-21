@@ -2,6 +2,7 @@
 export * from "./core/byte-buf";
 export * from "./core/bytes";
 export * from "./core/codec";
+export * from "./core/crypto";
 export * from "./core/mem";
 export * from "./core/pack";
 export * from "./core/panic";

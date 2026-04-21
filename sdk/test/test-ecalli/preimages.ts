@@ -30,7 +30,7 @@ declare function _getProvideCount(): i64;
 @external("ecalli", "resetPreimageCounters")
 declare function _resetPreimageCounters(): void;
 
-/** Configure accumulate preimage ecalli stubs. */
+/** Configure accumulate preimage ecalli stubs (query, solicit, forget, provide). */
 export class TestPreimages {
   /**
    * Configure query() return values.

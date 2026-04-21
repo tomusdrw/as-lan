@@ -5,7 +5,10 @@ export {
   fetch, setFetchData, setFetchDataForKind, setAccumulateItems, setAccumulateItem,
   encodeOperand, encodeTransfer, resetFetch,
 } from "./fetch.js";
-export { lookup, setLookupPreimage, setLookupNone, resetLookup } from "./lookup.js";
+export {
+  lookup, setLookupPreimage, setLookupNone, resetLookup,
+  setPreimageAttached, clearPreimageAttachments,
+} from "./lookup.js";
 export { read, write, setStorageEntry, resetStorage } from "./storage.js";
 export { info, setInfoData, setDefaultInfoData, resetInfo } from "./info.js";
 export { log } from "./log.js";

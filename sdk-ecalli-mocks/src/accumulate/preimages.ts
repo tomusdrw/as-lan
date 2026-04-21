@@ -3,6 +3,7 @@
 // query (22), solicit (23), forget (24), yield_result (25), provide (26)
 // — manage preimage availability and solicitation.
 
+import { clearPreimageAttachments } from "../general/lookup.js";
 import { writeI64 } from "../memory.js";
 
 // ─── Configurable state ──────────────────────────────────────────────────
@@ -65,6 +66,10 @@ export function resetPreimages(): void {
   solicitCount = 0;
   forgetCount = 0;
   provideCount = 0;
+  // Attached preimages are a lookup-mock concern, but we also clear them
+  // here so that resetAccumulate() (which calls resetPreimages without
+  // resetLookup) leaves no cross-test leakage.
+  clearPreimageAttachments();
 }
 
 // ─── Ecalli stubs ────────────────────────────────────────────────────────

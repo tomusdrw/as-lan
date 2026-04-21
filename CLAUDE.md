@@ -6,7 +6,8 @@ AssemblyScript SDK for writing JAM (Join-Accumulate Machine) services.
 
 ```text
 sdk/                        AssemblyScript SDK library
-  core/                     Core types: bytes, byte-buf, codec (Encoder/Decoder), mem, pack, panic, result
+  core/                     Core types: bytes, byte-buf, codec (Encoder/Decoder), crypto, mem, pack, panic, result
+    crypto/blake2b.ts       Pure-AS Blake2b-256 (RFC 7693, unkeyed, 32-byte output)
   ecalli/                   Host call declarations (@external decorators)
     general/                Ecalli 0-5, 100 (gas, fetch, lookup, read, write, info, log)
     refine/                 Ecalli 6-13 (historical_lookup, export, machine, peek, poke, pages, invoke, expunge)
@@ -79,6 +80,15 @@ examples/
       test-helpers.ts       Shared test utilities (callRefine, callAccumulate, builders)
       refine.test.ts
       accumulate.test.ts
+  pastebin/                 Open-submission paste service (solicit-only preimage lifecycle, slot-bucketed TTL cleanup)
+    assembly/
+      refine.ts             Refine entry point — Blake2b-256 (from sdk/core/crypto) the payload, emit `hash ‖ length_LE` (36 B okBlob)
+      accumulate.ts         Accumulate — idempotent insert (solicit + metadata + ring) + slot-bucket cursor cleanup
+      authorize.ts          is_authorized — accepts any payload (pastebin is open to all)
+      index.ts              Self-authorizing dispatch
+      constants.ts          TTL_SLOTS=1000, RECENT_N=32, CLEANUP_SLOTS_PER_CALL=8 + storage key prefixes
+      storage.ts            Key builders (pasteKey/recentKey/expiryKey), PasteEntry codec, writeU32LE/readU32LE
+      pastebin.test.ts      Integration tests (refine output, accumulate insert/idempotency/cleanup, solicit→attach→lookup)
 docs/                       Documentation (mdbook)
 ```
 
@@ -92,7 +102,7 @@ docs/                       Documentation (mdbook)
 - **sdk-ecalli-mocks**: JS stubs wired as WASM imports during test. Export names must match `@external` names exactly.
 - **EcalliResult**: Sentinel constants (NONE=-1, WHO=-4, FULL=-5, etc.) shared across all host calls.
 - **panic(msg)** (`sdk/core/panic.ts`): Use for host-contract violations where recovery is impossible (e.g. host returned malformed data, invalid entry point arguments). Do NOT use for expected failures — use `Result` or `Optional` instead. The SDK does not allow recovering from invalid host data — these are always panics, never `Result`.
-- **Self-authorizing services**: A single service can handle both `is_authorized` and `refine` by detecting the invocation context from input length. `is_authorized` receives exactly 2 bytes (u16 core index), `refine` receives 10+ bytes (RefineArgs). The `index.ts` dispatch pattern: `if (len == 2) return is_authorized(ptr, len); return refine_(ptr, len);`. See `examples/all-ecalli/` and `examples/ecalli-test/`.
+- **Self-authorizing services**: A single service can handle both `is_authorized` and `refine` by detecting the invocation context from input length. `is_authorized` receives exactly 2 bytes (u16 core index), `refine` receives 10+ bytes (RefineArgs). Use the SDK helper `isRefineArgs(len)` (from `sdk/jam/service.ts`) for the `index.ts` dispatch: `if (isRefineArgs(len)) return refine_(ptr, len); return is_authorized(ptr, len);`. See `examples/all-ecalli/`, `examples/ecalli-test/`, and `examples/pastebin/`.
 
 ### Codec Pattern (sdk/core/codec/ + sdk/jam/)
 

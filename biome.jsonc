@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,
@@ -53,7 +53,8 @@
       "!**/node_modules",
       "!**/sdk/ecalli",
       "!**/sdk/test/test-ecalli",
-      "!**/sdk/core/pack.ts"
+      "!**/sdk/core/pack.ts",
+      "!**/sdk/core/crypto/blake2b.ts"
     ]
   }
 }

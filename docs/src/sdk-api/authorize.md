@@ -43,3 +43,28 @@ const config = fetcher.authConfig();
 const token = fetcher.authToken();
 const wp = fetcher.workPackage();
 ```
+
+## Self-authorizing dispatch
+
+A single service can handle both `is_authorized` and `refine` by detecting the
+invocation context from input length: `is_authorized` receives exactly 2 bytes
+(the u16 core index per GP Appendix B), `refine` receives 10+ bytes (a full
+RefineArgs encoding). The SDK exposes `isRefineArgs(len)` to centralize that
+discriminant — import it from `@fluffylabs/as-lan` and wire up a tiny
+`index.ts` dispatch:
+
+```typescript
+export { accumulate } from "./accumulate";
+
+import { isRefineArgs } from "@fluffylabs/as-lan";
+import { is_authorized } from "./authorize";
+import { refine as refine_ } from "./refine";
+
+export function refine(ptr: u32, len: u32): u64 {
+  if (isRefineArgs(len)) return refine_(ptr, len);
+  return is_authorized(ptr, len);
+}
+```
+
+See `examples/all-ecalli/`, `examples/ecalli-test/`, and `examples/pastebin/`
+for the full pattern in context.
