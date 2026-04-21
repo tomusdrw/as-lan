@@ -2,6 +2,7 @@ import { BytesBlob } from "../../core/bytes";
 import { Encoder } from "../../core/codec/encode";
 import { TestEcalli, TestMachine } from "../../test/test-ecalli";
 import { Assert, Test, test } from "../../test/utils";
+import { ExitReason } from "./machine";
 import { NestedPvm } from "./nested-pvm";
 
 /** Build an SPI blob with the given regions. */
@@ -111,6 +112,31 @@ export const TESTS: Test[] = [
     a.isEqual(TestMachine.pokeLogField(0, 2), 4, "poke 0 length");
     a.isEqual(TestMachine.pokeLogField(1, 1), 0xFEFF_0000, "poke 1 dest = args start");
     a.isEqual(TestMachine.pokeLogField(1, 2), 5, "poke 1 length");
+    return a;
+  }),
+
+  test("NestedPvm.invoke propagates reason + exit arg, register R/W roundtrip", () => {
+    TestEcalli.reset();
+    const a = Assert.create();
+    const blob = buildSpi(new Uint8Array(0), new Uint8Array(0), 0, 0, new Uint8Array(4));
+    const vm = NestedPvm.fromSpi(blob, BytesBlob.empty(), 500);
+
+    // First invoke: mock returns Host with r8 = 21.
+    TestMachine.setInvokeResult(i64(ExitReason.Host), 21);
+    const r1 = vm.invoke();
+    a.isEqual(r1, ExitReason.Host, "reason = Host");
+    a.isEqual(vm.getExitArg(), 21, "exit arg captured");
+
+    // Write a host-call return value into r7, then resume.
+    vm.setRegister(7, 0x1234_5678);
+    a.isEqual(vm.getRegister(7), 0x1234_5678, "r7 set");
+
+    // Second invoke: mock returns Halt.
+    TestMachine.setInvokeResult(i64(ExitReason.Halt), 0);
+    const r2 = vm.invoke();
+    a.isEqual(r2, ExitReason.Halt, "reason = Halt");
+
+    a.isEqual(vm.expunge(), 0, "expunge OK");
     return a;
   }),
 ];
