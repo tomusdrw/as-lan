@@ -35,11 +35,11 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/wasm-pvm
-        key: wasm-pvm-cli-0.7.1
+        key: wasm-pvm-cli-0.8.0
 
     - name: Install wasm-pvm-cli
       if: steps.cache-wasm-pvm.outputs.cache-hit != 'true'
-      run: cargo install wasm-pvm-cli@0.7.1 --locked
+      run: cargo install wasm-pvm-cli@0.8.0 --locked
 
     # --- Build PR branch ---
     - name: Install dependencies (PR)
