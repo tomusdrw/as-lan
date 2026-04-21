@@ -18,6 +18,7 @@ export class NestedPvm {
   static fromSpi(blob: BytesBlob, args: BytesBlob, gas: u64): NestedPvm {
     if (u32(args.length) > SPI_MAX_ARGS_LEN) panic("SPI: args exceed MAX_ARGS_LEN");
 
+    // `Decoder.fromBlob` takes a raw `Uint8Array`; `.raw` is the backing buffer.
     const d = Decoder.fromBlob(blob.raw);
     const roLength = d.u24();
     const rwLength = d.u24();
@@ -38,7 +39,7 @@ export class NestedPvm {
     io.setRegister(0, R0_INITIAL);
     io.setRegister(1, u64(SPI_STACK_SEGMENT_END));
     io.setRegister(7, u64(SPI_ARGS_SEGMENT_START));
-    io.setRegister(8, u64(args.length));
+    io.setRegister(8, u64(u32(args.length)));
 
     // Memory setup (pages/poke) is filled in by Task 4.
     // For now we intentionally skip those calls so this task can land green
