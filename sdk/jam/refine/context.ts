@@ -18,6 +18,7 @@ import { RefineArgs, RefineArgsCodec, Response, ResponseCodec } from "../service
 import { CurrentServiceData } from "../service-data";
 import { RefineFetcher } from "./fetcher";
 import { InvalidEntryPoint, Machine } from "./machine";
+import { NestedPvm } from "./nested-pvm";
 import { RefinePreimages } from "./preimages";
 
 export class RefineContext {
@@ -58,6 +59,15 @@ export class RefineContext {
   /** Create an inner PVM machine (ecalli 8). Delegates to Machine.create(). */
   machine(code: BytesBlob, entrypoint: u32): ResultN<Machine, InvalidEntryPoint> {
     return Machine.create(code, entrypoint);
+  }
+
+  /**
+   * Decode an SPI blob and set up an inner PVM ready to invoke.
+   *
+   * See `NestedPvm` for the caller-driven invoke / host-call loop.
+   */
+  nestedPvmFromSpi(blob: BytesBlob, args: BytesBlob, gas: u64): NestedPvm {
+    return NestedPvm.fromSpi(blob, args, gas);
   }
 
   /** Parse raw refine arguments from (ptr, len). Panics on invalid data. */
