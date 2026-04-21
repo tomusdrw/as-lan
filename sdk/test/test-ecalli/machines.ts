@@ -103,9 +103,13 @@ export class TestMachine {
   }
 
   /** Copy the i-th poke()'s data into the caller-owned buffer.
-   *  `buffer.length` must be ≥ `pokeLogField(index, 2)`.
+   *  The buffer must be sized to fit `pokeLogField(index, 2)` bytes;
+   *  the call aborts the test if it isn't, rather than writing past
+   *  the AS-side allocation.
    */
   static pokeLogData(index: u32, buffer: Uint8Array): u32 {
+    const required = TestMachine.pokeLogField(index, 2);
+    assert(u32(buffer.length) >= required, "TestMachine.pokeLogData: buffer too small");
     const written = _getPokeLogData(index, u32(buffer.dataStart));
     return u32(written);
   }

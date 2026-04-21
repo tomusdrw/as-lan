@@ -99,20 +99,13 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const ctx = RefineContext.create();
-    // Build a minimal SPI blob inline.
+    // Minimal SPI blob: empty regions, 4-byte zero code.
     const e = Encoder.create(32);
-    // header: roLen=0, rwLen=0, heapPages=0, stackSize=0, then codeLen=4, code=[0,0,0,0]
-    e.u8(0);
-    e.u8(0);
-    e.u8(0); // roLen u24
-    e.u8(0);
-    e.u8(0);
-    e.u8(0); // rwLen u24
+    e.u24(0); // roLength
+    e.u24(0); // rwLength
     e.u16(0); // heapPages
-    e.u8(0);
-    e.u8(0);
-    e.u8(0); // stackSize u24
-    e.u32(4);
+    e.u24(0); // stackSize
+    e.u32(4); // codeLength
     e.u8(0);
     e.u8(0);
     e.u8(0);

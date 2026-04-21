@@ -176,5 +176,8 @@ function allocatePages(machine: Machine, addr: u32, byteLen: u32, access: PageAc
 function setupRegion(machine: Machine, addr: u32, data: BytesBlob, access: PageAccess): void {
   if (data.length === 0) return;
   allocatePages(machine, addr, u32(data.length), access);
-  machine.poke(addr, data);
+  // We just allocated pages covering [addr, addr + data.length); poke into
+  // those pages cannot OOB unless the host is broken or our arithmetic is.
+  // Panic to surface the bug rather than silently corrupt inner-VM state.
+  if (machine.poke(addr, data).isError) panic("SPI: poke OOB after allocatePages");
 }

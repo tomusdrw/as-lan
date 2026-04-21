@@ -19,26 +19,15 @@ function buildDemoInput(name: string, gas: u64, payload: BytesBlob): Uint8Array 
  *
  * Layout: 3+3+2+3 (header) + 0+0 (regions) + 4 (u32 codeLen) + codeLen bytes.
  */
-function buildMinimalSpi(codeLen: u32): Uint8Array {
+function buildMinimalSpi(codeLen: u32): BytesBlob {
   const enc = Encoder.create();
-  // u24 roLength = 0
-  enc.u8(0);
-  enc.u8(0);
-  enc.u8(0);
-  // u24 rwLength = 0
-  enc.u8(0);
-  enc.u8(0);
-  enc.u8(0);
-  // u16 heapPages = 0
-  enc.u16(0);
-  // u24 stackSize = 0
-  enc.u8(0);
-  enc.u8(0);
-  enc.u8(0);
-  // u32 codeLength
+  enc.u24(0); // roLength
+  enc.u24(0); // rwLength
+  enc.u16(0); // heapPages
+  enc.u24(0); // stackSize
   enc.u32(codeLen);
   for (let i: u32 = 0; i < codeLen; i++) enc.u8(0);
-  return enc.finishRaw();
+  return enc.finish();
 }
 
 function seedLibraryMapping(name: string, hashByte0: u8, length: u32): void {
@@ -286,7 +275,7 @@ export const TESTS: Test[] = [
   test("refine demo: happy path returns peeked output", () => {
     const assert = Assert.create();
     seedLibraryMapping("echo", 0x01, 16);
-    TestHistoricalLookup.setPreimage(buildMinimalSpi(4));
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0); // create OK, id = 0
     TestMachine.setPokeResult(0);
     TestMachine.setPagesResult(0);
@@ -307,7 +296,7 @@ export const TESTS: Test[] = [
   test("refine demo: invalid entrypoint returns -102", () => {
     const assert = Assert.create();
     seedLibraryMapping("bad", 0xaa, 16);
-    TestHistoricalLookup.setPreimage(buildMinimalSpi(4));
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(-9); // HUH sentinel (InvalidEntryPoint)
 
     const resp = callRefine(buildDemoInput("bad", 1000, BytesBlob.empty()));
@@ -329,7 +318,7 @@ export const TESTS: Test[] = [
   test("refine demo: invoke Panic returns -103 with reason+r8", () => {
     const assert = Assert.create();
     seedLibraryMapping("panic", 0xbb, 16);
-    TestHistoricalLookup.setPreimage(buildMinimalSpi(4));
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0);
     TestMachine.setPagesResult(0);
     TestMachine.setPokeResult(0);
@@ -348,7 +337,7 @@ export const TESTS: Test[] = [
   test("refine demo: oversized output length returns -104 without allocating", () => {
     const assert = Assert.create();
     seedLibraryMapping("huge", 0xdd, 16);
-    TestHistoricalLookup.setPreimage(buildMinimalSpi(4));
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0);
     TestMachine.setPagesResult(0);
     TestMachine.setPokeResult(0);
@@ -381,7 +370,7 @@ export const TESTS: Test[] = [
   test("refine demo: peek OOB returns -104", () => {
     const assert = Assert.create();
     seedLibraryMapping("oob", 0xcc, 16);
-    TestHistoricalLookup.setPreimage(buildMinimalSpi(4));
+    TestHistoricalLookup.setPreimage(buildMinimalSpi(4).raw);
     TestMachine.setMachineResult(0);
     TestMachine.setPagesResult(0);
     TestMachine.setPokeResult(0);

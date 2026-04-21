@@ -38,8 +38,12 @@ export function refine(ptr: u32, len: u32): u64 {
 Returns `ResultN<Machine, InvalidEntryPoint>`.
 
 **`ctx.nestedPvmFromSpi(blob, args, gas)`** — decode an SPI blob and set up an
-inner PVM ready to invoke. Returns a `NestedPvm`. See the `NestedPvm` section
-below.
+inner PVM ready to invoke. Returns a `NestedPvm`. Panics on malformed blob.
+See the `NestedPvm` section below.
+
+**`ctx.nestedPvmFromSpiChecked(blob, args, gas)`** — same setup, but returns
+`ResultN<NestedPvm, SpiError>` instead of panicking. Prefer for preimages or
+other untrusted input.
 
 **`ctx.exportSegment(segment)`** — export a data segment (ecalli 7). Returns
 the segment index on success, or `ExportSegmentError.Full` when the limit is reached.

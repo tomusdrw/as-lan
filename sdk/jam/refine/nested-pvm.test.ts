@@ -16,22 +16,16 @@ function buildSpi(
 ): BytesBlob {
   const e = Encoder.create(64);
   // Header: u24 roLength, u24 rwLength, u16 heapPages, u24 stackSize.
-  writeU24(e, u32(roBytes.length));
-  writeU24(e, u32(rwBytes.length));
+  e.u24(u32(roBytes.length));
+  e.u24(u32(rwBytes.length));
   e.u16(heapPages);
-  writeU24(e, stackSize);
+  e.u24(stackSize);
   // Regions.
   for (let i = 0; i < roBytes.length; i++) e.u8(roBytes[i]);
   for (let i = 0; i < rwBytes.length; i++) e.u8(rwBytes[i]);
   e.u32(u32(codeBytes.length));
   for (let i = 0; i < codeBytes.length; i++) e.u8(codeBytes[i]);
   return e.finish();
-}
-
-function writeU24(e: Encoder, v: u32): void {
-  e.u8(u8(v & 0xff));
-  e.u8(u8((v >> 8) & 0xff));
-  e.u8(u8((v >> 16) & 0xff));
 }
 
 export const TESTS: Test[] = [

@@ -159,7 +159,7 @@ context-appropriate helpers. **Prefer `ctx.*()` over standalone `*.create()`.**
 
 Contexts:
 - **AccumulateContext** — `parseArgs()`, `respond()`, `yieldHash()`, `checkpoint()`, `yieldResult()`, `scheduleTransfer()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `admin()`, `childServices()`, `selfService()`, accumulate codecs
-- **RefineContext** — `parseArgs()`, `respond()`, `exportSegment()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `machine(code, entrypoint)`, `nestedPvmFromSpi(blob, args, gas)`, refine codecs
+- **RefineContext** — `parseArgs()`, `respond()`, `exportSegment()`, `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`, `machine(code, entrypoint)`, `nestedPvmFromSpi(blob, args, gas)`, `nestedPvmFromSpiChecked(blob, args, gas)`, refine codecs
 - **AuthorizeContext** — `parseCoreIndex(ptr, len)` returns `CoreIndex` (u16), `remainingGas()`, factories: `fetcher()`, `preimages()`, `serviceData()`. No codec state.
 
 ### Service ABI Types (sdk/jam/service.ts)

@@ -87,6 +87,14 @@ export class Encoder {
     this.offset += 2;
   }
 
+  /** Encode three bytes (little-endian). */
+  u24(value: u32): void {
+    if (!this.ensureCapacity(3)) return;
+    this.dataView.setUint16(this.offset, u16(value & 0xffff), true);
+    this.dataView.setUint8(this.offset + 2, u8((value >> 16) & 0xff));
+    this.offset += 3;
+  }
+
   /** Encode 4 bytes (little-endian). */
   u32(value: u32): void {
     if (!this.ensureCapacity(4)) return;
