@@ -12,6 +12,7 @@ import * as selfService from "../jam/accumulate/self-service.test";
 import * as transferTest from "../jam/accumulate/transfer.test";
 import * as context from "../jam/context.test";
 import * as machine from "../jam/machine.test";
+import * as nestedPvm from "../jam/refine/nested-pvm.test";
 import * as preimages from "../jam/preimages.test";
 import * as service from "../jam/service.test";
 import * as workPackage from "../jam/work-package.test";
@@ -32,6 +33,7 @@ export function runAllTests(): void {
     TestSuite.create(childServices.TESTS, "child-services.ts"),
     TestSuite.create(context.TESTS, "context.ts"),
     TestSuite.create(machine.TESTS, "machine.ts"),
+    TestSuite.create(nestedPvm.TESTS, "nested-pvm.ts"),
     TestSuite.create(preimages.TESTS, "preimages.ts"),
     TestSuite.create(selfService.TESTS, "self-service.ts"),
     TestSuite.create(service.TESTS, "service.ts"),
