@@ -6,7 +6,9 @@
   "ascMain": "index.ts",
   "scripts": {
     "asbuild:test": "asc test/test-run.ts --target test",
-    "test": "npm run asbuild:test && node ./bin/test.js"
+    "test": "npm run asbuild:test && node ./bin/test.js",
+    "prepack": "cp ../pvm-adapter.wat .",
+    "postpack": "rm -f pvm-adapter.wat"
   },
   "files": [
     "index.ts",
@@ -16,6 +18,7 @@
     "log-msg.ts",
     "logger.ts",
     "asconfig.json",
+    "pvm-adapter.wat",
     "test",
     "bin",
     "README.md"

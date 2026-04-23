@@ -3,3 +3,6 @@ build
 dist
 docs/book
 docs/superpowers
+# Copied into sdk/ by `npm pack`/`npm publish` via prepack hook; removed by postpack.
+# Ignored so an interrupted pack doesn't accidentally commit a stale copy.
+sdk/pvm-adapter.wat
