@@ -76,7 +76,7 @@ export class NestedPvm {
     if (machineResult.isError) {
       return ResultN.err<NestedPvm, SpiError>(SpiError.InvalidEntryPoint);
     }
-    const machine = machineResult.okay!;
+    const machine = machineResult.okay;
 
     const io = InvokeIo.create(gas);
     io.setRegister(0, R0_INITIAL);
