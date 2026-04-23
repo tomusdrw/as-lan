@@ -231,6 +231,14 @@ npm run build    # Build mocks + example (includes wasm-pvm compile)
 npm test         # Build mocks + run SDK tests + example tests
 ```
 
+## Releases
+
+`@fluffylabs/as-lan` (from `sdk/`) and `@fluffylabs/as-lan-ecalli-mocks` (from `sdk-ecalli-mocks/`) publish to npm with a shared version. The root `package.json` is `@fluffylabs/as-lan-workspace` (private) and carries the same version as a consistency sentinel.
+
+**Never hand-bump versions.** Use the `Release: Prepare` GitHub Actions workflow — it bumps all three `package.json` files, opens a release PR, and creates a draft GitHub release. Publishing that release triggers `Release: Publish`, which asserts version consistency and publishes both packages. See `README.md` → *Releases* for the full flow.
+
+`pvm-adapter.wat` lives at repo root for local dev; a `prepack`/`postpack` hook in `sdk/package.json` copies it into the tarball at publish time.
+
 ## Conventions
 
 - SDK files are AssemblyScript (`.ts` with AS-specific types like `u32`, `i64`, `usize`).
