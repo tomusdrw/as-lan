@@ -20,7 +20,7 @@
   "license": "MPL-2.0",
   "devDependencies": {
     "@biomejs/biome": "^2.4.12",
-    "assemblyscript": "^0.28.14"
+    "assemblyscript": "^0.28.15"
   },
   "type": "module"
 }
