@@ -1,9 +1,10 @@
 name: Build jammin-as-lan image
 
 on:
+  release:
+    types: [published]
   push:
     branches: [main]
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -17,23 +18,26 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (release tag)
+        if: github.event_name == 'release'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
-      - name: Read @fluffylabs/as-lan version
-        id: pkg
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Checkout (branch)
+        if: github.event_name != 'release'
+        uses: actions/checkout@v4
 
       - name: Compute image tags
         id: tags
         run: |
           set -euo pipefail
-          SHORT_SHA="${GITHUB_SHA::7}"
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-            if [[ "$TAG_VERSION" != "${{ steps.pkg.outputs.version }}" ]]; then
-              echo "::error::git tag ($TAG_VERSION) does not match package.json version (${{ steps.pkg.outputs.version }})"
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            TAG_NAME="${{ github.event.release.tag_name }}"
+            TAG_VERSION="${TAG_NAME#v}"
+            SDK_VERSION=$(node -p "require('./sdk/package.json').version")
+            if [[ "$TAG_VERSION" != "$SDK_VERSION" ]]; then
+              echo "::error::release tag ($TAG_NAME) does not match sdk/package.json version ($SDK_VERSION). Did you publish the draft release before merging the bump PR?"
               exit 1
             fi
             {
@@ -44,6 +48,7 @@ jobs:
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           else
+            SHORT_SHA="${GITHUB_SHA::7}"
             {
               echo "primary=${IMAGE}:main-${SHORT_SHA}"
               echo "tags<<EOF"
