@@ -1,0 +1,92 @@
+name: Build jammin-as-lan image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/fluffylabs/jammin-as-lan
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read @fluffylabs/as-lan version
+        id: pkg
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA::7}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+            if [[ "$TAG_VERSION" != "${{ steps.pkg.outputs.version }}" ]]; then
+              echo "::error::git tag ($TAG_VERSION) does not match package.json version (${{ steps.pkg.outputs.version }})"
+              exit 1
+            fi
+            {
+              echo "primary=${IMAGE}:${TAG_VERSION}"
+              echo "tags<<EOF"
+              echo "${IMAGE}:${TAG_VERSION}"
+              echo "${IMAGE}:latest"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "primary=${IMAGE}:main-${SHORT_SHA}"
+              echo "tags<<EOF"
+              echo "${IMAGE}:main-${SHORT_SHA}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image (load into local docker for smoke test)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/jammin-as-lan.Dockerfile
+          load: true
+          tags: ${{ steps.tags.outputs.primary }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test — wasm-pvm and node on PATH
+        run: |
+          set -eux
+          docker run --rm "${{ steps.tags.outputs.primary }}" wasm-pvm --version
+          docker run --rm "${{ steps.tags.outputs.primary }}" node --version
+
+      - name: Report uncompressed image size
+        run: |
+          docker image inspect "${{ steps.tags.outputs.primary }}" \
+            --format 'uncompressed size: {{.Size}} bytes'
+
+      - name: Push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/jammin-as-lan.Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
