@@ -64,7 +64,7 @@ export function refine(ptr: u32, len: u32): u64 {
     logger.warn(`refine: SPI setup failed error=${vmR.error}`);
     return ctx.respond(-1);
   }
-  const vm = vmR.okay!;
+  const vm = vmR.okay;
 
   // One invoke is enough for a smoke test — a real service would loop on
   // ExitReason.Host and dispatch host calls by index via vm.getExitArg().
