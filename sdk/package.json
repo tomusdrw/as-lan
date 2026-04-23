@@ -1,11 +1,42 @@
 {
   "name": "@fluffylabs/as-lan",
   "version": "0.0.1",
+  "description": "AssemblyScript SDK for building JAM (Join-Accumulate Machine) services",
   "type": "module",
   "ascMain": "index.ts",
   "scripts": {
     "asbuild:test": "asc test/test-run.ts --target test",
-    "test": "npm run asbuild:test && node ./bin/test.js"
+    "test": "npm run asbuild:test && node ./bin/test.js",
+    "prepack": "cp ../pvm-adapter.wat .",
+    "postpack": "rm -f pvm-adapter.wat"
+  },
+  "files": [
+    "index.ts",
+    "core",
+    "ecalli",
+    "jam",
+    "log-msg.ts",
+    "logger.ts",
+    "asconfig.json",
+    "pvm-adapter.wat",
+    "test",
+    "bin",
+    "README.md"
+  ],
+  "author": "Fluffy Labs",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomusdrw/as-lan.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://github.com/tomusdrw/as-lan#readme",
+  "bugs": {
+    "url": "https://github.com/tomusdrw/as-lan/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
     "assemblyscript": "^0.28.10",

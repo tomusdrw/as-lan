@@ -1,5 +1,5 @@
 {
-  "name": "@fluffylabs/sdk-ecalli-mocks",
+  "name": "@fluffylabs/as-lan-ecalli-mocks",
   "version": "0.0.1",
   "description": "Configurable ecalli host call stubs for testing JAM services",
   "type": "module",
@@ -9,6 +9,21 @@
     "build": "tsc"
   },
   "files": ["dist"],
+  "author": "Fluffy Labs",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomusdrw/as-lan.git",
+    "directory": "sdk-ecalli-mocks"
+  },
+  "homepage": "https://github.com/tomusdrw/as-lan#readme",
+  "bugs": {
+    "url": "https://github.com/tomusdrw/as-lan/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "devDependencies": {
     "typescript": "^6.0.0"
   }

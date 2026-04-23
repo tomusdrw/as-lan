@@ -46,6 +46,22 @@ npm run qa-fix
 
 The build produces both `.wasm` and `.pvm` (PolkaVM/JAM SPI binary) files in the `build/` directory of each service. The `.pvm` file is what gets deployed to JAM.
 
+## Releases
+
+Published packages on npm:
+
+- [`@fluffylabs/as-lan`](https://www.npmjs.com/package/@fluffylabs/as-lan) — the AssemblyScript SDK.
+- [`@fluffylabs/as-lan-ecalli-mocks`](https://www.npmjs.com/package/@fluffylabs/as-lan-ecalli-mocks) — JS ecalli host-call mocks for testing.
+
+Both ship from the same commit and share a version.
+
+### Releasing a new version (maintainers)
+
+1. In GitHub Actions, run **Release: Prepare** and enter the new version (e.g. `0.1.0`).
+2. Review and merge the `release/vX.Y.Z` PR it opens.
+3. Open the draft release `vX.Y.Z`, edit the auto-generated notes, and click **Publish release**.
+4. The **Release: Publish** workflow runs automatically, asserts versions match, builds, tests, and publishes both packages to npm with provenance.
+
 ## License
 
 MPL-2.0

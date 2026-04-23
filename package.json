@@ -1,7 +1,8 @@
 {
-  "name": "@fluffylabs/as-lan",
+  "name": "@fluffylabs/as-lan-workspace",
   "version": "0.0.1",
-  "description": "AssemblyScript SDK for JAM services",
+  "private": true,
+  "description": "Workspace for developing @fluffylabs/as-lan and @fluffylabs/as-lan-ecalli-mocks",
   "main": "index.ts",
   "scripts": {
     "format": "biome format --write",
