@@ -36,8 +36,10 @@ jobs:
             TAG_NAME="${{ github.event.release.tag_name }}"
             TAG_VERSION="${TAG_NAME#v}"
             SDK_VERSION=$(node -p "require('./sdk/package.json').version")
-            if [[ "$TAG_VERSION" != "$SDK_VERSION" ]]; then
-              echo "::error::release tag ($TAG_NAME) does not match sdk/package.json version ($SDK_VERSION). Did you publish the draft release before merging the bump PR?"
+            MOCKS_VERSION=$(node -p "require('./sdk-ecalli-mocks/package.json').version")
+            ROOT_VERSION=$(node -p "require('./package.json').version")
+            if [[ "$TAG_VERSION" != "$SDK_VERSION" || "$TAG_VERSION" != "$MOCKS_VERSION" || "$TAG_VERSION" != "$ROOT_VERSION" ]]; then
+              echo "::error::release tag ($TAG_NAME) does not match package.json versions (sdk=$SDK_VERSION mocks=$MOCKS_VERSION root=$ROOT_VERSION). Did you publish the draft release before merging the bump PR?"
               exit 1
             fi
             {
