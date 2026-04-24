@@ -5,7 +5,11 @@
 # minimal node:22-slim runtime carrying only the resulting binary.
 
 # ---- Stage 1: build wasm-pvm ---------------------------------------------
-FROM rust:1-slim AS builder
+# Pinned to bookworm so the resulting binary's glibc requirements match the
+# runtime stage (node:22-slim, also bookworm). Unpinned `rust:1-slim` tracks
+# the current stable, which may drift to a newer Debian with a higher glibc
+# and produce binaries that fail at runtime with `GLIBC_X.Y not found`.
+FROM rust:1-slim-bookworm AS builder
 
 # wasm-pvm-cli needs llvm-18 headers + libpolly at compile time.
 # llvm-18 is not in Debian bookworm main, but is in bookworm-backports.
