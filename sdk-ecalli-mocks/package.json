@@ -1,6 +1,6 @@
 {
   "name": "@fluffylabs/as-lan-ecalli-mocks",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Configurable ecalli host call stubs for testing JAM services",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,9 @@
   "scripts": {
     "build": "tsc"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "author": "Fluffy Labs",
   "license": "MPL-2.0",
   "repository": {

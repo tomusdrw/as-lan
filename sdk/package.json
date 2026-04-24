@@ -1,6 +1,6 @@
 {
   "name": "@fluffylabs/as-lan",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "AssemblyScript SDK for building JAM (Join-Accumulate Machine) services",
   "type": "module",
   "ascMain": "index.ts",
