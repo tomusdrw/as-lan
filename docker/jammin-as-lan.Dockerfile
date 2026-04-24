@@ -16,7 +16,9 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         build-essential \
-        pkg-config; \
+        pkg-config \
+        zlib1g-dev \
+        libzstd-dev; \
     apt-get install -y --no-install-recommends -t bookworm-backports \
         llvm-18-dev \
         libpolly-18-dev; \
