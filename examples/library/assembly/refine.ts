@@ -101,7 +101,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
     logger.warn(`refine demo: malformed SPI preimage error=${e}`);
     return ctx.respond(i64(LibraryError.MalformedPreimage));
   }
-  const vm = vmR.okay!;
+  const vm = vmR.okay;
 
   const reason = vm.invoke();
   if (reason !== ExitReason.Halt) {
