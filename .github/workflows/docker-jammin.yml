@@ -9,9 +9,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/jammin-as-lan
-
 jobs:
   build:
     # Builds the image and runs smoke tests. Runs on every trigger, including
@@ -36,11 +33,14 @@ jobs:
       - name: Compute image tags
         id: tags
         env:
+          REPO_OWNER: ${{ github.repository_owner }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
+          # ghcr refs must be lowercase; repo owner can be mixed-case (e.g. FluffyLabs).
+          IMAGE="ghcr.io/${REPO_OWNER,,}/jammin-as-lan"
           if [[ "${{ github.event_name }}" == "release" ]]; then
             TAG_VERSION="${RELEASE_TAG_NAME#v}"
             SDK_VERSION=$(node -p "require('./sdk/package.json').version")
