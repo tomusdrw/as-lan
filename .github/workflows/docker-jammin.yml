@@ -69,6 +69,18 @@ jobs:
               echo "tags<<EOF"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual dispatches can run from any branch/tag. Stamp the ref into
+            # the tag so ad-hoc builds don't masquerade as `main-*` outputs.
+            SHORT_SHA="${GITHUB_SHA::7}"
+            REF_SLUG="${GITHUB_REF_NAME//\//-}"
+            {
+              echo "image=${IMAGE}"
+              echo "primary=${IMAGE}:manual-${REF_SLUG}-${SHORT_SHA}"
+              echo "tags<<EOF"
+              echo "${IMAGE}:manual-${REF_SLUG}-${SHORT_SHA}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
           else
             SHORT_SHA="${GITHUB_SHA::7}"
             {
@@ -211,6 +223,7 @@ jobs:
           TAGS: ${{ needs.tags.outputs.tags }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
           TAG_ARGS=()
           while IFS= read -r tag; do
             [[ -z "$tag" ]] && continue
@@ -220,6 +233,13 @@ jobs:
           for digest in *; do
             SOURCES+=("${IMAGE}@sha256:${digest}")
           done
+          # Must match the build matrix size. Guards against silent partial
+          # manifests if a future refactor breaks upload/download naming.
+          EXPECTED_PLATFORMS=2
+          if [[ "${#SOURCES[@]}" -ne "$EXPECTED_PLATFORMS" ]]; then
+            echo "::error::expected ${EXPECTED_PLATFORMS} platform digests, found ${#SOURCES[@]}"
+            exit 1
+          fi
           docker buildx imagetools create "${TAG_ARGS[@]}" "${SOURCES[@]}"
 
       - name: Inspect pushed manifest
