@@ -20,16 +20,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.release.tag_name }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org
           cache: "npm"
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install LLVM 18
         run: sudo apt-get update -qq && sudo apt-get install -y -qq llvm-18-dev libpolly-18-dev
@@ -38,7 +41,7 @@ jobs:
 
       - name: Cache wasm-pvm binary
         id: cache-wasm-pvm
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-pvm
           key: wasm-pvm-cli-0.8.0
@@ -78,8 +81,6 @@ jobs:
         run: npm test
 
       - name: Publish @fluffylabs/as-lan-ecalli-mocks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           EXISTING=$(npm view "@fluffylabs/as-lan-ecalli-mocks@$VERSION" version 2>/dev/null || true)
           if [ -n "$EXISTING" ]; then
@@ -89,8 +90,6 @@ jobs:
           fi
 
       - name: Publish @fluffylabs/as-lan
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           EXISTING=$(npm view "@fluffylabs/as-lan@$VERSION" version 2>/dev/null || true)
           if [ -n "$EXISTING" ]; then
