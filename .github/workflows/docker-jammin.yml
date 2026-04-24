@@ -5,18 +5,23 @@ on:
     types: [published]
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
-
-permissions:
-  contents: read
-  packages: write
 
 env:
   IMAGE: ghcr.io/fluffylabs/jammin-as-lan
 
 jobs:
-  build-and-push:
+  build:
+    # Builds the image and runs smoke tests. Runs on every trigger, including
+    # pull_request. Does not need packages:write — the push job handles that.
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      primary: ${{ steps.tags.outputs.primary }}
+      tags: ${{ steps.tags.outputs.tags }}
     steps:
       - name: Checkout (release tag)
         if: github.event_name == 'release'
@@ -24,22 +29,25 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name }}
 
-      - name: Checkout (branch)
+      - name: Checkout (branch or PR)
         if: github.event_name != 'release'
         uses: actions/checkout@v6
 
       - name: Compute image tags
         id: tags
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "release" ]]; then
-            TAG_NAME="${{ github.event.release.tag_name }}"
-            TAG_VERSION="${TAG_NAME#v}"
+            TAG_VERSION="${RELEASE_TAG_NAME#v}"
             SDK_VERSION=$(node -p "require('./sdk/package.json').version")
             MOCKS_VERSION=$(node -p "require('./sdk-ecalli-mocks/package.json').version")
             ROOT_VERSION=$(node -p "require('./package.json').version")
             if [[ "$TAG_VERSION" != "$SDK_VERSION" || "$TAG_VERSION" != "$MOCKS_VERSION" || "$TAG_VERSION" != "$ROOT_VERSION" ]]; then
-              echo "::error::release tag ($TAG_NAME) does not match package.json versions (sdk=$SDK_VERSION mocks=$MOCKS_VERSION root=$ROOT_VERSION). Did you publish the draft release before merging the bump PR?"
+              echo "::error::release tag ($RELEASE_TAG_NAME) does not match package.json versions (sdk=$SDK_VERSION mocks=$MOCKS_VERSION root=$ROOT_VERSION). Did you publish the draft release before merging the bump PR?"
               exit 1
             fi
             {
@@ -47,6 +55,15 @@ jobs:
               echo "tags<<EOF"
               echo "${IMAGE}:${TAG_VERSION}"
               echo "${IMAGE}:latest"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Use the PR head SHA (not GITHUB_SHA, which is the ephemeral merge
+            # commit) so the tag points at the contributor's actual commit.
+            SHORT_SHA="${PR_HEAD_SHA::7}"
+            {
+              echo "primary=${IMAGE}:pr-${PR_NUMBER}-${SHORT_SHA}"
+              echo "tags<<EOF"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           else
@@ -61,12 +78,6 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build image (load into local docker for smoke test)
         uses: docker/build-push-action@v7
         with:
@@ -80,7 +91,10 @@ jobs:
       - name: Smoke test — wasm-pvm and node on PATH
         run: |
           set -eux
-          docker run --rm "${{ steps.tags.outputs.primary }}" wasm-pvm --version
+          # wasm-pvm is a subcommand-style CLI; --help is the built-in
+          # clap flag that exits 0 and proves the binary loaded without
+          # dynamic-linker errors (glibc version, missing shared libs, …).
+          docker run --rm "${{ steps.tags.outputs.primary }}" wasm-pvm --help
           docker run --rm "${{ steps.tags.outputs.primary }}" node --version
 
       - name: Report uncompressed image size
@@ -88,12 +102,40 @@ jobs:
           docker image inspect "${{ steps.tags.outputs.primary }}" \
             --format 'uncompressed size: {{.Size}} bytes'
 
+  push:
+    # Pushes to GHCR. Scoped to trusted triggers only; PRs never reach this
+    # job, so packages:write is structurally unavailable to PR runs.
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout (release tag)
+        if: github.event_name == 'release'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Checkout (branch)
+        if: github.event_name != 'release'
+        uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Push image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/jammin-as-lan.Dockerfile
           push: true
-          tags: ${{ steps.tags.outputs.tags }}
+          tags: ${{ needs.build.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

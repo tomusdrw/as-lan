@@ -5,21 +5,32 @@
 # minimal node:22-slim runtime carrying only the resulting binary.
 
 # ---- Stage 1: build wasm-pvm ---------------------------------------------
-FROM rust:1-slim AS builder
+# Pinned to bookworm so the resulting binary's glibc requirements match the
+# runtime stage (node:22-slim, also bookworm). Unpinned `rust:1-slim` tracks
+# the current stable, which may drift to a newer Debian with a higher glibc
+# and produce binaries that fail at runtime with `GLIBC_X.Y not found`.
+FROM rust:1-slim-bookworm AS builder
 
-# wasm-pvm-cli needs llvm-18 headers + libpolly at compile time.
-# llvm-18 is not in Debian bookworm main, but is in bookworm-backports.
+# wasm-pvm-cli needs llvm-18 headers + libpolly at compile time. Neither
+# Debian bookworm main nor bookworm-backports carries llvm-18 reliably
+# (bookworm-backports has rolled forward to newer LLVM majors). Pull it
+# from apt.llvm.org, which maintains a stable channel per LLVM major.
 RUN set -eux; \
-    echo 'deb http://deb.debian.org/debian bookworm-backports main' \
-        > /etc/apt/sources.list.d/backports.list; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         ca-certificates \
+        gnupg \
+        wget \
         build-essential \
         pkg-config \
         zlib1g-dev \
         libzstd-dev; \
-    apt-get install -y --no-install-recommends -t bookworm-backports \
+    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+        | gpg --dearmor > /etc/apt/trusted.gpg.d/apt.llvm.org.gpg; \
+    echo 'deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main' \
+        > /etc/apt/sources.list.d/llvm.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
         llvm-18-dev \
         libpolly-18-dev; \
     rm -rf /var/lib/apt/lists/*
