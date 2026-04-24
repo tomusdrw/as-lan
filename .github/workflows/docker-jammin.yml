@@ -91,7 +91,10 @@ jobs:
       - name: Smoke test — wasm-pvm and node on PATH
         run: |
           set -eux
-          docker run --rm "${{ steps.tags.outputs.primary }}" wasm-pvm --version
+          # wasm-pvm is a subcommand-style CLI; --help is the built-in
+          # clap flag that exits 0 and proves the binary loaded without
+          # dynamic-linker errors (glibc version, missing shared libs, …).
+          docker run --rm "${{ steps.tags.outputs.primary }}" wasm-pvm --help
           docker run --rm "${{ steps.tags.outputs.primary }}" node --version
 
       - name: Report uncompressed image size
