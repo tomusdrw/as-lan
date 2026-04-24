@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: jontze/action-mdbook@v3
+      - uses: jontze/action-mdbook@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: mdbook build docs
@@ -31,8 +31,8 @@ jobs:
           mkdir -p docs/book/fibonacci
           rsync -a --exclude='node_modules/' --exclude='build/' --exclude='package-lock.json' \
             examples/fibonacci/ docs/book/fibonacci/
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/book
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
