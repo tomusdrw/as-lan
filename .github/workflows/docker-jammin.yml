@@ -97,6 +97,10 @@ jobs:
     # workflows get free linux/arm64 runners (ubuntu-24.04-arm), avoiding
     # QEMU — critical since the Dockerfile cargo-compiles wasm-pvm-cli
     # with LLVM-18, which is too slow under emulation.
+    #
+    # Runs on every trigger (incl. PRs) for smoke testing. No registry
+    # access — the Dockerfile cargo-installs a crate, whose build script
+    # runs arbitrary code, so we don't want packages:write here.
     needs: tags
     strategy:
       fail-fast: false
@@ -109,7 +113,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
-      packages: write
     steps:
       - name: Checkout (release tag)
         if: github.event_name == 'release'
@@ -128,14 +131,6 @@ jobs:
           echo "pair=${p//\//-}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build image (load into local docker for smoke test)
         uses: docker/build-push-action@v7
@@ -162,8 +157,52 @@ jobs:
           docker image inspect "${{ needs.tags.outputs.primary }}" \
             --format 'uncompressed size: {{.Size}} bytes'
 
-      - name: Push by digest
-        if: github.event_name != 'pull_request'
+  push:
+    # Pushes per-platform image digests to GHCR. Skipped on PRs entirely so
+    # that the packages:write token never lives in a runner that just ran
+    # untrusted PR code in `build`. Reuses the GHA cache populated by `build`,
+    # so the docker build is effectively a metadata replay.
+    needs: [tags, build]
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout (release tag)
+        if: github.event_name == 'release'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Checkout (branch)
+        if: github.event_name != 'release'
+        uses: actions/checkout@v6
+
+      - name: Normalize platform label
+        id: platform
+        run: |
+          p='${{ matrix.platform }}'
+          echo "pair=${p//\//-}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
         id: push
         uses: docker/build-push-action@v7
         with:
@@ -174,14 +213,12 @@ jobs:
           cache-from: type=gha,scope=${{ steps.platform.outputs.pair }}
 
       - name: Export digest
-        if: github.event_name != 'pull_request'
         run: |
           mkdir -p "${RUNNER_TEMP}/digests"
           digest="${{ steps.push.outputs.digest }}"
           touch "${RUNNER_TEMP}/digests/${digest#sha256:}"
 
       - name: Upload digest
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ steps.platform.outputs.pair }}
@@ -190,10 +227,10 @@ jobs:
           retention-days: 1
 
   merge:
-    # Combines the per-platform digests pushed by the build matrix into a
+    # Combines the per-platform digests pushed by the push matrix into a
     # single multi-arch manifest list and tags it. Skipped on PRs — they
     # never push.
-    needs: [tags, build]
+    needs: [tags, push]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -242,7 +279,29 @@ jobs:
           fi
           docker buildx imagetools create "${TAG_ARGS[@]}" "${SOURCES[@]}"
 
-      - name: Inspect pushed manifest
+      - name: Inspect pushed manifest and assert platform coverage
         env:
           IMAGE: ${{ needs.tags.outputs.primary }}
-        run: docker buildx imagetools inspect "$IMAGE"
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "$IMAGE"
+          # Belt-and-braces: the digest count check earlier guarantees we
+          # passed the right number of sources to imagetools, but not that
+          # they covered distinct platforms. Read the published manifest
+          # back and assert linux/amd64 + linux/arm64 are both present.
+          # buildx attaches provenance/SBOM as extra `unknown/unknown` entries
+          # in the manifest list — skip those, we only care about real images.
+          got=$(
+            docker buildx imagetools inspect --raw "$IMAGE" \
+              | jq -r '
+                .manifests[]
+                | select(.platform.os != "unknown")
+                | "\(.platform.os)/\(.platform.architecture)"
+              ' \
+              | sort -u
+          )
+          expected=$(printf 'linux/amd64\nlinux/arm64')
+          if [[ "$got" != "$expected" ]]; then
+            echo "::error::manifest platforms mismatch — expected: $expected; got: $got"
+            exit 1
+          fi
