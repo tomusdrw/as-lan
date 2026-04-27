@@ -84,7 +84,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     const hash = m.expunge();
     a.isEqual(hash, 0, "expunge result");
     return a;
@@ -96,7 +96,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     m.pages(0, 1, PageAccess.ReadWrite);
     a.isEqual(true, true, "pages succeeded");
     return a;
@@ -108,7 +108,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     const data = BytesBlob.zero(4);
     const result = m.poke(0, data);
     a.isEqual(result.isOkay, true, "poke ok");
@@ -119,7 +119,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     TestMachine.setPokeResult(EcalliResult.OOB);
     const data = BytesBlob.zero(4);
     const result = m.poke(0, data);
@@ -134,7 +134,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     const buf = BytesBlob.zero(4);
     const result = m.peek(0, buf);
     a.isEqual(result.isOkay, true, "peek ok");
@@ -145,7 +145,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     TestMachine.setPeekResult(EcalliResult.OOB);
     const buf = BytesBlob.zero(4);
     const result = m.peek(0, buf);
@@ -160,7 +160,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     const io = InvokeIo.create(1_000_000);
     const outcome = m.invoke(io);
     a.isEqual(outcome.reason, ExitReason.Halt, "exit reason");
@@ -174,7 +174,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
     TestMachine.setInvokeResult(i64(ExitReason.Host), 12);
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     const io = InvokeIo.create(500);
     const outcome = m.invoke(io);
     a.isEqual(outcome.reason, ExitReason.Host, "exit reason");
@@ -187,7 +187,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
     TestMachine.setInvokeResult(i64(ExitReason.Oob));
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     const io = InvokeIo.create(1);
     const outcome = m.invoke(io);
     a.isEqual(outcome.reason, ExitReason.Oob, "exit reason");
@@ -199,7 +199,7 @@ export const TESTS: Test[] = [
     const a = Assert.create();
     TestMachine.setInvokeResult(i64(ExitReason.Fault), 0x1234);
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     const io = InvokeIo.create(100);
     const outcome = m.invoke(io);
     a.isEqual(outcome.reason, ExitReason.Fault, "exit reason");
@@ -211,7 +211,7 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const a = Assert.create();
     const code = BytesBlob.zero(4);
-    const m = Machine.create(code, 0).okay!;
+    const m = Machine.create(code, 0).okay;
     TestMachine.setExpungeResult(0x42);
     const hash = m.expunge();
     a.isEqual(hash, 0x42, "configured expunge result");

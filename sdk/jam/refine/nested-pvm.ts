@@ -44,7 +44,7 @@ export class NestedPvm {
       if (e === SpiError.InvalidEntryPoint) panic("SPI: invalid entry point");
       panic("SPI: unknown setup error");
     }
-    return r.okay!;
+    return r.okay;
   }
 
   /**
