@@ -35,12 +35,13 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.runner }}
-    permissions:
-      # Upper bound — the calling workflow's job permissions further constrain
-      # this. Smoke-test calls forward only `contents: read`; publish calls
-      # additionally forward `packages: write`.
-      contents: read
-      packages: write
+    # Permissions are inherited from the calling job. GitHub Actions requires
+    # any `permissions` declared here to be a subset of the caller's grants,
+    # so we can't declare `packages: write` unconditionally — the smoke-test
+    # caller only grants `contents: read`, and the call would fail validation.
+    # Smoke-test callers grant only `contents: read` (push steps are gated on
+    # `inputs.push` and skipped). Publish callers additionally grant
+    # `packages: write` so the GHCR login + push-by-digest can run.
     steps:
       - name: Checkout (release tag)
         if: github.event_name == 'release'
