@@ -1,0 +1,121 @@
+name: Build one jammin platform
+
+# Reusable workflow that builds a single platform of jammin-as-lan.
+#
+# Called twice from docker-jammin.yml: once in "smoke-test" mode (push=false,
+# runs on every trigger including PRs) and once in "publish" mode (push=true,
+# non-PR only). The two callers forward different permission sets so that the
+# packages:write token is never present in a runner that just executed
+# PR-supplied build code.
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        description: 'Docker platform string (e.g. linux/amd64).'
+        type: string
+        required: true
+      runner:
+        description: 'GitHub Actions runner label native to `platform`.'
+        type: string
+        required: true
+      image:
+        description: 'Image name without a tag (e.g. ghcr.io/owner/jammin-as-lan).'
+        type: string
+        required: true
+      primary-tag:
+        description: 'Fully-qualified image:tag used to load and smoke-test the build locally.'
+        type: string
+        required: true
+      push:
+        description: 'When true, push the built image to GHCR by digest and upload the digest as an artifact.'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      # Upper bound — the calling workflow's job permissions further constrain
+      # this. Smoke-test calls forward only `contents: read`; publish calls
+      # additionally forward `packages: write`.
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout (release tag)
+        if: github.event_name == 'release'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Checkout (branch or PR)
+        if: github.event_name != 'release'
+        uses: actions/checkout@v6
+
+      - name: Normalize platform label
+        id: platform
+        run: |
+          p='${{ inputs.platform }}'
+          echo "pair=${p//\//-}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image (load into local docker for smoke test)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/jammin-as-lan.Dockerfile
+          platforms: ${{ inputs.platform }}
+          load: true
+          tags: ${{ inputs.primary-tag }}
+          cache-from: type=gha,scope=${{ steps.platform.outputs.pair }}
+          cache-to: type=gha,mode=max,scope=${{ steps.platform.outputs.pair }}
+
+      - name: Smoke test — wasm-pvm and node on PATH
+        run: |
+          set -eux
+          # wasm-pvm is a subcommand-style CLI; --help is the built-in
+          # clap flag that exits 0 and proves the binary loaded without
+          # dynamic-linker errors (glibc version, missing shared libs, …).
+          docker run --rm "${{ inputs.primary-tag }}" wasm-pvm --help
+          docker run --rm "${{ inputs.primary-tag }}" node --version
+
+      - name: Report uncompressed image size
+        run: |
+          docker image inspect "${{ inputs.primary-tag }}" \
+            --format 'uncompressed size: {{.Size}} bytes'
+
+      - name: Login to GHCR
+        if: inputs.push
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        if: inputs.push
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/jammin-as-lan.Dockerfile
+          platforms: ${{ inputs.platform }}
+          outputs: type=image,name=${{ inputs.image }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ steps.platform.outputs.pair }}
+
+      - name: Export digest
+        if: inputs.push
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          digest="${{ steps.push.outputs.digest }}"
+          touch "${RUNNER_TEMP}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: inputs.push
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ steps.platform.outputs.pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1

@@ -10,13 +10,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    # Builds the image and runs smoke tests. Runs on every trigger, including
-    # pull_request. Does not need packages:write — the push job handles that.
+  tags:
+    # Compute the image name, primary tag, and full tag list once. Both the
+    # per-platform build matrix and the manifest-merge job consume these.
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
+      image: ${{ steps.tags.outputs.image }}
       primary: ${{ steps.tags.outputs.primary }}
       tags: ${{ steps.tags.outputs.tags }}
     steps:
@@ -51,6 +52,7 @@ jobs:
               exit 1
             fi
             {
+              echo "image=${IMAGE}"
               echo "primary=${IMAGE}:${TAG_VERSION}"
               echo "tags<<EOF"
               echo "${IMAGE}:${TAG_VERSION}"
@@ -62,13 +64,27 @@ jobs:
             # commit) so the tag points at the contributor's actual commit.
             SHORT_SHA="${PR_HEAD_SHA::7}"
             {
+              echo "image=${IMAGE}"
               echo "primary=${IMAGE}:pr-${PR_NUMBER}-${SHORT_SHA}"
               echo "tags<<EOF"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual dispatches can run from any branch/tag. Stamp the ref into
+            # the tag so ad-hoc builds don't masquerade as `main-*` outputs.
+            SHORT_SHA="${GITHUB_SHA::7}"
+            REF_SLUG="${GITHUB_REF_NAME//\//-}"
+            {
+              echo "image=${IMAGE}"
+              echo "primary=${IMAGE}:manual-${REF_SLUG}-${SHORT_SHA}"
+              echo "tags<<EOF"
+              echo "${IMAGE}:manual-${REF_SLUG}-${SHORT_SHA}"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           else
             SHORT_SHA="${GITHUB_SHA::7}"
             {
+              echo "image=${IMAGE}"
               echo "primary=${IMAGE}:main-${SHORT_SHA}"
               echo "tags<<EOF"
               echo "${IMAGE}:main-${SHORT_SHA}"
@@ -76,66 +92,131 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: docker/setup-buildx-action@v4
+  # Smoke-test build. Runs on every trigger (including PRs). No registry
+  # access — the Dockerfile cargo-installs a crate, whose build script runs
+  # arbitrary code, so we don't want packages:write here.
+  build:
+    needs: tags
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_jammin-platform.yml
+    with:
+      platform: ${{ matrix.platform }}
+      runner: ${{ matrix.runner }}
+      image: ${{ needs.tags.outputs.image }}
+      primary-tag: ${{ needs.tags.outputs.primary }}
+      push: false
 
-      - name: Build image (load into local docker for smoke test)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: docker/jammin-as-lan.Dockerfile
-          load: true
-          tags: ${{ steps.tags.outputs.primary }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Smoke test — wasm-pvm and node on PATH
-        run: |
-          set -eux
-          # wasm-pvm is a subcommand-style CLI; --help is the built-in
-          # clap flag that exits 0 and proves the binary loaded without
-          # dynamic-linker errors (glibc version, missing shared libs, …).
-          docker run --rm "${{ steps.tags.outputs.primary }}" wasm-pvm --help
-          docker run --rm "${{ steps.tags.outputs.primary }}" node --version
-
-      - name: Report uncompressed image size
-        run: |
-          docker image inspect "${{ steps.tags.outputs.primary }}" \
-            --format 'uncompressed size: {{.Size}} bytes'
-
+  # Publish per-platform digests. Skipped on PRs entirely so the
+  # packages:write token never lives in a runner that just ran untrusted PR
+  # code in `build`. Reuses the GHA cache populated by `build`, so the docker
+  # build is effectively a metadata replay.
   push:
-    # Pushes to GHCR. Scoped to trusted triggers only; PRs never reach this
-    # job, so packages:write is structurally unavailable to PR runs.
-    needs: build
+    needs: [tags, build]
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_jammin-platform.yml
+    with:
+      platform: ${{ matrix.platform }}
+      runner: ${{ matrix.runner }}
+      image: ${{ needs.tags.outputs.image }}
+      primary-tag: ${{ needs.tags.outputs.primary }}
+      push: true
+
+  merge:
+    # Combines the per-platform digests pushed by the push matrix into a
+    # single multi-arch manifest list and tags it. Skipped on PRs — they
+    # never push.
+    needs: [tags, push]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Checkout (release tag)
-        if: github.event_name == 'release'
-        uses: actions/checkout@v6
+      - name: Download digests
+        uses: actions/download-artifact@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
-
-      - name: Checkout (branch)
-        if: github.event_name != 'release'
-        uses: actions/checkout@v6
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
 
       - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: docker/jammin-as-lan.Dockerfile
-          push: true
-          tags: ${{ needs.build.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE: ${{ needs.tags.outputs.image }}
+          TAGS: ${{ needs.tags.outputs.tags }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          TAG_ARGS=()
+          while IFS= read -r tag; do
+            [[ -z "$tag" ]] && continue
+            TAG_ARGS+=("-t" "$tag")
+          done <<< "$TAGS"
+          SOURCES=()
+          for digest in *; do
+            SOURCES+=("${IMAGE}@sha256:${digest}")
+          done
+          # Must match the build matrix size. Guards against silent partial
+          # manifests if a future refactor breaks upload/download naming.
+          EXPECTED_PLATFORMS=2
+          if [[ "${#SOURCES[@]}" -ne "$EXPECTED_PLATFORMS" ]]; then
+            echo "::error::expected ${EXPECTED_PLATFORMS} platform digests, found ${#SOURCES[@]}"
+            exit 1
+          fi
+          docker buildx imagetools create "${TAG_ARGS[@]}" "${SOURCES[@]}"
+
+      - name: Inspect pushed manifest and assert platform coverage
+        env:
+          IMAGE: ${{ needs.tags.outputs.primary }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "$IMAGE"
+          # Belt-and-braces: the digest count check earlier guarantees we
+          # passed the right number of sources to imagetools, but not that
+          # they covered distinct platforms. Read the published manifest
+          # back and assert linux/amd64 + linux/arm64 are both present.
+          # buildx attaches provenance/SBOM as extra `unknown/unknown` entries
+          # in the manifest list — skip those, we only care about real images.
+          got=$(
+            docker buildx imagetools inspect --raw "$IMAGE" \
+              | jq -r '
+                .manifests[]
+                | select(.platform.os != "unknown")
+                | "\(.platform.os)/\(.platform.architecture)"
+              ' \
+              | sort -u
+          )
+          expected=$(printf 'linux/amd64\nlinux/arm64')
+          if [[ "$got" != "$expected" ]]; then
+            echo "::error::manifest platforms mismatch — expected: $expected; got: $got"
+            exit 1
+          fi
