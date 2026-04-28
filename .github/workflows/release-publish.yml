@@ -31,12 +31,6 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: "npm"
 
-      - name: Upgrade npm for trusted publishing
-        # Pinned: `npm@latest` sometimes ships self-upgrade regressions
-        # (e.g. 11.13.0 crashed with MODULE_NOT_FOUND on `promise-retry`).
-        # Bump manually after confirming a newer version upgrades cleanly.
-        run: npm install -g npm@11.12.1
-
       - name: Install LLVM 18
         run: sudo apt-get update -qq && sudo apt-get install -y -qq llvm-18-dev libpolly-18-dev
 
