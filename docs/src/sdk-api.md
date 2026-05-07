@@ -10,6 +10,20 @@ wrappers available during that entry point.
 - [Utilities](./sdk-api/utilities.md) — Logger, LogMsg, ByteBuf, Decoder, Byte Types
 - [Host Calls (ecalli)](./sdk-api/ecalli.md) — raw host call reference table
 
+The test-time SDK surface (under `@fluffylabs/as-lan/test`) is documented
+on the [Testing](./testing.md) page. It includes:
+
+- `RefineCall` / `AccumulateCall` — chainable builders that encode args and
+  invoke a service entrypoint.
+- `OperandItem` / `TransferItem` — chainable builders for the encoded
+  `AccumulateItem` blobs that `TestAccumulate.setItem(i, ...)` expects.
+- `Assert`, `Test`, `TestSuite`, `runTestSuites`, `unpackResult`,
+  `strBlob` — the test framework primitives.
+- `TestEcalli`, `TestGas`, `TestFetch`, `TestLookup`, `TestStorage`,
+  `TestAccumulate`, `TestPreimages`, `TestPrivileged`, `TestServices`,
+  `TestMachine`, `TestExportSegment`, `TestHistoricalLookup`,
+  `TestTransfer`, `TestInfo` — mock-stub configuration classes.
+
 ## Example services
 
 Each example in `examples/` is a self-contained service that exercises a

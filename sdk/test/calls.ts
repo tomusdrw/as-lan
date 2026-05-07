@@ -18,6 +18,7 @@
 import { Bytes32, BytesBlob } from "../core/bytes";
 import { Decoder } from "../core/codec/decode";
 import { Encoder } from "../core/codec/encode";
+import { panic } from "../core/panic";
 import {
   AccumulateItem,
   AccumulateItemCodec,
@@ -99,7 +100,7 @@ export class RefineCall {
     const buf = enc.finish();
     const raw = unpackResult(refineFn(buf.ptr(), buf.length));
     const r = ResponseCodec.create().decode(Decoder.fromBytesBlob(BytesBlob.wrap(raw)));
-    assert(!r.isError, "RefineCall.call: response decode failed");
+    if (r.isError) panic("RefineCall.call: response decode failed");
     return r.okay!;
   }
 }
