@@ -297,7 +297,7 @@ export const TESTS: Test[] = [
   }),
 
   test("AccumulateItem decode rejects empty input", () => {
-    const d = Decoder.fromBlob(BytesBlob.empty().raw);
+    const d = Decoder.fromBytesBlob(BytesBlob.empty());
     const r = accumulateItemCodec.decode(d);
 
     const assert = Assert.create();

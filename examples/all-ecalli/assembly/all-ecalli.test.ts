@@ -55,7 +55,7 @@ export const TESTS: Test[] = [
     assert.isEqual(resp.result, i64(REFINE_ECALLI_COUNT), "refine ecalli count");
 
     // Decode the count from the data
-    const d = Decoder.fromBlob(resp.data.raw);
+    const d = Decoder.fromBytesBlob(resp.data);
     const count = d.varU32();
     assert.isEqual(count, REFINE_ECALLI_COUNT, "encoded count matches");
 
@@ -98,7 +98,7 @@ export const TESTS: Test[] = [
     assert.isEqual(resp.result, i64(ACCUMULATE_ECALLI_COUNT), "accumulate ecalli count");
 
     // Decode the count from the data
-    const d = Decoder.fromBlob(resp.data.raw);
+    const d = Decoder.fromBytesBlob(resp.data);
     const count = d.varU32();
     assert.isEqual(count, ACCUMULATE_ECALLI_COUNT, "encoded count matches");
 
