@@ -80,6 +80,53 @@ jobs:
           # dynamic-linker errors (glibc version, missing shared libs, …).
           docker run --rm "${{ inputs.primary-tag }}" wasm-pvm --help
           docker run --rm "${{ inputs.primary-tag }}" node --version
+          # asc must be on PATH from the global assemblyscript install.
+          docker run --rm "${{ inputs.primary-tag }}" asc --version
+
+      - name: Smoke test — no-args run prints help and exits 64
+        run: |
+          set -eu
+          # Default CMD is a usage message that exits 64 (EX_USAGE). Guards
+          # against a future refactor that accidentally restores an
+          # `npm install`-bearing CMD; jammin always passes its own command,
+          # so this CMD should never run during normal use.
+          set +e
+          out=$(docker run --rm "${{ inputs.primary-tag }}")
+          rc=$?
+          set -e
+          echo "$out"
+          if [ "$rc" -ne 64 ]; then
+            echo "::error::expected exit 64 from no-args run, got $rc"
+            exit 1
+          fi
+          echo "$out" | grep -q 'jammin-as-lan: builder image'
+
+      - name: Smoke test — pre-baked SDK resolves without npm install
+        run: |
+          set -eux
+          # A service mounted at /app with no node_modules must still
+          # compile via `asc` because the entrypoint symlinks the global
+          # node_modules into /app/node_modules.
+          stub=$(mktemp -d)
+          mkdir -p "$stub/assembly"
+          cat > "$stub/package.json" <<'EOF'
+          {
+            "name": "smoke-stub",
+            "version": "0.0.0",
+            "type": "module",
+            "scripts": {
+              "asbuild": "asc assembly/index.ts --target debug --runtime=stub"
+            }
+          }
+          EOF
+          cat > "$stub/assembly/index.ts" <<'EOF'
+          import { Bytes32 } from "@fluffylabs/as-lan/core/bytes";
+          export function ping(): u32 {
+            return Bytes32.zero().length;
+          }
+          EOF
+          docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
+            npm run asbuild
 
       - name: Report uncompressed image size
         run: |
