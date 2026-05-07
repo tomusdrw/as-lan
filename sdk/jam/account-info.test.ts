@@ -36,10 +36,10 @@ export const TESTS: Test[] = [
 
   test("AccountInfo roundtrip", () => {
     const a = Assert.create();
-    const original = AccountInfo.create(bytes32Fill(0xab), 1000, 500, 100_000, 50_000, 2048, 10, 1024, 7, 42, 99);
+    const codeHash = bytes32Fill(0xab);
+    const original = AccountInfo.create(codeHash, 1000, 500, 100_000, 50_000, 2048, 10, 1024, 7, 42, 99);
     const decoded = roundtrip(original);
-    a.isEqual(decoded.codeHash.raw[0], 0xab, "codeHash[0]");
-    a.isEqual(decoded.codeHash.raw[31], 0xab, "codeHash[31]");
+    a.isEqualBytes(decoded.codeHash.bytes, codeHash.bytes, "codeHash");
     a.isEqual(decoded.balance, 1000, "balance");
     a.isEqual(decoded.thresholdBalance, 500, "thresholdBalance");
     a.isEqual(decoded.accumulateMinGas, 100_000, "accumulateMinGas");
@@ -99,14 +99,15 @@ export const TESTS: Test[] = [
   test("ServiceData.info returns AccountInfo", () => {
     TestEcalli.reset();
     const a = Assert.create();
-    const expected = AccountInfo.create(bytes32Fill(0xcc), 5000, 2500, 200_000, 100_000, 4096, 20, 2048, 10, 50, 77);
+    const codeHash = bytes32Fill(0xcc);
+    const expected = AccountInfo.create(codeHash, 5000, 2500, 200_000, 100_000, 4096, 20, 2048, 10, 50, 77);
     TestInfo.set(42, encodeInfoBytes(expected));
 
     const svc = ServiceData.create(42);
     const result = svc.info();
     a.isEqual(result.isSome, true, "should be some");
     const info = result.val!;
-    a.isEqual(info.codeHash.raw[0], 0xcc, "codeHash");
+    a.isEqualBytes(info.codeHash.bytes, codeHash.bytes, "codeHash");
     a.isEqual(info.balance, 5000, "balance");
     a.isEqual(info.thresholdBalance, 2500, "thresholdBalance");
     a.isEqual(info.accumulateMinGas, 200_000, "accumulateMinGas");
@@ -143,12 +144,7 @@ export const TESTS: Test[] = [
     const key = ByteBuf.create(32).strAscii("testkey").finishBlob();
     const result = svc.read(key);
     a.isEqual(result.isSome, true, "should be some");
-    const data = result.val!;
-    a.isEqual(data.length, 4, "length");
-    a.isEqual(data.raw[0], 0xde, "byte 0");
-    a.isEqual(data.raw[1], 0xad, "byte 1");
-    a.isEqual(data.raw[2], 0xbe, "byte 2");
-    a.isEqual(data.raw[3], 0xef, "byte 3");
+    a.isEqualBytes(result.val!, val, "data");
     return a;
   }),
 
@@ -175,12 +171,7 @@ export const TESTS: Test[] = [
     const key = ByteBuf.create(32).strAscii("bigkey").finishBlob();
     const result = svc.read(key);
     a.isEqual(result.isSome, true, "should be some");
-    const data = result.val!;
-    a.isEqual(data.length, 2048, "length");
-    a.isEqual(data.raw[0], 0, "byte 0");
-    a.isEqual(data.raw[1], 1, "byte 1");
-    a.isEqual(data.raw[255], 255, "byte 255");
-    a.isEqual(data.raw[256], 0, "byte 256 wraps");
+    a.isEqualBytes(result.val!, largeVal, "data");
     return a;
   }),
 
@@ -235,12 +226,7 @@ export const TESTS: Test[] = [
     const key2 = ByteBuf.create(32).strAscii("rtkey").finishBlob();
     const result = svc.read(key2);
     a.isEqual(result.isSome, true, "should be some");
-    const data = result.val!;
-    a.isEqual(data.length, 4, "length");
-    a.isEqual(data.raw[0], 0xca, "byte 0");
-    a.isEqual(data.raw[1], 0xfe, "byte 1");
-    a.isEqual(data.raw[2], 0xba, "byte 2");
-    a.isEqual(data.raw[3], 0xbe, "byte 3");
+    a.isEqualBytes(result.val!, val, "data");
     return a;
   }),
 ];

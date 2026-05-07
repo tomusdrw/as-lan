@@ -39,7 +39,7 @@ export function refine(ptr: u32, len: u32): u64 {
     `refine: core=${args.coreIndex} item=${args.itemIndex} service=${args.serviceId} wpHash=${args.workPackageHash}`,
   );
 
-  const d = Decoder.fromBlob(args.payload.raw);
+  const d = Decoder.fromBytesBlob(args.payload);
   const ecalliIndex = d.varU64();
   if (d.isError) {
     logger.warn("Missing ecalli index in payload");

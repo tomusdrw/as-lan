@@ -12,9 +12,7 @@ export const TESTS: Test[] = [
   test("Memo.empty creates 128 zero bytes", () => {
     const a = Assert.create();
     const memo = Memo.empty();
-    a.isEqual(<u32>memo.data.length, TRANSFER_MEMO_SIZE, "length = 128");
-    a.isEqual(memo.data.raw[0], 0, "first byte = 0");
-    a.isEqual(memo.data.raw[127], 0, "last byte = 0");
+    a.isEqualBytes(memo.data, BytesBlob.zero(TRANSFER_MEMO_SIZE), "memo");
     return a;
   }),
 
@@ -22,13 +20,9 @@ export const TESTS: Test[] = [
     const a = Assert.create();
     const short = BytesBlob.parseBlob("0xdeadbeef").okay!;
     const memo = Memo.create(short);
-    a.isEqual(<u32>memo.data.length, TRANSFER_MEMO_SIZE, "length = 128");
-    a.isEqual(memo.data.raw[0], 0xde, "byte 0 preserved");
-    a.isEqual(memo.data.raw[1], 0xad, "byte 1 preserved");
-    a.isEqual(memo.data.raw[2], 0xbe, "byte 2 preserved");
-    a.isEqual(memo.data.raw[3], 0xef, "byte 3 preserved");
-    a.isEqual(memo.data.raw[4], 0, "byte 4 = 0 (padded)");
-    a.isEqual(memo.data.raw[127], 0, "byte 127 = 0 (padded)");
+    const expected = BytesBlob.zero(TRANSFER_MEMO_SIZE);
+    expected.raw.set(short.raw, 0);
+    a.isEqualBytes(memo.data, expected, "memo");
     return a;
   }),
 
@@ -37,9 +31,9 @@ export const TESTS: Test[] = [
     const long = BytesBlob.zero(200);
     for (let i: u32 = 0; i < 200; i++) long.raw[i] = u8(i & 0xff);
     const memo = Memo.create(long);
-    a.isEqual(<u32>memo.data.length, TRANSFER_MEMO_SIZE, "length = 128");
-    a.isEqual(memo.data.raw[0], 0, "byte 0 preserved");
-    a.isEqual(memo.data.raw[127], 127, "byte 127 preserved");
+    const expected = BytesBlob.zero(TRANSFER_MEMO_SIZE);
+    expected.raw.set(long.raw.subarray(0, TRANSFER_MEMO_SIZE), 0);
+    a.isEqualBytes(memo.data, expected, "memo");
     return a;
   }),
 
@@ -49,9 +43,7 @@ export const TESTS: Test[] = [
     exact.raw[0] = 0xaa;
     exact.raw[127] = 0xbb;
     const memo = Memo.create(exact);
-    a.isEqual(<u32>memo.data.length, TRANSFER_MEMO_SIZE, "length = 128");
-    a.isEqual(memo.data.raw[0], 0xaa, "byte 0");
-    a.isEqual(memo.data.raw[127], 0xbb, "byte 127");
+    a.isEqualBytes(memo.data, exact, "memo");
     return a;
   }),
 

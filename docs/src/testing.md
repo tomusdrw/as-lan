@@ -91,6 +91,95 @@ This compiles your test-run entry point to WASM (with the `test` target from
 `asconfig.json`), then executes it in Node.js with the ecalli stubs providing
 host call implementations.
 
+### Invoking your service
+
+`RefineCall` and `AccumulateCall` are chainable builders that encode the
+matching args struct, invoke your service entrypoint, and decode the result.
+Defaults cover the common case; override individual fields with `with*`
+setters as needed.
+
+```typescript
+import { BytesBlob } from "@fluffylabs/as-lan";
+import { AccumulateCall, RefineCall } from "@fluffylabs/as-lan/test";
+import { accumulate, refine } from "./my-service";
+
+// Refine: defaults coreIndex=0, itemIndex=0, serviceId=42, workPackageHash=zeros.
+// Returns the decoded `Response` (assumes the service uses `Response.with(...)`
+// or `ctx.respond(...)`).
+const resp = RefineCall.create()
+  .withServiceId(10)
+  .call(refine, BytesBlob.parseBlob("0xdeadbeef").okay!);
+assert.isEqualBytes(resp.data, expected, "refine output");
+
+// Accumulate: defaults slot=7, serviceId=42. The second arg to `.call()` is
+// the number of items the service should fetch via `fetch(kind=15, i)` —
+// seed each one beforehand with `TestAccumulate.setItem(i, ...)`.
+// Returns raw response bytes (since accumulate response shape varies:
+// `ctx.respond` for Response, `ctx.yieldHash` for an OptionalCodeHash, etc.).
+const result = AccumulateCall.create().withSlot(1).withServiceId(5).call(accumulate, 0);
+```
+
+### Building accumulate items
+
+`OperandItem` and `TransferItem` build the encoded `AccumulateItem` blobs
+that `TestAccumulate.setItem(i, ...)` expects:
+
+```typescript
+import { OperandItem, TestAccumulate, TransferItem } from "@fluffylabs/as-lan/test";
+
+// Operand: defaults all four hashes zeros, gas=100000, result=Ok with empty
+// okBlob. Use `withOkBlob` for the common case; `withResultKind(...)` to
+// drive Panic / OutOfGas / etc. paths.
+TestAccumulate.setItem(0, OperandItem.create().withOkBlob(payload).build());
+
+// Transfer: defaults source=0, dest=0, amount=0, memo=empty (auto-padded to
+// 128 bytes by the codec), gas=10000.
+TestAccumulate.setItem(1, TransferItem.create().withSource(1).withDest(2).withAmount(100).build());
+```
+
+The fibonacci example demonstrates `RefineCall` / `AccumulateCall` with no
+items; `pastebin`, `library`, and `ecalli-test` show the operand/transfer
+builders driving multi-item flows.
+
+### Comparing byte output
+
+When a test verifies byte-shaped output, build the expected blob and compare
+both sides as hex via `Assert.isEqualBytes`. It diffs `actual.toString()` vs
+`expected.toString()`, so a failing assertion shows the full hex of both —
+debug-friendly even for long blobs.
+
+```typescript
+// ✅ One assertion, full hex on failure.
+assert.isEqualBytes(actual, BytesBlob.parseBlob("0xdeadbeef").okay!, "data");
+
+// ❌ Don't reach into .raw[i] / Uint8Array indices in assertions —
+// when one byte is wrong you only see one byte, not the surrounding context.
+assert.isEqual(actual.raw[0], 0xde, "byte 0");
+assert.isEqual(actual.raw[1], 0xad, "byte 1");
+```
+
+For `Bytes32` values, use `.bytes` (already a `BytesBlob`) instead of
+wrapping `.raw` in `BytesBlob.wrap(...)`:
+
+```typescript
+assert.isEqualBytes(decoded.codeHash.bytes, expected.codeHash.bytes, "codeHash");
+```
+
+When the expected bytes are an encoded structure, build the expected with
+`Encoder` so the test verifies the exact wire format:
+
+```typescript
+const expected = Encoder.create();
+expected.u32(2);
+expected.u32(3);
+const actual = BytesBlob.wrap(readFromMemory(somePtr, 8));
+assert.isEqualBytes(actual, expected.finish(), "two u32s");
+```
+
+Length checks (`assert.isEqual(blob.length, 33, ...)`) and numeric-field
+checks on decoded structs (`assert.isEqual(decoded.balance, 1000, ...)`) are
+not byte comparisons — leave those as-is.
+
 ## Configuring Ecalli Mocks
 
 By default the stubs provide sensible test values (e.g. `gas()` returns

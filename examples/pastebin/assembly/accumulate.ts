@@ -83,7 +83,7 @@ export function accumulate(ptr: u32, len: u32): u64 {
         // Ring buffer of recent pastes: write hash ‖ slot at recent:<head % N>,
         // then bump the head counter.
         const headBlob = storage.read(recentHeadKey());
-        const head: u32 = headBlob.isSome ? Decoder.fromBlob(headBlob.val!.raw).u32() : 0;
+        const head: u32 = headBlob.isSome ? Decoder.fromBytesBlob(headBlob.val!).u32() : 0;
         const entryEnc = Encoder.create(RECENT_ENTRY_LEN);
         entryEnc.bytes32(hash);
         entryEnc.u32(currentSlot);
@@ -121,7 +121,7 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
   if (cursorBlob.isSome) {
     const raw = cursorBlob.val!;
     if (raw.length !== 4) panic("cleanup cursor: expected 4 bytes");
-    cursor = Decoder.fromBlob(raw.raw).u32();
+    cursor = Decoder.fromBytesBlob(raw).u32();
   }
 
   // Walk at most CLEANUP_SLOTS_PER_CALL slots forward, bounded by currentSlot.
@@ -134,7 +134,7 @@ function runCleanup(storage: CurrentServiceData, preimages: AccumulatePreimages,
     if (!bucket.isSome) continue;
 
     // Bucket holds a packed list of 32-byte hashes — decode with the standard codec.
-    const d = Decoder.fromBlob(bucket.val!.raw);
+    const d = Decoder.fromBytesBlob(bucket.val!);
     const bucketLen = u32(bucket.val!.length);
     while (u32(d.bytesRead()) + 32 <= bucketLen) {
       const hash = d.bytes32();

@@ -69,7 +69,7 @@ function handleDemo(ctx: RefineContext, rest: BytesBlob): u64 {
     logger.warn(`refine demo: unknown library ${name.toString()}`);
     return ctx.respond(i64(LibraryError.UnknownLib));
   }
-  const entryDecoder = Decoder.fromBlob(stored.val!.raw);
+  const entryDecoder = Decoder.fromBytesBlob(stored.val!);
   const entryR = LibraryEntryCodec.create().decode(entryDecoder);
   if (entryR.isError || !entryDecoder.isFinished()) {
     logger.warn(`refine demo: malformed stored entry for ${name.toString()}`);

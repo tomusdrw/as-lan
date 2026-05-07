@@ -140,26 +140,14 @@ export const TESTS: Test[] = [
     const decoded = roundtrip<RefinementContext>(original, _refinementCtx, _refinementCtx);
 
     const assert = Assert.create();
-    assert.isEqualBytes(BytesBlob.wrap(decoded.anchor.raw), BytesBlob.wrap(bytes32Fill(0x01).raw), "anchor");
-    assert.isEqualBytes(BytesBlob.wrap(decoded.stateRoot.raw), BytesBlob.wrap(bytes32Fill(0x02).raw), "stateRoot");
-    assert.isEqualBytes(BytesBlob.wrap(decoded.beefyRoot.raw), BytesBlob.wrap(bytes32Fill(0x03).raw), "beefyRoot");
-    assert.isEqualBytes(
-      BytesBlob.wrap(decoded.lookupAnchor.raw),
-      BytesBlob.wrap(bytes32Fill(0x04).raw),
-      "lookupAnchor",
-    );
+    assert.isEqualBytes(decoded.anchor.bytes, bytes32Fill(0x01).bytes, "anchor");
+    assert.isEqualBytes(decoded.stateRoot.bytes, bytes32Fill(0x02).bytes, "stateRoot");
+    assert.isEqualBytes(decoded.beefyRoot.bytes, bytes32Fill(0x03).bytes, "beefyRoot");
+    assert.isEqualBytes(decoded.lookupAnchor.bytes, bytes32Fill(0x04).bytes, "lookupAnchor");
     assert.isEqual(decoded.timeslot, 12345, "timeslot");
     assert.isEqual(decoded.prerequisites.length, 2, "prereq count");
-    assert.isEqualBytes(
-      BytesBlob.wrap(decoded.prerequisites[0].raw),
-      BytesBlob.wrap(bytes32Fill(0x11).raw),
-      "prereq[0]",
-    );
-    assert.isEqualBytes(
-      BytesBlob.wrap(decoded.prerequisites[1].raw),
-      BytesBlob.wrap(bytes32Fill(0x22).raw),
-      "prereq[1]",
-    );
+    assert.isEqualBytes(decoded.prerequisites[0].bytes, bytes32Fill(0x11).bytes, "prereq[0]");
+    assert.isEqualBytes(decoded.prerequisites[1].bytes, bytes32Fill(0x22).bytes, "prereq[1]");
     return assert;
   }),
 
@@ -188,7 +176,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(decoded.serviceId, 42, "serviceId");
-    assert.isEqualBytes(BytesBlob.wrap(decoded.codeHash.raw), BytesBlob.wrap(bytes32Fill(0xab).raw), "codeHash");
+    assert.isEqualBytes(decoded.codeHash.bytes, bytes32Fill(0xab).bytes, "codeHash");
     assert.isEqual(decoded.gasRefine, 100000, "gasRefine");
     assert.isEqual(decoded.gasAccumulate, 50000, "gasAccumulate");
     assert.isEqual(decoded.exportCount, 3, "exportCount");
@@ -205,7 +193,7 @@ export const TESTS: Test[] = [
     const decoded = roundtrip<ImportRef>(original, _importRef, _importRef);
 
     const assert = Assert.create();
-    assert.isEqualBytes(BytesBlob.wrap(decoded.hash.raw), BytesBlob.wrap(bytes32Fill(0xcc).raw), "hash");
+    assert.isEqualBytes(decoded.hash.bytes, bytes32Fill(0xcc).bytes, "hash");
     assert.isEqual(decoded.isWorkPackageHash, false, "isWorkPackageHash");
     assert.isEqual(decoded.index, 7, "index");
     return assert;
@@ -228,7 +216,7 @@ export const TESTS: Test[] = [
     const decoded = roundtrip<ExtrinsicRef>(original, _extrinsicRef, _extrinsicRef);
 
     const assert = Assert.create();
-    assert.isEqualBytes(BytesBlob.wrap(decoded.hash.raw), BytesBlob.wrap(bytes32Fill(0xee).raw), "hash");
+    assert.isEqualBytes(decoded.hash.bytes, bytes32Fill(0xee).bytes, "hash");
     assert.isEqual(decoded.length, 4096, "length");
     return assert;
   }),
@@ -247,7 +235,7 @@ export const TESTS: Test[] = [
 
     const assert = Assert.create();
     assert.isEqual(decoded.serviceId, 99, "serviceId");
-    assert.isEqualBytes(BytesBlob.wrap(decoded.codeHash.raw), BytesBlob.wrap(bytes32Fill(0xab).raw), "codeHash");
+    assert.isEqualBytes(decoded.codeHash.bytes, bytes32Fill(0xab).bytes, "codeHash");
     assert.isEqualBytes(decoded.payload, payload, "payload");
     assert.isEqual(decoded.gasRefine, 500000, "gasRefine");
     assert.isEqual(decoded.gasAccumulate, 100000, "gasAccumulate");
@@ -312,11 +300,7 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     assert.isEqualBytes(decoded.authToken, authToken, "authToken");
     assert.isEqual(decoded.authServiceId, 10, "authServiceId");
-    assert.isEqualBytes(
-      BytesBlob.wrap(decoded.authCodeHash.raw),
-      BytesBlob.wrap(bytes32Fill(0xcc).raw),
-      "authCodeHash",
-    );
+    assert.isEqualBytes(decoded.authCodeHash.bytes, bytes32Fill(0xcc).bytes, "authCodeHash");
     assert.isEqualBytes(decoded.authConfig, authConfig, "authConfig");
     assert.isEqual(decoded.context.timeslot, 7777, "context.timeslot");
     assert.isEqual(decoded.workItems.length, 1, "workItem count");

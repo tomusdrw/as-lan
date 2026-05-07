@@ -71,7 +71,7 @@ export const TESTS: Test[] = [
     a.isEqual(TestMachine.pokeLogField(0, 2), 10, "poke length = ro length");
     const copied = BytesBlob.zero(10);
     TestMachine.pokeLogData(0, copied);
-    for (let i = 0; i < 10; i++) a.isEqual(copied.raw[i], u8(i + 1), `byte ${i.toString()}`);
+    a.isEqualBytes(copied, ro, "poked bytes");
     return a;
   }),
 

@@ -75,7 +75,7 @@ export class PasteDigest {
    */
   static decodeOrPanic(raw: BytesBlob): PasteDigest {
     if (raw.length < REFINE_OUTPUT_LEN) panic("PasteDigest: expected at least 36 bytes");
-    const d = Decoder.fromBlob(raw.raw);
+    const d = Decoder.fromBytesBlob(raw);
     const hash = d.bytes32();
     const length = d.u32();
     return new PasteDigest(hash, length);

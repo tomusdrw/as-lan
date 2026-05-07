@@ -1,86 +1,33 @@
-import {
-  AccumulateArgs,
-  AccumulateContext,
-  AccumulateItem,
-  Bytes32,
-  BytesBlob,
-  Decoder,
-  Encoder,
-  Operand,
-  PendingTransfer,
-  RefineArgs,
-  RefineContext,
-  Response,
-  WorkExecResult,
-  WorkExecResultKind,
-} from "@fluffylabs/as-lan";
-import { TestAccumulate, unpackResult } from "@fluffylabs/as-lan/test";
+import { AccumulateContext, BytesBlob, Decoder, Response } from "@fluffylabs/as-lan";
+import { AccumulateCall, OperandItem, RefineCall, TestAccumulate, TransferItem } from "@fluffylabs/as-lan/test";
 import { accumulate } from "./accumulate";
 import { refine } from "./refine";
 
-// Re-export SDK helpers for use by test files.
+// Re-export SDK helpers used by test files.
 export { Response } from "@fluffylabs/as-lan";
-export { strBlob, unpackResult } from "@fluffylabs/as-lan/test";
+export { strBlob } from "@fluffylabs/as-lan/test";
 
-// --- Refine helpers ---
-
-/** Call refine with the given ecalli dispatch payload. */
-export function callRefine(payload: Uint8Array): Response {
-  const ctx = RefineContext.create();
-  const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
-  const enc = Encoder.create();
-  ctx.refineArgs.encode(args, enc);
-  const encoded = enc.finishRaw();
-  const buf = new Uint8Array(encoded.length);
-  buf.set(encoded);
-  const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
-  return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
+/** Call refine with the given ecalli dispatch payload, returning the decoded Response. */
+export function callRefine(payload: BytesBlob): Response {
+  return RefineCall.create().call(refine, payload);
 }
 
-// --- Accumulate helpers ---
-
-const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
-
-/** Call accumulate with the given number of pre-set items. */
-export function callAccumulate(argsLength: u32): Uint8Array {
-  const ctx = AccumulateContext.create();
-  const args = AccumulateArgs.create(7, 42, argsLength);
-  const enc = Encoder.create();
-  ctx.accumulateArgs.encode(args, enc);
-  const encoded = enc.finishRaw();
-  const buf = new Uint8Array(encoded.length);
-  buf.set(encoded);
-  return unpackResult(accumulate(u32(buf.dataStart), buf.byteLength));
+/** Call accumulate with the given number of pre-seeded items, returning the raw response bytes. */
+export function callAccumulate(argsLength: u32): BytesBlob {
+  return AccumulateCall.create().call(accumulate, argsLength);
 }
 
-/** Encode a tagged transfer item. */
-export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64): Uint8Array {
-  const ctx = AccumulateContext.create();
-  const item = AccumulateItem.fromTransfer(PendingTransfer.create(source, dest, amount, BytesBlob.empty(), gas));
-  const enc = Encoder.create();
-  ctx.accumulateItem.encode(item, enc);
-  return enc.finishRaw();
+/** Build an encoded `AccumulateItem::PendingTransfer` blob with the given fields and an empty memo. */
+export function buildTransferItem(source: u32, dest: u32, amount: u64, gas: u64): BytesBlob {
+  return TransferItem.create().withSource(source).withDest(dest).withAmount(amount).withGas(gas).build();
 }
 
 /**
  * Set up an operand whose okBlob dispatches the given ecalli, then call accumulate.
  * Returns the decoded Response from the dispatch.
  */
-export function callAccumulateWithOperand(ecalliPayload: Uint8Array): Response {
-  const ctx = AccumulateContext.create();
-  const op = Operand.create(
-    ZERO_HASH,
-    ZERO_HASH,
-    ZERO_HASH,
-    ZERO_HASH,
-    100000,
-    WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.wrap(ecalliPayload)),
-    BytesBlob.empty(),
-  );
-  const enc = Encoder.create();
-  ctx.accumulateItem.encode(AccumulateItem.fromOperand(op), enc);
-  const item = enc.finishRaw();
-  TestAccumulate.setItem(0, item);
+export function callAccumulateWithOperand(ecalliPayload: BytesBlob): Response {
+  TestAccumulate.setItem(0, OperandItem.create().withOkBlob(ecalliPayload).build());
   const raw = callAccumulate(1);
-  return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
+  return AccumulateContext.create().response.decode(Decoder.fromBytesBlob(raw)).okay!;
 }
