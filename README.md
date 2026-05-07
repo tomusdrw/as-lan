@@ -46,6 +46,39 @@ npm run qa-fix
 
 The build produces both `.wasm` and `.pvm` (PolkaVM/JAM SPI binary) files in the `build/` directory of each service. The `.pvm` file is what gets deployed to JAM.
 
+## Docker image (`jammin-as-lan`)
+
+A pre-baked builder image is published to GHCR for use with [jammin]
+(https://github.com/fluffylabs/jammin) or any environment that needs a
+ready-to-run AssemblyScript + PVM toolchain:
+
+```bash
+docker pull ghcr.io/fluffylabs/jammin-as-lan:latest
+```
+
+The image ships with `wasm-pvm`, Node.js, and the following packages
+pre-installed globally — **no `npm install` required** for a service whose
+only `devDependencies` are these three:
+
+- `@fluffylabs/as-lan`
+- `@fluffylabs/as-lan-ecalli-mocks`
+- `assemblyscript`
+
+Mount your service source at `/app` and pass the build/test command:
+
+```bash
+docker run --rm -v "$(pwd):/app" ghcr.io/fluffylabs/jammin-as-lan:latest \
+    npm run build
+```
+
+If your `node_modules/` directory is absent at startup, the image's
+entrypoint symlinks the global install into `/app/node_modules` so `asc`
+can resolve `@fluffylabs/as-lan`. If you bring your own `node_modules`
+(e.g., installed on the host), it wins — the symlink is skipped.
+
+A service that depends on additional npm packages still has to install
+those itself.
+
 ## Releases
 
 Published packages on npm:
