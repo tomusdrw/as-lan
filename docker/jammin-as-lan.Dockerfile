@@ -2,13 +2,13 @@
 #
 # Builder image for the @fluffylabs/as-lan SDK, compatible with jammin.
 # Two-stage: stage 1 compiles wasm-pvm-cli from crates.io, stage 2 is a
-# minimal node:22-slim runtime carrying only the resulting binary.
+# minimal node:24-bookworm-slim runtime carrying only the resulting binary.
 
 # ---- Stage 1: build wasm-pvm ---------------------------------------------
 # Pinned to bookworm so the resulting binary's glibc requirements match the
-# runtime stage (node:22-slim, also bookworm). Unpinned `rust:1-slim` tracks
-# the current stable, which may drift to a newer Debian with a higher glibc
-# and produce binaries that fail at runtime with `GLIBC_X.Y not found`.
+# runtime stage (node:24-bookworm-slim). Unpinned `rust:1-slim` tracks the
+# current stable, which may drift to a newer Debian with a higher glibc and
+# produce binaries that fail at runtime with `GLIBC_X.Y not found`.
 FROM rust:1-slim-bookworm AS builder
 
 # wasm-pvm-cli needs llvm-18 headers + libpolly at compile time. Neither
@@ -41,7 +41,7 @@ RUN set -eux; \
 RUN cargo install wasm-pvm-cli@0.8.0 --locked
 
 # ---- Stage 2: runtime ----------------------------------------------------
-FROM node:22-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 # ca-certificates: npm registry TLS. git: npm deps pointing at git URLs.
 RUN set -eux; \
