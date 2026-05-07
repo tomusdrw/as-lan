@@ -1,4 +1,4 @@
-import { AccumulateContext, Bytes32, LogMsg, RefineContext } from "@fluffylabs/as-lan";
+import { AccumulateContext, Bytes32, LogMsg, RefineContext, Response } from "@fluffylabs/as-lan";
 
 // LogMsg is a lightweight buffer-based logger that avoids pulling in
 // AssemblyScript's String machinery (~24% smaller WASM than Logger).
@@ -26,7 +26,7 @@ export function refine(ptr: u32, len: u32): u64 {
   const ctx = RefineContext.create();
   const args = ctx.parseArgs(ptr, len);
   logger.str("Fibonacci Service Refine, ").u32(args.serviceId).info();
-  return args.payload.toPtrAndLen();
+  return Response.with(0, args.payload);
 }
 
 /// Calculate fibonacci number using accumulator pattern (iterative approach)

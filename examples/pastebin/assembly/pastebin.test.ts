@@ -1,7 +1,4 @@
 import {
-  AccumulateArgs,
-  AccumulateContext,
-  AccumulateItem,
   Bytes32,
   BytesBlob,
   blake2b256,
@@ -9,16 +6,15 @@ import {
   Decoder,
   EcalliResult,
   Encoder,
-  Operand,
   Preimages,
   RefineArgs,
   RefineContext,
-  Response,
-  WorkExecResult,
-  WorkExecResultKind,
 } from "@fluffylabs/as-lan";
 import {
+  AccumulateCall,
   Assert,
+  OperandItem,
+  RefineCall,
   Test,
   TestAccumulate,
   TestEcalli,
@@ -33,82 +29,39 @@ import { refine as dispatch } from "./index";
 import { refine } from "./refine";
 import { cleanupCursorKey, expiryKey, PasteDigest, PasteEntry, pasteKey } from "./storage";
 
-function callRefine(payload: Uint8Array): Response {
-  const ctx = RefineContext.create();
-  const args = RefineArgs.create(0, 0, 42, BytesBlob.wrap(payload), Bytes32.wrapUnchecked(new Uint8Array(32)));
-  const enc = Encoder.create();
-  ctx.refineArgs.encode(args, enc);
-  const encoded = enc.finishRaw();
-  const buf = new Uint8Array(encoded.length);
-  buf.set(encoded);
-  const raw = unpackResult(refine(u32(buf.dataStart), buf.byteLength));
-  return ctx.response.decode(Decoder.fromBlob(raw)).okay!;
-}
-
-const ZERO_HASH: Bytes32 = Bytes32.wrapUnchecked(new Uint8Array(32));
 const SERVICE_ID: u32 = 42;
 
-function buildOperandItem(okBlob: Uint8Array): Uint8Array {
-  const ctx = AccumulateContext.create();
-  const op = Operand.create(
-    ZERO_HASH,
-    ZERO_HASH,
-    ZERO_HASH,
-    ZERO_HASH,
-    100000,
-    WorkExecResult.create(WorkExecResultKind.Ok, BytesBlob.wrap(okBlob)),
-    BytesBlob.empty(),
-  );
-  const enc = Encoder.create();
-  ctx.accumulateItem.encode(AccumulateItem.fromOperand(op), enc);
-  return enc.finishRaw();
+/** Seed a single operand whose okBlob is the given paste digest, then run accumulate at `slot`. */
+function callAccumulateSingle(slot: u32, okBlob: BytesBlob): void {
+  TestAccumulate.setItem(0, OperandItem.create().withOkBlob(okBlob).build());
+  AccumulateCall.create().withSlot(slot).withServiceId(SERVICE_ID).call(accumulate, 1);
 }
 
-function callAccumulateSingle(slot: u32, okBlob: Uint8Array): void {
-  TestAccumulate.setItem(0, buildOperandItem(okBlob));
-
-  const ctx = AccumulateContext.create();
-  const args = AccumulateArgs.create(slot, SERVICE_ID, 1);
-  const enc = Encoder.create();
-  ctx.accumulateArgs.encode(args, enc);
-  const encoded = enc.finishRaw();
-  const buf = BytesBlob.wrap(encoded);
-  unpackResult(accumulate(buf.ptr(), buf.length));
-}
-
+/** Run accumulate at `slot` with no items (drives slot-bucket cleanup). */
 function callAccumulateEmpty(slot: u32): void {
-  const ctx = AccumulateContext.create();
-  const args = AccumulateArgs.create(slot, SERVICE_ID, 0);
-  const enc = Encoder.create();
-  ctx.accumulateArgs.encode(args, enc);
-  const encoded = enc.finishRaw();
-  const buf = BytesBlob.wrap(encoded);
-  unpackResult(accumulate(buf.ptr(), buf.length));
+  AccumulateCall.create().withSlot(slot).withServiceId(SERVICE_ID).call(accumulate, 0);
 }
 
-function buildOkBlob(hash: Uint8Array, length: u32): Uint8Array {
-  return PasteDigest.create(Bytes32.wrapUnchecked(hash), length).encode().raw;
+/** Build an okBlob = PasteDigest(hash, length). */
+function buildOkBlob(hash: Uint8Array, length: u32): BytesBlob {
+  return PasteDigest.create(Bytes32.wrapUnchecked(hash), length).encode();
 }
 
 export const TESTS: Test[] = [
   test("refine hashes payload and emits (hash ‖ length_LE)", () => {
-    const payload = new Uint8Array(4);
-    payload[0] = 0xde;
-    payload[1] = 0xad;
-    payload[2] = 0xbe;
-    payload[3] = 0xef;
-    const resp = callRefine(payload);
+    const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
+    const resp = RefineCall.create().call(refine, payload);
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "result");
     assert.isEqual(resp.data.length, REFINE_OUTPUT_LEN, "data.length");
     if (resp.data.length !== REFINE_OUTPUT_LEN) return assert;
     const op = PasteDigest.decodeOrPanic(resp.data);
-    assert.isEqualBytes(op.hash.bytes, BytesBlob.wrap(blake2b256(payload)), "hash");
+    assert.isEqualBytes(op.hash.bytes, BytesBlob.wrap(blake2b256(payload.raw)), "hash");
     assert.isEqual(op.length, <u32>4, "length_LE");
     return assert;
   }),
   test("refine handles empty payload", () => {
-    const resp = callRefine(new Uint8Array(0));
+    const resp = RefineCall.create().call(refine, BytesBlob.empty());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "result");
     assert.isEqual(resp.data.length, REFINE_OUTPUT_LEN, "data.length");
@@ -122,9 +75,9 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const assert = Assert.create();
 
-    const payload = new Uint8Array(8);
-    for (let i = 0; i < 8; i += 1) payload[i] = u8(i);
-    const hashBytes = blake2b256(payload);
+    const payload = BytesBlob.zero(8);
+    for (let i = 0; i < 8; i += 1) payload.raw[i] = u8(i);
+    const hashBytes = blake2b256(payload.raw);
     const okBlob = buildOkBlob(hashBytes, 8);
 
     callAccumulateSingle(123, okBlob);
@@ -148,12 +101,8 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const assert = Assert.create();
 
-    const payload = new Uint8Array(4);
-    payload[0] = 1;
-    payload[1] = 2;
-    payload[2] = 3;
-    payload[3] = 4;
-    const hashBytes = blake2b256(payload);
+    const payload = BytesBlob.parseBlob("0x01020304").okay!;
+    const hashBytes = blake2b256(payload.raw);
     const okBlob = buildOkBlob(hashBytes, 4);
 
     callAccumulateSingle(100, okBlob);
@@ -175,10 +124,8 @@ export const TESTS: Test[] = [
     TestEcalli.reset();
     const assert = Assert.create();
 
-    const payload = new Uint8Array(2);
-    payload[0] = 0xaa;
-    payload[1] = 0xbb;
-    const hashBytes = blake2b256(payload);
+    const payload = BytesBlob.parseBlob("0xaabb").okay!;
+    const hashBytes = blake2b256(payload.raw);
     const okBlob = buildOkBlob(hashBytes, 2);
 
     // Insert at slot 10 → scheduled to expire at slot 10 + TTL_SLOTS = 1010.
@@ -206,7 +153,7 @@ export const TESTS: Test[] = [
       const cursorVal = cursorStored.val!;
       assert.isEqual(<u32>cursorVal.length, <u32>4, "cursor blob length");
       if (cursorVal.length === 4) {
-        assert.isEqual(Decoder.fromBlob(cursorVal.raw).u32(), <u32>1048, "cursor value");
+        assert.isEqual(Decoder.fromBytesBlob(cursorVal).u32(), <u32>1048, "cursor value");
       }
     }
 
@@ -217,23 +164,23 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
 
     // 10-byte payload [0xc0..0xc9].
-    const payload = new Uint8Array(10);
-    for (let i: u32 = 0; i < 10; i += 1) payload[i] = u8(0xc0 + i);
-    const hashBytes = blake2b256(payload);
+    const payload = BytesBlob.zero(10);
+    for (let i: u32 = 0; i < 10; i += 1) payload.raw[i] = u8(0xc0 + i);
+    const hashBytes = blake2b256(payload.raw);
     const okBlob = buildOkBlob(hashBytes, 10);
 
     // Accumulate: inserts paste entry + calls solicit.
     callAccumulateSingle(50, okBlob);
 
     // Simulate extrinsic delivery (CE 142 gossip + xtpreimages inclusion).
-    TestLookup.setAttachedPreimage(Bytes32.wrapUnchecked(hashBytes), BytesBlob.wrap(payload));
+    TestLookup.setAttachedPreimage(Bytes32.wrapUnchecked(hashBytes), payload);
 
     // Service-visible lookup via the lookup ecalli.
     const preimages = Preimages.create();
     const looked = preimages.lookup(Bytes32.wrapUnchecked(hashBytes));
     assert.isEqual(looked.isSome, true, "preimage looked up");
     if (!looked.isSome) return assert;
-    assert.isEqualBytes(looked.val!, BytesBlob.wrap(payload), "looked-up blob");
+    assert.isEqualBytes(looked.val!, payload, "looked-up blob");
     return assert;
   }),
   test("index.ts dispatch routes len==2 to is_authorized, else to refine", () => {
@@ -241,33 +188,26 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
 
     // len == 2: is_authorized path. Payload is a u16 coreIndex; 0x0000 is fine.
-    const coreIndex = new Uint8Array(2);
-    const authRaw = unpackResult(dispatch(u32(coreIndex.dataStart), coreIndex.byteLength));
+    const coreIndex = BytesBlob.zero(2);
+    const authRaw = unpackResult(dispatch(coreIndex.ptr(), coreIndex.length));
     const authResp = RefineContext.create().response.decode(Decoder.fromBlob(authRaw)).okay!;
     assert.isEqual(authResp.result, 0, "is_authorized result");
     assert.isEqual(<u32>authResp.data.length, <u32>0, "is_authorized has no data");
 
     // len > 2: the refine path. Build a proper RefineArgs encoding and verify
     // the dispatch returns the same 36-byte okBlob that calling refine directly would.
-    const payload = new Uint8Array(4);
-    payload[0] = 0xde;
-    payload[1] = 0xad;
-    payload[2] = 0xbe;
-    payload[3] = 0xef;
-    const refResp = callRefine(payload); // goes via refine() directly
+    const payload = BytesBlob.parseBlob("0xdeadbeef").okay!;
+    const refResp = RefineCall.create().withServiceId(SERVICE_ID).call(refine, payload);
 
     // Now call the same bytes via the dispatch function.
-    const refArgs = RefineArgs.create(0, 0, SERVICE_ID, BytesBlob.wrap(payload), ZERO_HASH);
+    const refArgs = RefineArgs.create(0, 0, SERVICE_ID, payload, Bytes32.zero());
     const enc = Encoder.create();
     RefineContext.create().refineArgs.encode(refArgs, enc);
-    const encoded = enc.finishRaw();
-    const buf = new Uint8Array(encoded.length);
-    buf.set(encoded);
-    const dispRaw = unpackResult(dispatch(u32(buf.dataStart), buf.byteLength));
+    const buf = enc.finish();
+    const dispRaw = unpackResult(dispatch(buf.ptr(), buf.length));
     const dispResp = RefineContext.create().response.decode(Decoder.fromBlob(dispRaw)).okay!;
 
     assert.isEqual(dispResp.result, refResp.result, "dispatch result matches direct refine");
-    assert.isEqual(dispResp.data.length, refResp.data.length, "dispatch data length matches");
     assert.isEqualBytes(dispResp.data, refResp.data, "dispatch data matches refine");
     return assert;
   }),
@@ -276,12 +216,8 @@ export const TESTS: Test[] = [
     TestPreimages.setSolicitResult(EcalliResult.FULL);
     const assert = Assert.create();
 
-    const payload = new Uint8Array(4);
-    payload[0] = 1;
-    payload[1] = 2;
-    payload[2] = 3;
-    payload[3] = 4;
-    const hashBytes = blake2b256(payload);
+    const payload = BytesBlob.parseBlob("0x01020304").okay!;
+    const hashBytes = blake2b256(payload.raw);
     const okBlob = buildOkBlob(hashBytes, 4);
 
     callAccumulateSingle(77, okBlob);
@@ -298,16 +234,10 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
 
     // Two distinct payloads inserted at the same slot share an expiry bucket.
-    const a = new Uint8Array(3);
-    a[0] = 1;
-    a[1] = 2;
-    a[2] = 3;
-    const b = new Uint8Array(3);
-    b[0] = 9;
-    b[1] = 8;
-    b[2] = 7;
-    const hashA = blake2b256(a);
-    const hashB = blake2b256(b);
+    const a = BytesBlob.parseBlob("0x010203").okay!;
+    const b = BytesBlob.parseBlob("0x090807").okay!;
+    const hashA = blake2b256(a.raw);
+    const hashB = blake2b256(b.raw);
     const okA = buildOkBlob(hashA, 3);
     const okB = buildOkBlob(hashB, 3);
 

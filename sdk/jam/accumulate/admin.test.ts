@@ -1,4 +1,6 @@
 import { Bytes32, BytesBlob } from "../../core/bytes";
+import { Encoder } from "../../core/codec/encode";
+import { readFromMemory } from "../../core/mem";
 import { EcalliResult } from "../../ecalli";
 import { TestEcalli, TestPrivileged } from "../../test/test-ecalli";
 import { Assert, Test, test } from "../../test/utils";
@@ -23,14 +25,18 @@ export const TESTS: Test[] = [
     a.isEqual(TestPrivileged.getLastBlessAutoAccumCount(), 1, "autoAccum count");
 
     // Verify assigners encoding: [2, 3] → 2 × u32 LE = 8 bytes
-    const aPtr = TestPrivileged.getLastBlessAssignersPtr();
-    a.isEqual(load<u32>(aPtr), 2, "assigners[0] = 2");
-    a.isEqual(load<u32>(aPtr + 4), 3, "assigners[1] = 3");
+    const assignersEnc = Encoder.create();
+    assignersEnc.u32(2);
+    assignersEnc.u32(3);
+    const assignersActual = BytesBlob.wrap(readFromMemory(TestPrivileged.getLastBlessAssignersPtr(), 8));
+    a.isEqualBytes(assignersActual, assignersEnc.finish(), "assigners");
 
     // Verify autoAccumulate encoding: [{ serviceId: 100, gas: 500 }] → u32 LE + u64 LE = 12 bytes
-    const aaPtr = TestPrivileged.getLastBlessAutoAccumPtr();
-    a.isEqual(load<u32>(aaPtr), 100, "autoAccum[0].serviceId = 100");
-    a.isEqual(load<u64>(aaPtr + 4), 500, "autoAccum[0].gas = 500");
+    const autoAccumEnc = Encoder.create();
+    autoAccumEnc.u32(100);
+    autoAccumEnc.u64(500);
+    const autoAccumActual = BytesBlob.wrap(readFromMemory(TestPrivileged.getLastBlessAutoAccumPtr(), 12));
+    a.isEqualBytes(autoAccumActual, autoAccumEnc.finish(), "autoAccum[0]");
     return a;
   }),
 
@@ -149,9 +155,11 @@ export const TESTS: Test[] = [
     a.isEqual(TestPrivileged.getLastAssignNewAssigner(), CURRENT_SERVICE, "default newAssigner = CURRENT_SERVICE");
 
     // Verify auth queue encoding: 2 × Bytes32 = 64 bytes, sequential
-    const ptr = TestPrivileged.getLastAssignAuthQueuePtr();
-    a.isEqual(load<u8>(ptr), 0xaa, "hash1[0] = 0xaa");
-    a.isEqual(load<u8>(ptr + 32), 0xbb, "hash2[0] = 0xbb");
+    const authQueueEnc = Encoder.create();
+    authQueueEnc.bytesFixLen(hash1.bytes);
+    authQueueEnc.bytesFixLen(hash2.bytes);
+    const authQueueActual = BytesBlob.wrap(readFromMemory(TestPrivileged.getLastAssignAuthQueuePtr(), 64));
+    a.isEqualBytes(authQueueActual, authQueueEnc.finish(), "authQueue");
     return a;
   }),
 
@@ -223,11 +231,13 @@ export const TESTS: Test[] = [
     a.isEqual(result.isOkay, true, "should be ok");
 
     // Verify validators encoding: Ed25519(32) + Bandersnatch(32) + BLS(144) + metadata(128) = 336 bytes
-    const ptr = TestPrivileged.getLastDesignateValidatorsPtr();
-    a.isEqual(load<u8>(ptr), 0xe0, "ed25519[0] = 0xe0");
-    a.isEqual(load<u8>(ptr + 32), 0xb0, "bandersnatch[0] = 0xb0");
-    a.isEqual(load<u8>(ptr + 64), 0xbb, "bls[0] = 0xbb");
-    a.isEqual(load<u8>(ptr + 64 + 144), 0xaa, "metadata[0] = 0xaa");
+    const validatorsEnc = Encoder.create();
+    validatorsEnc.bytesFixLen(ed.bytes);
+    validatorsEnc.bytesFixLen(band.bytes);
+    validatorsEnc.bytesFixLen(bls);
+    validatorsEnc.bytesFixLen(meta);
+    const validatorsActual = BytesBlob.wrap(readFromMemory(TestPrivileged.getLastDesignateValidatorsPtr(), 336));
+    a.isEqualBytes(validatorsActual, validatorsEnc.finish(), "validators");
     return a;
   }),
 

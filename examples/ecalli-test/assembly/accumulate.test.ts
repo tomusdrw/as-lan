@@ -21,15 +21,16 @@ export const TESTS: Test[] = [
     TestAccumulate.setItem(0, item);
     const raw = callAccumulate(1);
     const accCtx = AccumulateContext.create();
-    const resp = accCtx.response.decode(Decoder.fromBlob(raw)).okay!;
+    const resp = accCtx.response.decode(Decoder.fromBytesBlob(raw)).okay!;
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "transfer result OK");
-    // Transfer data encoded as: source(u32) + dest(u32) + amount(u64) + gas(u64)
-    const d = Decoder.fromBlob(resp.data.raw);
-    assert.isEqual(d.u32(), 99, "transfer source");
-    assert.isEqual(d.u32(), 42, "transfer dest");
-    assert.isEqual(d.u64(), 500, "transfer amount");
-    assert.isEqual(d.u64(), 10000, "transfer gas");
+    // Transfer data is re-encoded as: source(u32) + dest(u32) + amount(u64) + gas(u64).
+    const expected = Encoder.create();
+    expected.u32(99);
+    expected.u32(42);
+    expected.u64(500);
+    expected.u64(10000);
+    assert.isEqualBytes(resp.data, expected.finish(), "transfer payload");
     return assert;
   }),
 
@@ -47,7 +48,7 @@ export const TESTS: Test[] = [
     p.bytesVarLen(BytesBlob.empty()); // auto_accum
     p.varU64(0); // auto_accum_count
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "bless returns OK");
     return assert;
@@ -60,7 +61,7 @@ export const TESTS: Test[] = [
     p.bytesVarLen(BytesBlob.empty()); // auth_queue
     p.varU64(1); // assigners
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "assign returns OK");
     return assert;
@@ -71,7 +72,7 @@ export const TESTS: Test[] = [
     p.varU64(EcalliIndex.Designate);
     p.bytesVarLen(BytesBlob.empty()); // validators
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "designate returns OK");
     return assert;
@@ -81,7 +82,7 @@ export const TESTS: Test[] = [
     const p = Encoder.create();
     p.varU64(EcalliIndex.Checkpoint);
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 1000000, "checkpoint returns gas");
     return assert;
@@ -97,7 +98,7 @@ export const TESTS: Test[] = [
     p.varU64(0); // gratis_storage
     p.varU64(u64(u32.MAX_VALUE)); // requested_id (auto)
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 256, "new_service returns service ID 256");
     return assert;
@@ -110,7 +111,7 @@ export const TESTS: Test[] = [
     p.varU64(100000); // gas
     p.varU64(50000); // allowance
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "upgrade returns OK");
     return assert;
@@ -124,7 +125,7 @@ export const TESTS: Test[] = [
     p.varU64(1000); // gas_fee
     p.bytesVarLen(BytesBlob.zero(128)); // memo
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "transfer returns OK");
     return assert;
@@ -136,7 +137,7 @@ export const TESTS: Test[] = [
     p.varU64(99); // service to eject
     p.bytesFixLen(BytesBlob.zero(32)); // prev_code_hash
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "eject returns OK");
     return assert;
@@ -148,7 +149,7 @@ export const TESTS: Test[] = [
     p.bytesFixLen(BytesBlob.zero(32)); // hash
     p.varU64(64); // length
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, -1, "query returns NONE");
     assert.isEqual(resp.data.raw.length, 8, "query returns r8");
@@ -161,7 +162,7 @@ export const TESTS: Test[] = [
     p.bytesFixLen(BytesBlob.zero(32)); // hash
     p.varU64(64); // length
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "solicit returns OK");
     return assert;
@@ -173,7 +174,7 @@ export const TESTS: Test[] = [
     p.bytesFixLen(BytesBlob.zero(32)); // hash
     p.varU64(64); // length
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "forget returns OK");
     return assert;
@@ -184,7 +185,7 @@ export const TESTS: Test[] = [
     p.varU64(EcalliIndex.YieldResult);
     p.bytesFixLen(BytesBlob.parseBlob("0xff00000000000000000000000000000000000000000000000000000000000000").okay!);
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "yield_result returns OK");
     return assert;
@@ -198,7 +199,7 @@ export const TESTS: Test[] = [
     preimage[0] = 0xab;
     p.bytesVarLen(BytesBlob.wrap(preimage));
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "provide returns OK");
     return assert;
@@ -214,13 +215,13 @@ export const TESTS: Test[] = [
     p.bytesFixLen(BytesBlob.zero(32));
     p.varU64(64);
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 100, "query returns preimage length");
-    assert.isEqual(resp.data.raw.length, 8, "r8 output length");
-    // r8=7 in little-endian: 0x07 0x00 ...
-    assert.isEqual(resp.data.raw[0], 7, "r8 byte 0 (slot1)");
-    assert.isEqual(resp.data.raw[1], 0, "r8 byte 1");
+    // r8 = 7 encoded as u64 LE.
+    const expected = Encoder.create();
+    expected.u64(7);
+    assert.isEqualBytes(resp.data, expected.finish(), "r8 output");
     return assert;
   }),
 
@@ -234,7 +235,7 @@ export const TESTS: Test[] = [
     p1.varU64(50000);
     p1.varU64(0);
     p1.varU64(u64(u32.MAX_VALUE));
-    const resp1 = callAccumulateWithOperand(p1.finishRaw());
+    const resp1 = callAccumulateWithOperand(p1.finish());
 
     const p2 = Encoder.create();
     p2.varU64(EcalliIndex.NewService);
@@ -244,7 +245,7 @@ export const TESTS: Test[] = [
     p2.varU64(50000);
     p2.varU64(0);
     p2.varU64(u64(u32.MAX_VALUE));
-    const resp2 = callAccumulateWithOperand(p2.finishRaw());
+    const resp2 = callAccumulateWithOperand(p2.finish());
 
     const assert = Assert.create();
     assert.isEqual(resp1.result, 256, "first new_service returns ID 256");
@@ -263,7 +264,7 @@ export const TESTS: Test[] = [
     p.bytesVarLen(BytesBlob.empty()); // auto_accum
     p.varU64(5); // auto_accum_count
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "bless returns OK");
     assert.isEqual(TestPrivileged.getLastBlessManager(), 10, "manager");
@@ -281,7 +282,7 @@ export const TESTS: Test[] = [
     p.bytesVarLen(BytesBlob.empty()); // auth_queue
     p.varU64(42); // new_assigner
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "assign returns OK");
     assert.isEqual(TestPrivileged.getLastAssignCore(), 7, "core");
@@ -297,7 +298,7 @@ export const TESTS: Test[] = [
     p.varU64(200000); // gas
     p.varU64(100000); // allowance
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, 0, "upgrade returns OK");
     assert.isEqual(TestServices.getLastUpgradeGas(), 200000, "gas");
@@ -312,7 +313,7 @@ export const TESTS: Test[] = [
     p.bytesFixLen(BytesBlob.zero(32));
     p.varU64(64);
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, -9, "solicit returns HUH");
     return assert;
@@ -327,7 +328,7 @@ export const TESTS: Test[] = [
     p.varU64(1000);
     p.bytesVarLen(BytesBlob.zero(128));
 
-    const resp = callAccumulateWithOperand(p.finishRaw());
+    const resp = callAccumulateWithOperand(p.finish());
     const assert = Assert.create();
     assert.isEqual(resp.result, -1, "transfer returns LOW");
     return assert;

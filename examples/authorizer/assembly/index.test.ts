@@ -11,31 +11,31 @@ function encodeCoreIndex(coreIndex: u16): BytesBlob {
 }
 
 /** Call is_authorized with the given core index, returning the raw output bytes. */
-function callAuthorize(coreIndex: u16): Uint8Array {
+function callAuthorize(coreIndex: u16): BytesBlob {
   const args = encodeCoreIndex(coreIndex);
   const result = is_authorized(args.ptr(), args.length);
-  return unpackResult(result);
+  return BytesBlob.wrap(unpackResult(result));
 }
 
-/** Convert a string to ASCII bytes. */
-function strToBytes(s: string): Uint8Array {
-  return BytesBlob.encodeAscii(s).raw;
+/** Build the expected authorizer output: "Auth=<" + token + ">". */
+function expectedOutput(token: BytesBlob): BytesBlob {
+  const enc = Encoder.create();
+  enc.bytesFixLen(BytesBlob.encodeAscii("Auth=<"));
+  enc.bytesFixLen(token);
+  enc.bytesFixLen(BytesBlob.encodeAscii(">"));
+  return enc.finish();
 }
 
 export const TESTS: Test[] = [
   test("authorize succeeds when token matches config", () => {
     TestEcalli.reset();
-    const token = strToBytes("hello");
-    TestFetch.setDataForKind(8, token);
-    TestFetch.setDataForKind(9, token);
+    const token = BytesBlob.encodeAscii("hello");
+    TestFetch.setDataForKind(8, token.raw);
+    TestFetch.setDataForKind(9, token.raw);
 
     const result = callAuthorize(3);
     const a = Assert.create();
-    const expected = strToBytes("Auth=<hello>");
-    a.isEqual(result.length, expected.length, "result length");
-    for (let i = 0; i < expected.length; i++) {
-      a.isEqual(result[i], expected[i], `byte[${i}]`);
-    }
+    a.isEqualBytes(result, expectedOutput(token), "auth output");
     return a;
   }),
 
@@ -47,20 +47,7 @@ export const TESTS: Test[] = [
 
     const result = callAuthorize(7);
     const a = Assert.create();
-    // "Auth=<" + 4 raw bytes + ">"
-    a.isEqual(result.length, 11, "result length");
-    // prefix "Auth=<"
-    const prefix = strToBytes("Auth=<");
-    for (let i = 0; i < prefix.length; i++) {
-      a.isEqual(result[i], prefix[i], `prefix[${i}]`);
-    }
-    // raw token bytes
-    a.isEqual(result[6], 0xde, "token[0]");
-    a.isEqual(result[7], 0xad, "token[1]");
-    a.isEqual(result[8], 0xbe, "token[2]");
-    a.isEqual(result[9], 0xef, "token[3]");
-    // suffix ">"
-    a.isEqual(result[10], 0x3e, "suffix >");
+    a.isEqualBytes(result, expectedOutput(token), "auth output");
     return a;
   }),
 
@@ -72,11 +59,7 @@ export const TESTS: Test[] = [
 
     const result = callAuthorize(0);
     const a = Assert.create();
-    const expected = strToBytes("Auth=<>");
-    a.isEqual(result.length, expected.length, "result length");
-    for (let i = 0; i < expected.length; i++) {
-      a.isEqual(result[i], expected[i], `byte[${i}]`);
-    }
+    a.isEqualBytes(result, expectedOutput(token), "auth output");
     return a;
   }),
 ];

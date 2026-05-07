@@ -1,16 +1,28 @@
-import { Bytes32, BytesBlob, Decoder, Encoder, InvokeIo, Machine } from "@fluffylabs/as-lan";
-import { Assert, Test, TestHistoricalLookup, TestMachine, TestStorage, test } from "@fluffylabs/as-lan/test";
+import { Bytes32, BytesBlob, Decoder, Encoder, InvokeIo, Machine, Response } from "@fluffylabs/as-lan";
+import {
+  Assert,
+  RefineCall,
+  Test,
+  TestHistoricalLookup,
+  TestMachine,
+  TestStorage,
+  test,
+} from "@fluffylabs/as-lan/test";
 import { AdminCommand, AdminCommandCodec, AdminCommandKind } from "./admin";
+import { refine } from "./refine";
 import { LibraryEntry, LibraryEntryCodec, libraryKey } from "./storage";
-import { callRefine } from "./test-helpers";
 
-function buildDemoInput(name: string, gas: u64, payload: BytesBlob): Uint8Array {
+function buildDemoInput(name: string, gas: u64, payload: BytesBlob): BytesBlob {
   const enc = Encoder.create();
   enc.u8(0); // demo tag
   enc.bytesVarLen(BytesBlob.encodeAscii(name));
   enc.u64(gas);
   enc.bytesVarLen(payload);
-  return enc.finishRaw();
+  return enc.finish();
+}
+
+function callRefine(payload: BytesBlob): Response {
+  return RefineCall.create().call(refine, payload);
 }
 
 /**
@@ -70,7 +82,7 @@ export const TESTS: Test[] = [
     assert.isEqual(bytes.length, 36, "encoded length");
 
     const decoded = codec.decode(Decoder.fromBlob(bytes)).okay!;
-    assert.isEqual(decoded.hash.raw[0], 0x42, "hash byte 0");
+    assert.isEqualBytes(decoded.hash.bytes, hash.bytes, "hash");
     assert.isEqual(decoded.length, 1024, "length");
     return assert;
   }),
@@ -95,7 +107,7 @@ export const TESTS: Test[] = [
     const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
     assert.isEqual<u32>(decoded.kind, AdminCommandKind.SetMapping, "kind");
     assert.isEqualBytes(decoded.name!, BytesBlob.encodeAscii("ed25519"), "name");
-    assert.isEqual(decoded.hash!.raw[0], 0xaa, "hash");
+    assert.isEqualBytes(decoded.hash!.bytes, hash.bytes, "hash");
     assert.isEqual(decoded.length, 4096, "length");
     return assert;
   }),
@@ -124,7 +136,7 @@ export const TESTS: Test[] = [
     codec.encode(cmd, enc);
     const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
     assert.isEqual<u32>(decoded.kind, AdminCommandKind.Solicit, "kind");
-    assert.isEqual(decoded.hash!.raw[0], 0xbb, "hash");
+    assert.isEqualBytes(decoded.hash!.bytes, hash.bytes, "hash");
     assert.isEqual(decoded.length, 2048, "length");
     return assert;
   }),
@@ -140,7 +152,7 @@ export const TESTS: Test[] = [
     codec.encode(cmd, enc);
     const decoded = codec.decode(Decoder.fromBlob(enc.finishRaw())).okay!;
     assert.isEqual<u32>(decoded.kind, AdminCommandKind.Forget, "kind");
-    assert.isEqual(decoded.hash!.raw[0], 0xcc, "hash");
+    assert.isEqualBytes(decoded.hash!.bytes, hash.bytes, "hash");
     assert.isEqual(decoded.length, 512, "length");
     return assert;
   }),
@@ -170,14 +182,14 @@ export const TESTS: Test[] = [
 
   test("refine: unknown tag returns -106", () => {
     const assert = Assert.create();
-    const resp = callRefine(BytesBlob.parseBlob("0x99").okay!.raw); // tag=0x99 unknown
+    const resp = callRefine(BytesBlob.parseBlob("0x99").okay!); // tag=0x99 unknown
     assert.isEqual(resp.result, -106, "result");
     return assert;
   }),
 
   test("refine: empty payload returns -106", () => {
     const assert = Assert.create();
-    const resp = callRefine(new Uint8Array(0));
+    const resp = callRefine(BytesBlob.empty());
     assert.isEqual(resp.result, -106, "result");
     return assert;
   }),
@@ -190,15 +202,15 @@ export const TESTS: Test[] = [
     const codec = AdminCommandCodec.create();
     const body = Encoder.create();
     codec.encode(cmd, body);
-    const bodyBytes = body.finishRaw();
+    const bodyBlob = body.finish();
 
     const input = Encoder.create();
     input.u8(1); // admin tag
-    input.bytesFixLen(BytesBlob.wrap(bodyBytes));
+    input.bytesFixLen(bodyBlob);
 
-    const resp = callRefine(input.finishRaw());
+    const resp = callRefine(input.finish());
     assert.isEqual(resp.result, 0, "ok");
-    assert.isEqualBytes(resp.data, BytesBlob.wrap(bodyBytes), "canonical body");
+    assert.isEqualBytes(resp.data, bodyBlob, "canonical body");
     return assert;
   }),
 
@@ -211,9 +223,9 @@ export const TESTS: Test[] = [
 
     const input = Encoder.create();
     input.u8(1); // admin tag
-    input.bytesFixLen(BytesBlob.wrap(body.finishRaw()));
+    input.bytesFixLen(body.finish());
     input.u8(0xff); // trailing junk
-    const resp = callRefine(input.finishRaw());
+    const resp = callRefine(input.finish());
     assert.isEqual(resp.result, -105, "trailing bytes rejected");
     return assert;
   }),
@@ -223,7 +235,7 @@ export const TESTS: Test[] = [
     const input = Encoder.create();
     input.u8(1); // admin tag
     input.u8(0x99); // unknown AdminCommand tag
-    const resp = callRefine(input.finishRaw());
+    const resp = callRefine(input.finish());
     assert.isEqual(resp.result, -105, "malformed");
     return assert;
   }),
@@ -232,9 +244,9 @@ export const TESTS: Test[] = [
     const assert = Assert.create();
     seedLibraryMapping("ok", 0x01, 16);
     const valid = buildDemoInput("ok", 1000, BytesBlob.empty());
-    const withTrail = new Uint8Array(valid.length + 1);
-    withTrail.set(valid, 0);
-    withTrail[valid.length] = 0xff;
+    const withTrail = BytesBlob.zero(valid.length + 1);
+    withTrail.raw.set(valid.raw, 0);
+    withTrail.raw[valid.length] = 0xff;
     const resp = callRefine(withTrail);
     assert.isEqual(resp.result, -106, "trailing bytes after demo payload rejected");
     return assert;
@@ -327,7 +339,7 @@ export const TESTS: Test[] = [
 
     const resp = callRefine(buildDemoInput("panic", 1000, BytesBlob.empty()));
     assert.isEqual(resp.result, -103, "invoke failure");
-    const dec = Decoder.fromBlob(resp.data.raw);
+    const dec = Decoder.fromBytesBlob(resp.data);
     assert.isEqual(dec.u8(), u8(1), "reason = Panic");
     assert.isEqual(dec.u64(), u64(42), "r8 value preserved");
     assert.isEqual(dec.isError, false, "body decodes cleanly");
