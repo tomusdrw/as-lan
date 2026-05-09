@@ -12,8 +12,11 @@
 # Track ownership and remove the symlink in an EXIT trap so a successful
 # run leaves the host directory untouched. SIGINT/SIGTERM are also
 # trapped (docker stop hits us with SIGTERM after a 10s grace period).
-# SIGKILL is uncatchable — abruptly killed containers may still leak.
+# SIGKILL is uncatchable — abruptly killed containers may still leak,
+# so we also adopt any pre-existing symlink that points at our managed
+# target on entry, letting a later successful run clean up the leak.
 
+MANAGED_LINK_TARGET=/usr/local/lib/node_modules
 CREATED_LINK=
 
 cleanup() {
@@ -25,8 +28,15 @@ trap cleanup EXIT
 trap 'cleanup; exit 130' INT
 trap 'cleanup; exit 143' TERM
 
-if [ ! -e /app/node_modules ]; then
-    ln -s /usr/local/lib/node_modules /app/node_modules
+# Adopt a leftover from a SIGKILLed prior run if it points at the same
+# target we'd create — readlink returns the literal string we wrote, so
+# an exact match means it's ours. Anything else (user-supplied dir,
+# user-created symlink to somewhere else) is left alone.
+if [ -L /app/node_modules ] \
+        && [ "$(readlink /app/node_modules)" = "$MANAGED_LINK_TARGET" ]; then
+    CREATED_LINK=1
+elif [ ! -e /app/node_modules ] && [ ! -L /app/node_modules ]; then
+    ln -s "$MANAGED_LINK_TARGET" /app/node_modules
     CREATED_LINK=1
 fi
 

@@ -159,6 +159,41 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke test — entrypoint adopts orphan managed symlink
+        run: |
+          set -eux
+          # Recovery path for SIGKILLed prior runs. SIGKILL bypasses our
+          # EXIT/INT/TERM traps, so the managed symlink leaks onto the
+          # host. The entrypoint should treat any /app/node_modules link
+          # whose target matches our managed path as ours and clean it
+          # up on the next successful run.
+          stub=$(mktemp -d)
+          ln -s /usr/local/lib/node_modules "$stub/node_modules"
+          docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
+            true
+          if [ -L "$stub/node_modules" ] || [ -e "$stub/node_modules" ]; then
+            echo "::error::orphan managed symlink not reclaimed by entrypoint"
+            ls -la "$stub"
+            exit 1
+          fi
+
+      - name: Smoke test — entrypoint leaves user-supplied node_modules alone
+        run: |
+          set -eux
+          # If the user mounts a real node_modules at /app, the entrypoint
+          # must not delete it on exit. Same for a user-created symlink
+          # pointing somewhere we don't manage.
+          stub=$(mktemp -d)
+          mkdir "$stub/node_modules"
+          touch "$stub/node_modules/MARKER"
+          docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
+            true
+          if [ ! -f "$stub/node_modules/MARKER" ]; then
+            echo "::error::entrypoint clobbered user-supplied node_modules"
+            ls -la "$stub"
+            exit 1
+          fi
+
       - name: Report uncompressed image size
         run: |
           docker image inspect "${{ inputs.primary-tag }}" \
