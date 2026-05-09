@@ -182,14 +182,31 @@ jobs:
           set -eux
           # If the user mounts a real node_modules at /app, the entrypoint
           # must not delete it on exit. Same for a user-created symlink
-          # pointing somewhere we don't manage.
+          # pointing at a target we don't manage.
           stub=$(mktemp -d)
+
+          # Subcase 1: real directory.
           mkdir "$stub/node_modules"
           touch "$stub/node_modules/MARKER"
           docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
             true
           if [ ! -f "$stub/node_modules/MARKER" ]; then
-            echo "::error::entrypoint clobbered user-supplied node_modules"
+            echo "::error::entrypoint clobbered user-supplied node_modules dir"
+            ls -la "$stub"
+            exit 1
+          fi
+          rm -rf "$stub/node_modules"
+
+          # Subcase 2: user-created symlink to a non-managed target. The
+          # entrypoint must not adopt or remove it (target string differs
+          # from /usr/local/lib/node_modules).
+          mkdir "$stub/user-target"
+          touch "$stub/user-target/MARKER"
+          ln -s "$stub/user-target" "$stub/node_modules"
+          docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
+            true
+          if [ ! -L "$stub/node_modules" ] || [ ! -f "$stub/node_modules/MARKER" ]; then
+            echo "::error::entrypoint clobbered user-supplied node_modules symlink"
             ls -la "$stub"
             exit 1
           fi

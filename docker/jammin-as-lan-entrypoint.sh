@@ -20,7 +20,13 @@ MANAGED_LINK_TARGET=/usr/local/lib/node_modules
 CREATED_LINK=
 
 cleanup() {
-    if [ -n "$CREATED_LINK" ] && [ -L /app/node_modules ]; then
+    # Re-check the target on exit too: the command may have repointed the
+    # link mid-run (unlikely for asc/wasm-pvm, but cheap to guard against).
+    # Only remove a symlink that still matches what we'd have created, so
+    # ownership doesn't silently transfer if the user took over.
+    if [ -n "$CREATED_LINK" ] \
+            && [ -L /app/node_modules ] \
+            && [ "$(readlink /app/node_modules)" = "$MANAGED_LINK_TARGET" ]; then
         rm -f /app/node_modules
     fi
 }
