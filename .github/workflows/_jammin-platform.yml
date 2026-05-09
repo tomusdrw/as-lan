@@ -128,6 +128,37 @@ jobs:
           docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
             npm run asbuild
 
+      - name: Smoke test — pvm-adapter.wat reachable from /app/node_modules
+        run: |
+          set -eux
+          # jammin's default `pvm` script invokes wasm-pvm with
+          # `--adapter node_modules/@fluffylabs/as-lan/pvm-adapter.wat`,
+          # a relative path resolved from the service cwd (/app). This
+          # regresses if the SDK is installed via a path that bypasses the
+          # `prepack` hook (e.g. `npm install -g <localdir>` without
+          # packing first), because pvm-adapter.wat is staged into the
+          # package by prepack.
+          stub=$(mktemp -d)
+          docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
+            test -f node_modules/@fluffylabs/as-lan/pvm-adapter.wat
+
+      - name: Smoke test — entrypoint cleans up /app/node_modules symlink
+        run: |
+          set -eux
+          # /app is bind-mounted, so any symlink the entrypoint creates
+          # there leaks onto the host. Verify the entrypoint removes it
+          # on exit, otherwise users see a dangling
+          # services/<svc>/node_modules -> /usr/local/lib/node_modules
+          # link that breaks subsequent host-side `npm install`.
+          stub=$(mktemp -d)
+          docker run --rm -v "$stub:/app" "${{ inputs.primary-tag }}" \
+            true
+          if [ -L "$stub/node_modules" ] || [ -e "$stub/node_modules" ]; then
+            echo "::error::entrypoint left node_modules behind in bind-mounted /app"
+            ls -la "$stub"
+            exit 1
+          fi
+
       - name: Report uncompressed image size
         run: |
           docker image inspect "${{ inputs.primary-tag }}" \

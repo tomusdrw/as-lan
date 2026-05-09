@@ -69,10 +69,20 @@ RUN cd /opt/as-lan/sdk-ecalli-mocks \
 # Read assemblyscript version from sdk/package.json so the image's asc
 # matches what the SDK is tested against. --omit=dev keeps SDK devDeps
 # (like the file:../sdk-ecalli-mocks alias) out of the global install.
-RUN ASC_VERSION=$(node -p \
-        "require('/opt/as-lan/sdk/package.json').devDependencies.assemblyscript") \
-    && npm install -g --omit=dev \
-        /opt/as-lan/sdk \
+#
+# `npm install -g <localdir>` symlinks the source folder and skips the
+# `prepack` lifecycle, so files staged into the package by prepack (here:
+# pvm-adapter.wat, copied from the repo root) never reach the global
+# install. Pack the SDK first so the install matches the published
+# tarball — prepack runs, the .wat lands inside the package, and
+# `--adapter node_modules/@fluffylabs/as-lan/pvm-adapter.wat` from a
+# downstream service resolves.
+RUN set -eux; \
+    cd /opt/as-lan/sdk && npm pack; \
+    ASC_VERSION=$(node -p \
+        "require('/opt/as-lan/sdk/package.json').devDependencies.assemblyscript"); \
+    npm install -g --omit=dev \
+        /opt/as-lan/sdk/fluffylabs-as-lan-*.tgz \
         /opt/as-lan/sdk-ecalli-mocks \
         "assemblyscript@$ASC_VERSION"
 
@@ -84,10 +94,13 @@ WORKDIR /app
 
 # AssemblyScript's compiler (`asc`) resolves `import "@fluffylabs/as-lan"` by
 # walking up looking for a `node_modules/` directory — it does NOT honor
-# NODE_PATH. So at container start we symlink the global install location
-# to /app/node_modules unless the mount already supplied one. The symlink
-# only lives in the container's writable layer; --rm cleans it up.
-ENTRYPOINT ["/bin/sh", "-c", "[ -e /app/node_modules ] || ln -s /usr/local/lib/node_modules /app/node_modules; exec \"$@\"", "--"]
+# NODE_PATH. The entrypoint symlinks the global install to /app/node_modules
+# unless the mount already supplied one, then removes the symlink on exit so
+# the bind-mounted host directory isn't left with a dangling pointer into
+# the container's filesystem.
+COPY docker/jammin-as-lan-entrypoint.sh /usr/local/bin/jammin-as-lan-entrypoint
+RUN chmod +x /usr/local/bin/jammin-as-lan-entrypoint
+ENTRYPOINT ["/usr/local/bin/jammin-as-lan-entrypoint"]
 
 # jammin passes the command to `docker run` directly, so no behavior change
 # for it. The default CMD prints usage and exits 64 (EX_USAGE) when the
