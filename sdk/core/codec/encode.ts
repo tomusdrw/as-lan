@@ -39,7 +39,11 @@ export class Encoder {
     return new Encoder(buffer, false);
   }
 
-  private dataView: DataView;
+  // Cached pointer + capacity of `data`. Refreshed on every grow. Direct
+  // `store<T>` writes here avoid the `DataView` object allocation and the
+  // per-write bounds-checked accessor calls.
+  private ptr: usize;
+  private cap: u32;
   private offset: u32 = 0;
   private _isError: boolean = false;
 
@@ -47,22 +51,25 @@ export class Encoder {
     private data: Uint8Array,
     private readonly growable: boolean,
   ) {
-    this.dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    this.ptr = data.dataStart;
+    this.cap = <u32>data.length;
   }
 
   /** Whether writing has overflowed the buffer (fixed-size mode only). */
+  @inline
   get isError(): boolean {
     return this._isError;
   }
 
   /** Return the number of bytes written so far. */
+  @inline
   bytesWritten(): u32 {
     return this.offset;
   }
 
   /** Return the encoded bytes, trimmed to the actual length. */
   finishRaw(): Uint8Array {
-    if (this.data.length === this.offset) {
+    if (<u32>this.data.length === this.offset) {
       return this.data;
     }
     return this.data.subarray(0, this.offset);
@@ -76,36 +83,36 @@ export class Encoder {
   /** Encode a single byte. */
   u8(value: u8): void {
     if (!this.ensureCapacity(1)) return;
-    this.dataView.setUint8(this.offset, value);
+    store<u8>(this.ptr + this.offset, value);
     this.offset += 1;
   }
 
   /** Encode two bytes (little-endian). */
   u16(value: u16): void {
     if (!this.ensureCapacity(2)) return;
-    this.dataView.setUint16(this.offset, value, true);
+    store<u16>(this.ptr + this.offset, value);
     this.offset += 2;
   }
 
   /** Encode three bytes (little-endian). */
   u24(value: u32): void {
     if (!this.ensureCapacity(3)) return;
-    this.dataView.setUint16(this.offset, u16(value & 0xffff), true);
-    this.dataView.setUint8(this.offset + 2, u8((value >> 16) & 0xff));
+    store<u16>(this.ptr + this.offset, u16(value & 0xffff));
+    store<u8>(this.ptr + this.offset + 2, u8((value >> 16) & 0xff));
     this.offset += 3;
   }
 
   /** Encode 4 bytes (little-endian). */
   u32(value: u32): void {
     if (!this.ensureCapacity(4)) return;
-    this.dataView.setUint32(this.offset, value, true);
+    store<u32>(this.ptr + this.offset, value);
     this.offset += 4;
   }
 
   /** Encode 8 bytes (little-endian). */
   u64(value: u64): void {
     if (!this.ensureCapacity(8)) return;
-    this.dataView.setUint64(this.offset, value, true);
+    store<u64>(this.ptr + this.offset, value);
     this.offset += 8;
   }
 
@@ -124,9 +131,9 @@ export class Encoder {
 
     if (l === 8) {
       if (!this.ensureCapacity(9)) return;
-      this.dataView.setUint8(this.offset, 0xff);
+      store<u8>(this.ptr + this.offset, 0xff);
       this.offset += 1;
-      this.dataView.setUint64(this.offset, value, true);
+      store<u64>(this.ptr + this.offset, value);
       this.offset += 8;
       return;
     }
@@ -135,12 +142,12 @@ export class Encoder {
     // First byte: prefix mask | high bits of value
     const shifted = value >> (8 * l);
     const prefix = u8(2 ** 8 - 2 ** (8 - l));
-    this.dataView.setUint8(this.offset, prefix | u8(shifted));
+    store<u8>(this.ptr + this.offset, prefix | u8(shifted));
     this.offset += 1;
 
     // Remaining l bytes: low bits, little-endian
     for (let i: u8 = 0; i < l; i += 1) {
-      this.dataView.setUint8(this.offset, u8(value >> (8 * i)));
+      store<u8>(this.ptr + this.offset, u8(value >> (8 * i)));
       this.offset += 1;
     }
   }
@@ -152,12 +159,12 @@ export class Encoder {
 
   /** Encode a fixed-length sequence of bytes. */
   bytesFixLen(value: BytesBlob): void {
-    const len = value.length;
+    const len = <u32>value.length;
     if (len === 0) {
       return;
     }
     if (!this.ensureCapacity(len)) return;
-    this.data.set(value.raw, this.offset);
+    memory.copy(this.ptr + this.offset, value.raw.dataStart, len);
     this.offset += len;
   }
 
@@ -199,23 +206,27 @@ export class Encoder {
    * Ensure the internal buffer has room for `bytes` more bytes.
    * Returns true if space is available, false if the buffer is full (fixed-size mode).
    */
+  @inline
   private ensureCapacity(bytes: u32): boolean {
     if (this._isError) {
       return false;
     }
 
-    const remaining = <u32>this.data.length - this.offset;
-    if (bytes <= remaining) {
+    if (bytes <= this.cap - this.offset) {
       return true;
     }
 
+    return this.grow(bytes);
+  }
+
+  private grow(bytes: u32): boolean {
     if (!this.growable) {
       this._isError = true;
       return false;
     }
 
     const required = this.offset + bytes;
-    let newCapacity = <u32>this.data.length;
+    let newCapacity = this.cap;
     if (newCapacity === 0) {
       newCapacity = DEFAULT_CAPACITY;
     }
@@ -224,9 +235,10 @@ export class Encoder {
     }
 
     const newData = new Uint8Array(newCapacity);
-    newData.set(this.data.subarray(0, this.offset));
+    memory.copy(newData.dataStart, this.ptr, this.offset);
     this.data = newData;
-    this.dataView = new DataView(newData.buffer, 0, newCapacity);
+    this.ptr = newData.dataStart;
+    this.cap = newCapacity;
     return true;
   }
 }

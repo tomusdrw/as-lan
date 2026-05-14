@@ -158,12 +158,16 @@ export class Bytes32 {
   }
 }
 
-const CODE_OF_0: i32 = "0".charCodeAt(0);
-const CODE_OF_9: i32 = "9".charCodeAt(0);
-const CODE_OF_a: i32 = "a".charCodeAt(0);
-const CODE_OF_f: i32 = "f".charCodeAt(0);
-const CODE_OF_A: i32 = "A".charCodeAt(0);
-const CODE_OF_F: i32 = "F".charCodeAt(0);
+// ASCII codes for '0', '9', 'a', 'f', 'A', 'F'. Inlined here rather than
+// derived from `"0".charCodeAt(0)` etc. — AS evaluates `charCodeAt` at
+// module-init (`~start`), which re-runs on every PVM invocation and
+// emits dead `String#charCodeAt` calls into every service.
+const CODE_OF_0: i32 = 0x30;
+const CODE_OF_9: i32 = 0x39;
+const CODE_OF_a: i32 = 0x61;
+const CODE_OF_f: i32 = 0x66;
+const CODE_OF_A: i32 = 0x41;
+const CODE_OF_F: i32 = 0x46;
 const VALUE_OF_A: i32 = 0xa;
 
 function byteFromString(s: string): U8WithError {
