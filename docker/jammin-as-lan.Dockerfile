@@ -86,6 +86,18 @@ RUN set -eux; \
         /opt/as-lan/sdk-ecalli-mocks \
         "assemblyscript@$ASC_VERSION"
 
+# AssemblyScript's ESM bindings emit `import * as __import0 from "ecalli"` —
+# literally the WASM import namespace from `@external("ecalli", …)`. No
+# `ecalli` package exists on npm; templates work around it with a
+# `"ecalli": "npm:@fluffylabs/as-lan-ecalli-mocks"` alias resolved by
+# `npm install`. This image deliberately skips `npm install` in mounted
+# services, so the alias never materializes — symlink the mocks under the
+# expected name. TODO: long-term, rename the import namespace to a scoped
+# name (e.g. "@fluffylabs/as-lan-ecalli") so consumers don't depend on a
+# generic top-level module.
+RUN ln -s /usr/local/lib/node_modules/@fluffylabs/as-lan-ecalli-mocks \
+          /usr/local/lib/node_modules/ecalli
+
 # Make globally-installed packages discoverable to Node code (test runners,
 # build scripts) without a local node_modules.
 ENV NODE_PATH=/usr/local/lib/node_modules
