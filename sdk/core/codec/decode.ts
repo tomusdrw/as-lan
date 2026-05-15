@@ -37,20 +37,27 @@ export class Decoder {
     return new Decoder(source.raw);
   }
 
-  private readonly dataView: DataView;
+  // Cached pointer + length of `source`. With `--runtime=stub` the bump
+  // allocator never moves objects, so `dataStart` is stable for the life
+  // of the decoder. Direct `load<T>` writes avoid the DataView allocation
+  // and per-read bounds-checked accessor calls.
+  private readonly ptr: usize;
+  private readonly srcLen: u32;
   private _isError: boolean = false;
 
   private constructor(
     public readonly source: Uint8Array,
     private offset: u32 = 0,
   ) {
-    this.dataView = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    this.ptr = source.dataStart;
+    this.srcLen = <u32>source.length;
   }
 
   /**
    * If the decoder turns into error state, the last value was not decoded properly
    * and might be garbage.
    */
+  @inline
   get isError(): boolean {
     return this._isError;
   }
@@ -68,6 +75,7 @@ export class Decoder {
    * Return the number of bytes read from the source
    * (i.e. current offset within the source).
    */
+  @inline
   bytesRead(): u32 {
     return this.offset;
   }
@@ -76,7 +84,7 @@ export class Decoder {
   u8(): u8 {
     const offset = this.moveOffset(1);
     if (offset !== -1) {
-      return this.dataView.getUint8(offset);
+      return load<u8>(this.ptr + offset);
     }
     return 0;
   }
@@ -85,7 +93,7 @@ export class Decoder {
   u16(): u16 {
     const offset = this.moveOffset(2);
     if (offset !== -1) {
-      return this.dataView.getUint16(offset, true);
+      return load<u16>(this.ptr + offset);
     }
     return 0;
   }
@@ -94,9 +102,9 @@ export class Decoder {
   u24(): u32 {
     const offset = this.moveOffset(3);
     if (offset !== -1) {
-      const lo = this.dataView.getUint16(offset, true);
-      const hi = this.dataView.getUint8(offset + 2);
-      return u32(lo) | (u32(hi) << 16);
+      const lo = <u32>load<u16>(this.ptr + offset);
+      const hi = <u32>load<u8>(this.ptr + offset + 2);
+      return lo | (hi << 16);
     }
     return 0;
   }
@@ -105,7 +113,7 @@ export class Decoder {
   u32(): u32 {
     const offset = this.moveOffset(4);
     if (offset !== -1) {
-      return this.dataView.getUint32(offset, true);
+      return load<u32>(this.ptr + offset);
     }
     return 0;
   }
@@ -114,7 +122,7 @@ export class Decoder {
   u64(): u64 {
     const offset = this.moveOffset(8);
     if (offset !== -1) {
-      return this.dataView.getUint64(offset, true);
+      return load<u64>(this.ptr + offset);
     }
     return 0;
   }
@@ -141,7 +149,7 @@ export class Decoder {
       return 0;
     }
 
-    const firstByte = this.source[offset];
+    const firstByte = load<u8>(this.ptr + offset);
     const l = decodeVariableLengthExtraBytes(firstByte);
 
     if (l === 0) {
@@ -154,12 +162,12 @@ export class Decoder {
     }
 
     if (l === 8) {
-      return this.dataView.getUint64(offset, true);
+      return load<u64>(this.ptr + offset);
     }
 
     let num = (u64(firstByte) + 2 ** (8 - l) - 2 ** 8) << (8 * l);
-    for (let i = 0; i < <i32>l; i += 1) {
-      num |= u64(this.source[offset + i]) << (8 * i);
+    for (let i: u32 = 0; i < <u32>l; i += 1) {
+      num |= u64(load<u8>(this.ptr + offset + i)) << (8 * i);
     }
     return num;
   }
@@ -282,7 +290,7 @@ export class Decoder {
    */
   isFinished(): boolean {
     // TODO [ToDr] set isError?
-    return this.offset === this.source.length;
+    return this.offset === this.srcLen;
   }
 
   // Progress the offset, but return the previous offset or -1 if not enough bytes.
@@ -296,8 +304,9 @@ export class Decoder {
     return -1;
   }
 
+  @inline
   private hasBytes(bytes: u32): boolean {
-    return bytes <= <u32>this.source.length - this.offset;
+    return bytes <= this.srcLen - this.offset;
   }
 }
 
