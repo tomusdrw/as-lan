@@ -35,10 +35,10 @@ RUN set -eux; \
         libpolly-18-dev; \
     rm -rf /var/lib/apt/lists/*
 
-# Pin to 0.8.0 with --locked for reproducible builds.
+# Pin to 0.9.0 with --locked for reproducible builds.
 # $CARGO_HOME is /usr/local/cargo in the official rust image, so the
 # resulting binary lands at /usr/local/cargo/bin/wasm-pvm.
-RUN cargo install wasm-pvm-cli@0.8.0 --locked
+RUN cargo install wasm-pvm-cli@0.9.0 --locked
 
 # ---- Stage 2: runtime ----------------------------------------------------
 FROM node:24-bookworm-slim AS runtime
