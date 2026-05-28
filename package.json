@@ -20,7 +20,7 @@
   "author": "Fluffy Labs",
   "license": "MPL-2.0",
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
+    "@biomejs/biome": "^2.4.16",
     "assemblyscript": "^0.28.17"
   },
   "type": "module"
